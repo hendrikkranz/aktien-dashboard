@@ -1,6 +1,5 @@
-import pandas as pd
 import streamlit as st
-
+from utils.data_loader import load_portfolio
 st.set_page_config(
     page_title="Mein Aktien-Dashboard",
     page_icon="📈",
@@ -10,32 +9,7 @@ st.set_page_config(
 st.title("📈 Mein Aktien-Dashboard")
 st.caption("Depotübersicht auf Basis meiner CSV-Datei")
 
-@st.cache_data
-def load_data():
-    return pd.read_csv(
-        "depot_watchlist.csv",
-        sep=";",
-        decimal=",",
-        encoding="utf-8-sig",
-    )
-
-df = load_data()
-
-numeric_columns = [
-    "Stück",
-    "Kaufkurs",
-    "Kaufwert EUR",
-    "Spesen EUR",
-    "Aktueller Kurs",
-    "Aktueller Wert EUR",
-    "Gewinn Verlust EUR",
-    "Gewinn Verlust Prozent",
-    "Gewichtung Prozent",
-]
-
-for column in numeric_columns:
-    if column in df.columns:
-        df[column] = pd.to_numeric(df[column], errors="coerce")
+df = load_portfolio()
 
 gesamtwert = df["Aktueller Wert EUR"].sum()
 kaufwert = df["Kaufwert EUR"].sum()
