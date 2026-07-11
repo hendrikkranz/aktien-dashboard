@@ -14,7 +14,9 @@ def load_live_prices(tickers):
             if history.empty:
                 prices[ticker] = None
             else:
-                prices[ticker] = float(history["Close"].dropna().iloc[-1])
+                prices[ticker] = float(
+                    history["Close"].dropna().iloc[-1]
+                )
 
         except Exception:
             prices[ticker] = None
@@ -51,12 +53,18 @@ def load_portfolio():
             )
 
     if "Ticker" not in df.columns:
-    df["Live-Kurs"] = pd.NA
-    return df
+        df["Live-Kurs"] = pd.NA
+        return df
 
-    tickers = df["Ticker"].dropna().astype(str).tolist()
+    tickers = (
+        df["Ticker"]
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .tolist()
+    )
+
     live_prices = load_live_prices(tickers)
-
     df["Live-Kurs"] = df["Ticker"].map(live_prices)
 
     return df
