@@ -68,7 +68,11 @@ sortierung = st.selectbox(
         "Live Gewinn Verlust Prozent",
         "Live Gewinn Verlust EUR",
         "Name",
-    ],
+        "Dividendenrendite Prozent",
+        "KGV",
+        "Forward KGV",
+        "Umsatzwachstum Prozent",
+        "Gewinnwachstum Prozent",    ],
 )
 
 aufsteigend = st.checkbox("Aufsteigend sortieren", value=False)
@@ -89,6 +93,12 @@ st.dataframe(
             "Stück",
             "Kaufkurs",
             "Live-Kurs",
+            "Dividendenrendite Prozent",
+            "KGV",
+            "Forward KGV",
+            "Umsatzwachstum Prozent",
+            "Gewinnwachstum Prozent",
+            "Ausschüttungsquote Prozent",
             "Live-Währung",
             "Live-Kurs EUR",
             "Berechneter Wert EUR",
