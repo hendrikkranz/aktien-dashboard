@@ -3,6 +3,8 @@ import streamlit as st
 import yfinance as yf
 
 from utils.fundamentals import load_fundamentals
+
+
 @st.cache_data(ttl=1800)
 def load_live_data(tickers):
     live_data = {}
@@ -45,19 +47,23 @@ def load_fx_rates():
 
     try:
         eur_usd = yf.Ticker("EURUSD=X").history(period="5d")
+
         if not eur_usd.empty:
             rates["USD"] = 1 / float(
                 eur_usd["Close"].dropna().iloc[-1]
             )
+
     except Exception:
         pass
 
     try:
         eur_sgd = yf.Ticker("EURSGD=X").history(period="5d")
+
         if not eur_sgd.empty:
             rates["SGD"] = 1 / float(
                 eur_sgd["Close"].dropna().iloc[-1]
             )
+
     except Exception:
         pass
 
@@ -96,6 +102,7 @@ def load_portfolio():
         df["Live-Kurs"] = pd.NA
         df["Live-Währung"] = pd.NA
         df["Live-Kurs EUR"] = pd.NA
+
         return df
 
     tickers = (
@@ -105,6 +112,7 @@ def load_portfolio():
         .str.strip()
         .tolist()
     )
+
     fundamentals = load_fundamentals(tickers)
     live_data = load_live_data(tickers)
     fx_rates = load_fx_rates()
@@ -133,7 +141,8 @@ def load_portfolio():
         ),
         axis=1,
     )
-        fundamental_columns = [
+
+    fundamental_columns = [
         "Dividendenrendite Prozent",
         "KGV",
         "Forward KGV",
