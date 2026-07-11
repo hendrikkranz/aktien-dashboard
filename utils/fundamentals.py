@@ -41,7 +41,13 @@ def load_fundamentals(tickers):
                     * 100
                 )
             elif dividend_yield is not None:
-                dividend_yield_percent = float(dividend_yield)
+                raw_yield = float(dividend_yield)
+
+                dividend_yield_percent = (
+                    raw_yield / 100
+                    if raw_yield > 20
+                    else raw_yield
+                )
             else:
                 dividend_yield_percent = pd.NA
 
