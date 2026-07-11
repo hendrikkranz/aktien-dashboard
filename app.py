@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.data_loader import load_portfolio
+from utils.scoring import calculate_score
 st.set_page_config(
     page_title="Mein Aktien-Dashboard",
     page_icon="📈",
@@ -46,7 +47,7 @@ df["Live Gewichtung Prozent"] = (
     / gesamtwert
     * 100
 )
-
+df["Score"] = df.apply(calculate_score, axis=1)
 col1, col2, col3, col4 = st.columns(4)
 
 col1.metric("Depotwert", f"{gesamtwert:,.2f} €")
@@ -61,11 +62,12 @@ st.subheader("Depotpositionen")
 sortierung = st.selectbox(
     "Sortieren nach",
     [
-    "Live Gewichtung Prozent",
-    "Berechneter Wert EUR",
-    "Live Gewinn Verlust Prozent",
-    "Live Gewinn Verlust EUR",
-    "Name",
+        "Score",
+        "Live Gewichtung Prozent",
+        "Berechneter Wert EUR",
+        "Live Gewinn Verlust Prozent",
+        "Live Gewinn Verlust EUR",
+        "Name",
     ],
 )
 
@@ -80,6 +82,7 @@ st.dataframe(
     anzeige_df[
         [
             "Name",
+            "Score",
             "Ticker",
             "Typ",
             "WKN",
@@ -96,6 +99,38 @@ st.dataframe(
     ],
     use_container_width=True,
     hide_index=True,
+    column_config={
+        "Score": st.column_config.ProgressColumn(
+            "Score",
+            min_value=0,
+            max_value=100,
+            format="%d",
+        ),
+        "Live-Kurs": st.column_config.NumberColumn(
+            "Live-Kurs",
+            format="%.2f",
+        ),
+        "Live-Kurs EUR": st.column_config.NumberColumn(
+            "Live-Kurs EUR",
+            format="%.2f €",
+        ),
+        "Berechneter Wert EUR": st.column_config.NumberColumn(
+            "Depotwert",
+            format="%.2f €",
+        ),
+        "Live Gewinn Verlust EUR": st.column_config.NumberColumn(
+            "Gewinn/Verlust",
+            format="%.2f €",
+        ),
+        "Live Gewinn Verlust Prozent": st.column_config.NumberColumn(
+            "Rendite",
+            format="%.2f %%",
+        ),
+        "Live Gewichtung Prozent": st.column_config.NumberColumn(
+            "Gewichtung",
+            format="%.2f %%",
+        ),
+    },
 )
 st.divider()
 
