@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 import yfinance as yf
 
+from utils.analyst_data import load_analyst_targets
 from utils.fundamentals import load_fundamentals
 
 
@@ -9,7 +10,7 @@ from utils.fundamentals import load_fundamentals
 def load_live_data(tickers):
     live_data = {}
 
-    for ticker in tickers:
+    for ticker in sorted(set(tickers)):
         try:
             stock = yf.Ticker(ticker)
             history = stock.history(period="5d")
@@ -103,18 +104,28 @@ def load_portfolio():
         df["Live-Währung"] = pd.NA
         df["Live-Kurs EUR"] = pd.NA
 
+        df["Analystenziel"] = pd.NA
+        df["Analystenziel EUR"] = pd.NA
+        df["Analystenpotenzial Prozent"] = pd.NA
+
         return df
+
+    df["Ticker"] = (
+        df["Ticker"]
+        .astype("string")
+        .str.strip()
+    )
 
     tickers = (
         df["Ticker"]
         .dropna()
-        .astype(str)
-        .str.strip()
+        .loc[lambda values: values.ne("")]
         .tolist()
     )
 
     fundamentals = load_fundamentals(tickers)
     live_data = load_live_data(tickers)
+    analyst_targets = load_analyst_targets(tickers)
     fx_rates = load_fx_rates()
 
     df["Live-Kurs"] = df["Ticker"].map(
@@ -142,6 +153,40 @@ def load_portfolio():
         axis=1,
     )
 
+    df["Analystenziel"] = df["Ticker"].map(
+        lambda ticker: analyst_targets.get(
+            ticker,
+            {},
+        ).get("mean")
+    )
+
+    df["Analystenziel EUR"] = df.apply(
+        lambda row: (
+            row["Analystenziel"]
+            * fx_rates.get(row["Live-Währung"])
+            if pd.notna(row["Analystenziel"])
+            and fx_rates.get(row["Live-Währung"]) is not None
+            else pd.NA
+        ),
+        axis=1,
+    )
+
+    df["Analystenpotenzial Prozent"] = df.apply(
+        lambda row: (
+            (
+                row["Analystenziel"]
+                / row["Live-Kurs"]
+                - 1
+            )
+            * 100
+            if pd.notna(row["Analystenziel"])
+            and pd.notna(row["Live-Kurs"])
+            and row["Live-Kurs"] > 0
+            else pd.NA
+        ),
+        axis=1,
+    )
+
     fundamental_columns = [
         "Dividendenrendite Prozent",
         "KGV",
@@ -159,4 +204,5 @@ def load_portfolio():
             ).get(column, pd.NA)
         )
 
+    return df
     return df
