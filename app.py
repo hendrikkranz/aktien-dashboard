@@ -92,15 +92,11 @@ st.dataframe(
             "Live Gewinn Verlust EUR",
             "Live Gewinn Verlust Prozent",
             "Live Gewichtung Prozent",
+        ]
     ],
     use_container_width=True,
     hide_index=True,
 )
-    ],
-    use_container_width=True,
-    hide_index=True,
-)
-
 st.divider()
 
 linke_spalte, rechte_spalte = st.columns(2)
@@ -121,15 +117,14 @@ with rechte_spalte:
 
     performance = (
         df.sort_values(
-    "Live Gewinn Verlust Prozent",
-    ascending=False,
-)
-.head(10)
-.set_index("Name")["Live Gewinn Verlust Prozent"]
+            "Live Gewinn Verlust Prozent",
+            ascending=False,
+        )
+        .head(10)
+        .set_index("Name")["Live Gewinn Verlust Prozent"]
     )
 
     st.bar_chart(performance)
-
 st.divider()
 
 st.subheader("Risikohinweise")
