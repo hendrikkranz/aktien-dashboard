@@ -1,6 +1,9 @@
 import streamlit as st
+
 from utils.data_loader import load_portfolio
 from utils.scoring import calculate_score
+
+
 st.set_page_config(
     page_title="Mein Aktien-Dashboard",
     page_icon="📈",
@@ -47,7 +50,9 @@ df["Live Gewichtung Prozent"] = (
     / gesamtwert
     * 100
 )
+
 df["Score"] = df.apply(calculate_score, axis=1)
+
 col1, col2, col3, col4 = st.columns(4)
 
 col1.metric("Depotwert", f"{gesamtwert:,.2f} €")
@@ -63,6 +68,8 @@ sortierung = st.selectbox(
     "Sortieren nach",
     [
         "Score",
+        "Analystenpotenzial Prozent",
+        "Analystenziel EUR",
         "Live Gewichtung Prozent",
         "Berechneter Wert EUR",
         "Live Gewinn Verlust Prozent",
@@ -72,14 +79,19 @@ sortierung = st.selectbox(
         "KGV",
         "Forward KGV",
         "Umsatzwachstum Prozent",
-        "Gewinnwachstum Prozent",    ],
+        "Gewinnwachstum Prozent",
+    ],
 )
 
-aufsteigend = st.checkbox("Aufsteigend sortieren", value=False)
+aufsteigend = st.checkbox(
+    "Aufsteigend sortieren",
+    value=False,
+)
 
 anzeige_df = df.sort_values(
     by=sortierung,
     ascending=aufsteigend,
+    na_position="last",
 )
 
 st.dataframe(
@@ -93,6 +105,9 @@ st.dataframe(
             "Stück",
             "Kaufkurs",
             "Live-Kurs",
+            "Analystenziel",
+            "Analystenziel EUR",
+            "Analystenpotenzial Prozent",
             "Dividendenrendite Prozent",
             "KGV",
             "Forward KGV",
@@ -120,28 +135,63 @@ st.dataframe(
             "Live-Kurs",
             format="%.2f",
         ),
+        "Analystenziel": st.column_config.NumberColumn(
+            "Analystenziel",
+            help=(
+                "Durchschnittliches Analysten-Kursziel "
+                "in der Handelswährung"
+            ),
+            format="%.2f",
+        ),
+        "Analystenziel EUR": st.column_config.NumberColumn(
+            "Analystenziel EUR",
+            help=(
+                "Durchschnittliches Analysten-Kursziel, "
+                "in Euro umgerechnet"
+            ),
+            format="%.2f €",
+        ),
+        "Analystenpotenzial Prozent": (
+            st.column_config.NumberColumn(
+                "Potenzial",
+                help=(
+                    "Abstand des durchschnittlichen "
+                    "Analystenziels zum aktuellen Kurs"
+                ),
+                format="%.2f %%",
+            )
+        ),
         "Live-Kurs EUR": st.column_config.NumberColumn(
             "Live-Kurs EUR",
             format="%.2f €",
         ),
-        "Berechneter Wert EUR": st.column_config.NumberColumn(
-            "Depotwert",
-            format="%.2f €",
+        "Berechneter Wert EUR": (
+            st.column_config.NumberColumn(
+                "Depotwert",
+                format="%.2f €",
+            )
         ),
-        "Live Gewinn Verlust EUR": st.column_config.NumberColumn(
-            "Gewinn/Verlust",
-            format="%.2f €",
+        "Live Gewinn Verlust EUR": (
+            st.column_config.NumberColumn(
+                "Gewinn/Verlust",
+                format="%.2f €",
+            )
         ),
-        "Live Gewinn Verlust Prozent": st.column_config.NumberColumn(
-            "Rendite",
-            format="%.2f %%",
+        "Live Gewinn Verlust Prozent": (
+            st.column_config.NumberColumn(
+                "Rendite",
+                format="%.2f %%",
+            )
         ),
-        "Live Gewichtung Prozent": st.column_config.NumberColumn(
-            "Gewichtung",
-            format="%.2f %%",
+        "Live Gewichtung Prozent": (
+            st.column_config.NumberColumn(
+                "Gewichtung",
+                format="%.2f %%",
+            )
         ),
     },
 )
+
 st.divider()
 
 linke_spalte, rechte_spalte = st.columns(2)
@@ -150,7 +200,10 @@ with linke_spalte:
     st.subheader("Größte Positionen")
 
     gewichtung = (
-        df.sort_values("Live Gewichtung Prozent", ascending=False)
+        df.sort_values(
+            "Live Gewichtung Prozent",
+            ascending=False,
+        )
         .head(10)
         .set_index("Name")["Live Gewichtung Prozent"]
     )
@@ -170,21 +223,28 @@ with rechte_spalte:
     )
 
     st.bar_chart(performance)
+
 st.divider()
 
 st.subheader("Risikohinweise")
 
-hohe_gewichtung = df[df["Live Gewichtung Prozent"] >= 10]
+hohe_gewichtung = df[
+    df["Live Gewichtung Prozent"] >= 10
+]
 
 if hohe_gewichtung.empty:
-    st.success("Keine Einzelposition überschreitet 10 % Gewichtung.")
+    st.success(
+        "Keine Einzelposition überschreitet 10 % Gewichtung."
+    )
 else:
     for _, position in hohe_gewichtung.iterrows():
         st.warning(
             f'{position["Name"]}: '
-            f'{position["Live Gewichtung Prozent"]:.2f} % Depotgewicht'
+            f'{position["Live Gewichtung Prozent"]:.2f} % '
+            f'Depotgewicht'
         )
 
 st.caption(
-    "Hinweis: Dieses Dashboard dient nur der Analyse und ist keine Anlageberatung."
+    "Hinweis: Dieses Dashboard dient nur der Analyse "
+    "und ist keine Anlageberatung."
 )
