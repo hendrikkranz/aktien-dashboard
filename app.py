@@ -54,6 +54,7 @@ st.dataframe(
             "Stück",
             "Kaufkurs",
             "Aktueller Kurs",
+            "Live-Kurs",
             "Aktueller Wert EUR",
             "Gewinn Verlust EUR",
             "Gewinn Verlust Prozent",
