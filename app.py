@@ -11,10 +11,41 @@ st.caption("Depotübersicht auf Basis meiner CSV-Datei")
 
 df = load_portfolio()
 
-gesamtwert = df["Aktueller Wert EUR"].sum()
-kaufwert = df["Kaufwert EUR"].sum()
-gewinn = df["Gewinn Verlust EUR"].sum()
+# Einstand inklusive Kaufspesen
+df["Spesen EUR"] = df["Spesen EUR"].fillna(0)
+df["Einstand EUR"] = df["Kaufwert EUR"] + df["Spesen EUR"]
+
+# Live-Depotwert berechnen
+df["Live-Wert EUR"] = df["Stück"] * df["Live-Kurs EUR"]
+
+# Falls kein Live-Kurs verfügbar ist, bisherigen CSV-Wert verwenden
+df["Berechneter Wert EUR"] = df["Live-Wert EUR"].fillna(
+    df["Aktueller Wert EUR"]
+)
+
+# Live-Gewinn und Live-Rendite
+df["Live Gewinn Verlust EUR"] = (
+    df["Berechneter Wert EUR"] - df["Einstand EUR"]
+)
+
+df["Live Gewinn Verlust Prozent"] = (
+    df["Live Gewinn Verlust EUR"]
+    / df["Einstand EUR"]
+    * 100
+)
+
+# Gesamtwerte
+gesamtwert = df["Berechneter Wert EUR"].sum()
+kaufwert = df["Einstand EUR"].sum()
+gewinn = df["Live Gewinn Verlust EUR"].sum()
 rendite = (gewinn / kaufwert * 100) if kaufwert else 0
+
+# Aktuelle Depotgewichtung
+df["Live Gewichtung Prozent"] = (
+    df["Berechneter Wert EUR"]
+    / gesamtwert
+    * 100
+)
 
 col1, col2, col3, col4 = st.columns(4)
 
@@ -30,11 +61,11 @@ st.subheader("Depotpositionen")
 sortierung = st.selectbox(
     "Sortieren nach",
     [
-        "Gewichtung Prozent",
-        "Aktueller Wert EUR",
-        "Gewinn Verlust Prozent",
-        "Gewinn Verlust EUR",
-        "Name",
+    "Live Gewichtung Prozent",
+    "Berechneter Wert EUR",
+    "Live Gewinn Verlust Prozent",
+    "Live Gewinn Verlust EUR",
+    "Name",
     ],
 )
 
@@ -49,19 +80,22 @@ st.dataframe(
     anzeige_df[
         [
             "Name",
+            "Ticker",
             "Typ",
             "WKN",
             "Stück",
             "Kaufkurs",
-            "Aktueller Kurs",
             "Live-Kurs",
             "Live-Währung",
             "Live-Kurs EUR",
-            "Aktueller Wert EUR",
-            "Gewinn Verlust EUR",
-            "Gewinn Verlust Prozent",
-            "Gewichtung Prozent",
-        ]
+            "Berechneter Wert EUR",
+            "Live Gewinn Verlust EUR",
+            "Live Gewinn Verlust Prozent",
+            "Live Gewichtung Prozent",
+    ],
+    use_container_width=True,
+    hide_index=True,
+)
     ],
     use_container_width=True,
     hide_index=True,
@@ -75,9 +109,9 @@ with linke_spalte:
     st.subheader("Größte Positionen")
 
     gewichtung = (
-        df.sort_values("Gewichtung Prozent", ascending=False)
+        df.sort_values("Live Gewichtung Prozent", ascending=False)
         .head(10)
-        .set_index("Name")["Gewichtung Prozent"]
+        .set_index("Name")["Live Gewichtung Prozent"]
     )
 
     st.bar_chart(gewichtung)
@@ -86,9 +120,12 @@ with rechte_spalte:
     st.subheader("Beste Wertentwicklungen")
 
     performance = (
-        df.sort_values("Gewinn Verlust Prozent", ascending=False)
-        .head(10)
-        .set_index("Name")["Gewinn Verlust Prozent"]
+        df.sort_values(
+    "Live Gewinn Verlust Prozent",
+    ascending=False,
+)
+.head(10)
+.set_index("Name")["Live Gewinn Verlust Prozent"]
     )
 
     st.bar_chart(performance)
@@ -97,7 +134,7 @@ st.divider()
 
 st.subheader("Risikohinweise")
 
-hohe_gewichtung = df[df["Gewichtung Prozent"] >= 10]
+hohe_gewichtung = df[df["Live Gewichtung Prozent"] >= 10]
 
 if hohe_gewichtung.empty:
     st.success("Keine Einzelposition überschreitet 10 % Gewichtung.")
@@ -105,7 +142,7 @@ else:
     for _, position in hohe_gewichtung.iterrows():
         st.warning(
             f'{position["Name"]}: '
-            f'{position["Gewichtung Prozent"]:.2f} % Depotgewicht'
+            f'{position["Live Gewichtung Prozent"]:.2f} % Depotgewicht'
         )
 
 st.caption(
