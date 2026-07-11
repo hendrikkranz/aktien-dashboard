@@ -18,12 +18,12 @@ def load_analyst_targets(tickers):
                     float(mean_target)
                     if mean_target is not None
                     else None
-                ),
+                )
             }
 
         except Exception:
             analyst_targets[ticker] = {
-                "mean": None,
+                "mean": None
             }
 
     return analyst_targets

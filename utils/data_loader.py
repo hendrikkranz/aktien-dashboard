@@ -10,7 +10,7 @@ from utils.fundamentals import load_fundamentals
 def load_live_data(tickers):
     live_data = {}
 
-    for ticker in sorted(set(tickers)):
+    for ticker in tickers:
         try:
             stock = yf.Ticker(ticker)
             history = stock.history(period="5d")
@@ -103,7 +103,6 @@ def load_portfolio():
         df["Live-Kurs"] = pd.NA
         df["Live-Währung"] = pd.NA
         df["Live-Kurs EUR"] = pd.NA
-
         df["Analystenziel"] = pd.NA
         df["Analystenziel EUR"] = pd.NA
         df["Analystenpotenzial Prozent"] = pd.NA
@@ -204,5 +203,4 @@ def load_portfolio():
             ).get(column, pd.NA)
         )
 
-    return df
     return df
