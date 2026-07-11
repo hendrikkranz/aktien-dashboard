@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 import yfinance as yf
 
-
+from utils.fundamentals import load_fundamentals
 @st.cache_data(ttl=1800)
 def load_live_data(tickers):
     live_data = {}
@@ -105,7 +105,7 @@ def load_portfolio():
         .str.strip()
         .tolist()
     )
-
+    fundamentals = load_fundamentals(tickers)
     live_data = load_live_data(tickers)
     fx_rates = load_fx_rates()
 
@@ -133,5 +133,20 @@ def load_portfolio():
         ),
         axis=1,
     )
+    fundamental_columns = [
+    "Dividendenrendite Prozent",
+    "KGV",
+    "Forward KGV",
+    "Umsatzwachstum Prozent",
+    "Gewinnwachstum Prozent",
+    "Ausschüttungsquote Prozent",
+]
 
+for column in fundamental_columns:
+    df[column] = df["Ticker"].map(
+        lambda ticker: fundamentals.get(
+            ticker,
+            {},
+        ).get(column, pd.NA)
+    )
     return df
