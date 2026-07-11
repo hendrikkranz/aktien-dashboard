@@ -133,20 +133,21 @@ def load_portfolio():
         ),
         axis=1,
     )
-    fundamental_columns = [
-    "Dividendenrendite Prozent",
-    "KGV",
-    "Forward KGV",
-    "Umsatzwachstum Prozent",
-    "Gewinnwachstum Prozent",
-    "Ausschüttungsquote Prozent",
-]
+        fundamental_columns = [
+        "Dividendenrendite Prozent",
+        "KGV",
+        "Forward KGV",
+        "Umsatzwachstum Prozent",
+        "Gewinnwachstum Prozent",
+        "Ausschüttungsquote Prozent",
+    ]
 
-for column in fundamental_columns:
-    df[column] = df["Ticker"].map(
-        lambda ticker: fundamentals.get(
-            ticker,
-            {},
-        ).get(column, pd.NA)
-    )
+    for column in fundamental_columns:
+        df[column] = df["Ticker"].map(
+            lambda ticker: fundamentals.get(
+                ticker,
+                {},
+            ).get(column, pd.NA)
+        )
+
     return df
