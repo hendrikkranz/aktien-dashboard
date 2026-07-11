@@ -18,18 +18,35 @@ def load_fundamentals(tickers):
             info = yf.Ticker(ticker).get_info()
 
             dividend_yield = info.get("dividendYield")
+            dividend_rate = info.get("dividendRate")
+            current_price = (
+                info.get("currentPrice")
+                or info.get("regularMarketPrice")
+            )
+
             trailing_pe = info.get("trailingPE")
             forward_pe = info.get("forwardPE")
             revenue_growth = info.get("revenueGrowth")
             earnings_growth = info.get("earningsGrowth")
             payout_ratio = info.get("payoutRatio")
 
+            if (
+                dividend_rate is not None
+                and current_price is not None
+                and float(current_price) > 0
+            ):
+                dividend_yield_percent = (
+                    float(dividend_rate)
+                    / float(current_price)
+                    * 100
+                )
+            elif dividend_yield is not None:
+                dividend_yield_percent = float(dividend_yield)
+            else:
+                dividend_yield_percent = pd.NA
+
             results[ticker] = {
-                "Dividendenrendite Prozent": (
-                    float(dividend_yield) * 100
-                    if dividend_yield is not None
-                    else pd.NA
-                ),
+                "Dividendenrendite Prozent": dividend_yield_percent,
                 "KGV": (
                     float(trailing_pe)
                     if trailing_pe is not None
