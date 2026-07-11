@@ -70,7 +70,7 @@ def load_fx_rates():
     return rates
 
 
-@st.cache_data
+@st.cache_data(ttl=1800)
 def load_portfolio():
     df = pd.read_csv(
         "depot_watchlist.csv",
