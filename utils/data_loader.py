@@ -51,7 +51,8 @@ def load_portfolio():
             )
 
     if "Ticker" not in df.columns:
-        return df
+    df["Live-Kurs"] = pd.NA
+    return df
 
     tickers = df["Ticker"].dropna().astype(str).tolist()
     live_prices = load_live_prices(tickers)
