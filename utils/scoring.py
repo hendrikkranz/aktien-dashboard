@@ -1,4 +1,6 @@
 import pandas as pd
+
+
 def calculate_value_score(row):
     """Berechnet den Value Score (0–100)."""
 
@@ -6,6 +8,7 @@ def calculate_value_score(row):
 
     peg = row.get("PEG")
     forward_pe = row.get("Forward KGV")
+    analyst_upside = row.get("Analystenpotenzial Prozent")
 
     if pd.notna(peg):
         if 0 < peg <= 1:
@@ -17,8 +20,6 @@ def calculate_value_score(row):
         elif peg <= 3:
             score += 10
 
-        
-
     if pd.notna(forward_pe) and forward_pe > 0:
         if forward_pe <= 12:
             score += 30
@@ -29,11 +30,20 @@ def calculate_value_score(row):
         elif forward_pe <= 35:
             score += 6
 
+    if pd.notna(analyst_upside):
+        if analyst_upside >= 25:
+            score += 30
+        elif analyst_upside >= 15:
+            score += 22
+        elif analyst_upside >= 5:
+            score += 14
+        elif analyst_upside >= 0:
+            score += 6
+
     return score
 
 
 def calculate_score(row):
-
     score = 0
 
     # Performance
