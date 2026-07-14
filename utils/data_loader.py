@@ -4,7 +4,7 @@ import yfinance as yf
 
 from utils.analyst_data import load_analyst_targets
 from utils.fundamentals import load_fundamentals
-
+from utils.indicators import load_technical_indicators
 
 @st.cache_data(ttl=1800)
 def load_live_data(tickers):
@@ -121,7 +121,7 @@ def load_portfolio():
         .loc[lambda values: values.ne("")]
         .tolist()
     )
-
+    technical_indicators = load_technical_indicators(tickers)
     fundamentals = load_fundamentals(tickers)
     live_data = load_live_data(tickers)
     analyst_targets = load_analyst_targets(tickers)
@@ -202,5 +202,20 @@ def load_portfolio():
                 {},
             ).get(column, pd.NA)
         )
+    technical_columns = [
+        "50-Tage-Linie",
+        "200-Tage-Linie",
+        "Abstand 50-Tage-Linie Prozent",
+        "Abstand 200-Tage-Linie Prozent",
+        "Momentum 3 Monate Prozent",
+        "Momentum 6 Monate Prozent",
+    ]
 
+    for column in technical_columns:
+        df[column] = df["Ticker"].map(
+            lambda ticker: technical_indicators.get(
+                ticker,
+                {},
+            ).get(column, pd.NA)
+        )
     return df
