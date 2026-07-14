@@ -80,6 +80,10 @@ sortierung = st.selectbox(
         "Forward KGV",
         "Umsatzwachstum Prozent",
         "Gewinnwachstum Prozent",
+        "Abstand 50-Tage-Linie Prozent",
+        "Abstand 200-Tage-Linie Prozent",
+        "Momentum 3 Monate Prozent",
+        "Momentum 6 Monate Prozent",
     ],
 )
 
@@ -114,6 +118,12 @@ st.dataframe(
             "Umsatzwachstum Prozent",
             "Gewinnwachstum Prozent",
             "Ausschüttungsquote Prozent",
+            "50-Tage-Linie",
+            "200-Tage-Linie",
+            "Abstand 50-Tage-Linie Prozent",
+            "Abstand 200-Tage-Linie Prozent",
+            "Momentum 3 Monate Prozent",
+            "Momentum 6 Monate Prozent",
             "Live-Währung",
             "Live-Kurs EUR",
             "Berechneter Wert EUR",
@@ -182,6 +192,30 @@ st.dataframe(
                 "Rendite",
                 format="%.2f %%",
             )
+        ),
+                "50-Tage-Linie": st.column_config.NumberColumn(
+            "SMA 50",
+            format="%.2f",
+        ),
+        "200-Tage-Linie": st.column_config.NumberColumn(
+            "SMA 200",
+            format="%.2f",
+        ),
+        "Abstand 50-Tage-Linie Prozent": st.column_config.NumberColumn(
+            "Abstand SMA 50",
+            format="%.1f %%",
+        ),
+        "Abstand 200-Tage-Linie Prozent": st.column_config.NumberColumn(
+            "Abstand SMA 200",
+            format="%.1f %%",
+        ),
+        "Momentum 3 Monate Prozent": st.column_config.NumberColumn(
+            "Momentum 3M",
+            format="%.1f %%",
+        ),
+        "Momentum 6 Monate Prozent": st.column_config.NumberColumn(
+            "Momentum 6M",
+            format="%.1f %%",
         ),
         "Live Gewichtung Prozent": (
             st.column_config.NumberColumn(
