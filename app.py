@@ -193,6 +193,18 @@ st.dataframe(
                 format="%.2f %%",
             )
         ),
+        "Dividendenrendite Prozent": st.column_config.NumberColumn(
+            "Div.-Rendite",
+            format="%.2f %%",
+        ),
+        "KGV": st.column_config.NumberColumn(
+            "KGV",
+            format="%.2f",
+        ),
+        "Forward KGV": st.column_config.NumberColumn(
+            "Forward KGV",
+            format="%.2f",
+        ),
                 "50-Tage-Linie": st.column_config.NumberColumn(
             "SMA 50",
             format="%.2f",
