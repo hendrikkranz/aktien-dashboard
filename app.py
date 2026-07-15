@@ -205,7 +205,7 @@ st.dataframe(
             "Forward KGV",
             format="%.2f",
         ),
-                "50-Tage-Linie": st.column_config.NumberColumn(
+        "50-Tage-Linie": st.column_config.NumberColumn(
             "SMA 50",
             format="%.2f",
         ),
