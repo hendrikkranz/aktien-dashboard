@@ -6,6 +6,7 @@ from utils.analyst_data import load_analyst_targets
 from utils.fundamentals import load_fundamentals
 from utils.indicators import load_technical_indicators
 
+
 @st.cache_data(ttl=1800)
 def load_live_data(tickers):
     live_data = {}
@@ -19,20 +20,36 @@ def load_live_data(tickers):
                 live_data[ticker] = {
                     "price": None,
                     "currency": None,
+                    "price_date": None,
                 }
                 continue
 
+            valid_close = history["Close"].dropna()
+
+            if valid_close.empty:
+                live_data[ticker] = {
+                    "price": None,
+                    "currency": None,
+                    "price_date": None,
+                }
+                continue
+
+            last_timestamp = valid_close.index[-1]
             metadata = stock.get_history_metadata()
 
             live_data[ticker] = {
-                "price": float(history["Close"].dropna().iloc[-1]),
+                "price": float(valid_close.iloc[-1]),
                 "currency": metadata.get("currency"),
+                "price_date": pd.Timestamp(
+                    last_timestamp
+                ).strftime("%d.%m.%Y"),
             }
 
         except Exception:
             live_data[ticker] = {
                 "price": None,
                 "currency": None,
+                "price_date": None,
             }
 
     return live_data
@@ -103,6 +120,7 @@ def load_portfolio():
         df["Live-Kurs"] = pd.NA
         df["Live-Währung"] = pd.NA
         df["Live-Kurs EUR"] = pd.NA
+        df["Kursdatum"] = pd.NA
         df["Analystenziel"] = pd.NA
         df["Analystenziel EUR"] = pd.NA
         df["Analystenpotenzial Prozent"] = pd.NA
@@ -125,6 +143,7 @@ def load_portfolio():
     fundamentals = load_fundamentals(tickers)
     live_data = load_live_data(tickers)
     analyst_targets = load_analyst_targets(tickers)
+    indicators = load_indicators(tickers)
     fx_rates = load_fx_rates()
 
     df["Live-Kurs"] = df["Ticker"].map(
@@ -139,6 +158,13 @@ def load_portfolio():
             ticker,
             {},
         ).get("currency")
+    )
+
+    df["Kursdatum"] = df["Ticker"].map(
+        lambda ticker: live_data.get(
+            ticker,
+            {},
+        ).get("price_date")
     )
 
     df["Live-Kurs EUR"] = df.apply(
@@ -190,6 +216,8 @@ def load_portfolio():
         "Dividendenrendite Prozent",
         "KGV",
         "Forward KGV",
+        "Trailing EPS",
+        "Forward EPS",
         "Umsatzwachstum Prozent",
         "Gewinnwachstum Prozent",
         "Ausschüttungsquote Prozent",
@@ -211,11 +239,47 @@ def load_portfolio():
         "Momentum 6 Monate Prozent",
     ]
 
+<<<<<<< HEAD
     for column in technical_columns:
         df[column] = df["Ticker"].map(
             lambda ticker: technical_indicators.get(
+=======
+    technical_columns = [
+        "50-Tage-Linie",
+        "200-Tage-Linie",
+        "Abstand 50-Tage-Linie Prozent",
+        "Abstand 200-Tage-Linie Prozent",
+        "Momentum 3 Monate Prozent",
+        "Momentum 6 Monate Prozent",
+    ]
+
+    for column in technical_columns:
+        df[column] = df["Ticker"].map(
+            lambda ticker: indicators.get(
+>>>>>>> ebc0672 (Kursdatum und Dashboard-Zeitstempel ergänzen)
                 ticker,
                 {},
             ).get(column, pd.NA)
         )
+<<<<<<< HEAD
     return df
+=======
+
+    # PEG-Ratio:
+    # Forward-KGV geteilt durch erwartetes Gewinnwachstum in Prozent.
+    df["PEG"] = df.apply(
+        lambda row: (
+            row["Forward KGV"]
+            / row["Gewinnwachstum Prozent"]
+            if (
+                pd.notna(row["Forward KGV"])
+                and pd.notna(row["Gewinnwachstum Prozent"])
+                and row["Gewinnwachstum Prozent"] > 0
+            )
+            else pd.NA
+        ),
+        axis=1,
+    )
+
+    return df
+>>>>>>> ebc0672 (Kursdatum und Dashboard-Zeitstempel ergänzen)
