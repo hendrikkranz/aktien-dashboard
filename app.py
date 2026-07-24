@@ -4,7 +4,13 @@ from zoneinfo import ZoneInfo
 import streamlit as st
 
 from utils.data_loader import load_portfolio
-from utils.scoring import calculate_score
+from utils.scoring import (
+    calculate_growth_score,
+    calculate_momentum_score,
+    calculate_quality_score,
+    calculate_score,
+    calculate_value_score,
+)
 
 
 st.set_page_config(
@@ -63,7 +69,28 @@ df["Live Gewichtung Prozent"] = (
     * 100
 )
 
-# Gesamtscore berechnen
+# Teil-Scores berechnen
+df["Quality Score"] = df.apply(
+    calculate_quality_score,
+    axis=1,
+)
+
+df["Value Score"] = df.apply(
+    calculate_value_score,
+    axis=1,
+)
+
+df["Growth Score"] = df.apply(
+    calculate_growth_score,
+    axis=1,
+)
+
+df["Momentum Score"] = df.apply(
+    calculate_momentum_score,
+    axis=1,
+)
+
+# Gewichteten Gesamtscore berechnen
 df["Score"] = df.apply(
     calculate_score,
     axis=1,
@@ -100,6 +127,10 @@ sortierung = st.selectbox(
     "Sortieren nach",
     [
         "Score",
+        "Quality Score",
+        "Value Score",
+        "Growth Score",
+        "Momentum Score",
         "Analystenpotenzial Prozent",
         "Analystenziel EUR",
         "Live Gewichtung Prozent",
@@ -140,6 +171,10 @@ st.dataframe(
         [
             "Name",
             "Score",
+            "Quality Score",
+            "Value Score",
+            "Growth Score",
+            "Momentum Score",
             "Ticker",
             "Typ",
             "WKN",
@@ -171,11 +206,49 @@ st.dataframe(
             "Live Gewichtung Prozent",
         ]
     ],
-    use_container_width=True,
+    width="stretch",
     hide_index=True,
     column_config={
         "Score": st.column_config.ProgressColumn(
-            "Score",
+            "Gesamt",
+            help=(
+                "Gewichteter Gesamtscore aus Quality, Value, "
+                "Growth und Momentum"
+            ),
+            min_value=0,
+            max_value=100,
+            format="%d",
+        ),
+        "Quality Score": st.column_config.ProgressColumn(
+            "Quality",
+            help="Vorläufiger Qualitätsscore des Unternehmens",
+            min_value=0,
+            max_value=100,
+            format="%d",
+        ),
+        "Value Score": st.column_config.ProgressColumn(
+            "Value",
+            help=(
+                "Bewertung anhand von PEG, Forward KGV "
+                "und Analystenpotenzial"
+            ),
+            min_value=0,
+            max_value=100,
+            format="%d",
+        ),
+        "Growth Score": st.column_config.ProgressColumn(
+            "Growth",
+            help="Bewertung des Umsatz- und Gewinnwachstums",
+            min_value=0,
+            max_value=100,
+            format="%d",
+        ),
+        "Momentum Score": st.column_config.ProgressColumn(
+            "Momentum",
+            help=(
+                "Technischer Score aus SMA-Abständen "
+                "und Kursmomentum"
+            ),
             min_value=0,
             max_value=100,
             format="%d",
@@ -191,6 +264,10 @@ st.dataframe(
         "Live-Kurs": st.column_config.NumberColumn(
             "Live-Kurs",
             format="%.2f",
+        ),
+        "Kursdatum": st.column_config.TextColumn(
+            "Kursdatum",
+            help="Datum des letzten verfügbaren Yahoo-Kurses",
         ),
         "Analystenziel": st.column_config.NumberColumn(
             "Analystenziel",
