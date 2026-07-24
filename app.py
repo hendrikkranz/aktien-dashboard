@@ -1,3 +1,6 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 import streamlit as st
 
 from utils.data_loader import load_portfolio
@@ -10,8 +13,17 @@ st.set_page_config(
     layout="wide",
 )
 
+# Zeitpunkt des aktuellen Dashboard-Laufs
+dashboard_zeitpunkt = datetime.now(
+    ZoneInfo("Europe/Berlin")
+)
+
 st.title("📈 Mein Aktien-Dashboard")
 st.caption("Depotübersicht auf Basis meiner CSV-Datei")
+st.caption(
+    "Dashboard geladen: "
+    f"{dashboard_zeitpunkt:%d.%m.%Y · %H:%M Uhr}"
+)
 
 df = load_portfolio()
 
@@ -51,14 +63,34 @@ df["Live Gewichtung Prozent"] = (
     * 100
 )
 
-df["Score"] = df.apply(calculate_score, axis=1)
+# Gesamtscore berechnen
+df["Score"] = df.apply(
+    calculate_score,
+    axis=1,
+)
 
+# Kennzahlen
 col1, col2, col3, col4 = st.columns(4)
 
-col1.metric("Depotwert", f"{gesamtwert:,.2f} €")
-col2.metric("Investiert", f"{kaufwert:,.2f} €")
-col3.metric("Gewinn / Verlust", f"{gewinn:,.2f} €")
-col4.metric("Gesamtrendite", f"{rendite:.2f} %")
+col1.metric(
+    "Depotwert",
+    f"{gesamtwert:,.2f} €",
+)
+
+col2.metric(
+    "Investiert",
+    f"{kaufwert:,.2f} €",
+)
+
+col3.metric(
+    "Gewinn / Verlust",
+    f"{gewinn:,.2f} €",
+)
+
+col4.metric(
+    "Gesamtrendite",
+    f"{rendite:.2f} %",
+)
 
 st.divider()
 
@@ -78,8 +110,12 @@ sortierung = st.selectbox(
         "Dividendenrendite Prozent",
         "KGV",
         "Forward KGV",
+        "PEG",
         "Umsatzwachstum Prozent",
         "Gewinnwachstum Prozent",
+        "Ausschüttungsquote Prozent",
+        "50-Tage-Linie",
+        "200-Tage-Linie",
         "Abstand 50-Tage-Linie Prozent",
         "Abstand 200-Tage-Linie Prozent",
         "Momentum 3 Monate Prozent",
@@ -115,6 +151,7 @@ st.dataframe(
             "Dividendenrendite Prozent",
             "KGV",
             "Forward KGV",
+            "PEG",
             "Umsatzwachstum Prozent",
             "Gewinnwachstum Prozent",
             "Ausschüttungsquote Prozent",
@@ -140,6 +177,14 @@ st.dataframe(
             min_value=0,
             max_value=100,
             format="%d",
+        ),
+        "Stück": st.column_config.NumberColumn(
+            "Stück",
+            format="%.2f",
+        ),
+        "Kaufkurs": st.column_config.NumberColumn(
+            "Kaufkurs",
+            format="%.2f",
         ),
         "Live-Kurs": st.column_config.NumberColumn(
             "Live-Kurs",
@@ -168,6 +213,74 @@ st.dataframe(
                     "Abstand des durchschnittlichen "
                     "Analystenziels zum aktuellen Kurs"
                 ),
+                format="%.2f %%",
+            )
+        ),
+        "Dividendenrendite Prozent": (
+            st.column_config.NumberColumn(
+                "Div.-Rendite",
+                format="%.2f %%",
+            )
+        ),
+        "KGV": st.column_config.NumberColumn(
+            "KGV",
+            format="%.2f",
+        ),
+        "Forward KGV": st.column_config.NumberColumn(
+            "Forward KGV",
+            format="%.2f",
+        ),
+        "PEG": st.column_config.NumberColumn(
+            "PEG",
+            format="%.2f",
+        ),
+        "Umsatzwachstum Prozent": (
+            st.column_config.NumberColumn(
+                "Umsatzwachstum",
+                format="%.2f %%",
+            )
+        ),
+        "Gewinnwachstum Prozent": (
+            st.column_config.NumberColumn(
+                "Gewinnwachstum",
+                format="%.2f %%",
+            )
+        ),
+        "Ausschüttungsquote Prozent": (
+            st.column_config.NumberColumn(
+                "Ausschüttungsquote",
+                format="%.2f %%",
+            )
+        ),
+        "50-Tage-Linie": st.column_config.NumberColumn(
+            "SMA 50",
+            format="%.2f",
+        ),
+        "200-Tage-Linie": st.column_config.NumberColumn(
+            "SMA 200",
+            format="%.2f",
+        ),
+        "Abstand 50-Tage-Linie Prozent": (
+            st.column_config.NumberColumn(
+                "Abstand SMA 50",
+                format="%.2f %%",
+            )
+        ),
+        "Abstand 200-Tage-Linie Prozent": (
+            st.column_config.NumberColumn(
+                "Abstand SMA 200",
+                format="%.2f %%",
+            )
+        ),
+        "Momentum 3 Monate Prozent": (
+            st.column_config.NumberColumn(
+                "Momentum 3M",
+                format="%.2f %%",
+            )
+        ),
+        "Momentum 6 Monate Prozent": (
+            st.column_config.NumberColumn(
+                "Momentum 6M",
                 format="%.2f %%",
             )
         ),
