@@ -13,7 +13,7 @@ def load_fundamentals(tickers):
     """
     results = {}
 
-    for ticker in tickers:
+    for ticker in sorted(set(tickers)):
         try:
             info = yf.Ticker(ticker).get_info()
 
@@ -26,6 +26,8 @@ def load_fundamentals(tickers):
 
             trailing_pe = info.get("trailingPE")
             forward_pe = info.get("forwardPE")
+            trailing_eps = info.get("trailingEps")
+            forward_eps = info.get("forwardEps")
             revenue_growth = info.get("revenueGrowth")
             earnings_growth = info.get("earningsGrowth")
             payout_ratio = info.get("payoutRatio")
@@ -40,6 +42,7 @@ def load_fundamentals(tickers):
                     / float(current_price)
                     * 100
                 )
+
             elif dividend_yield is not None:
                 raw_yield = float(dividend_yield)
 
@@ -48,6 +51,7 @@ def load_fundamentals(tickers):
                     if raw_yield > 20
                     else raw_yield
                 )
+
             else:
                 dividend_yield_percent = pd.NA
 
@@ -61,6 +65,16 @@ def load_fundamentals(tickers):
                 "Forward KGV": (
                     float(forward_pe)
                     if forward_pe is not None
+                    else pd.NA
+                ),
+                "Trailing EPS": (
+                    float(trailing_eps)
+                    if trailing_eps is not None
+                    else pd.NA
+                ),
+                "Forward EPS": (
+                    float(forward_eps)
+                    if forward_eps is not None
                     else pd.NA
                 ),
                 "Umsatzwachstum Prozent": (
@@ -85,6 +99,8 @@ def load_fundamentals(tickers):
                 "Dividendenrendite Prozent": pd.NA,
                 "KGV": pd.NA,
                 "Forward KGV": pd.NA,
+                "Trailing EPS": pd.NA,
+                "Forward EPS": pd.NA,
                 "Umsatzwachstum Prozent": pd.NA,
                 "Gewinnwachstum Prozent": pd.NA,
                 "Ausschüttungsquote Prozent": pd.NA,

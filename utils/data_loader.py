@@ -89,10 +89,13 @@ def load_fx_rates():
 
 
 @st.cache_data(ttl=1800)
-def load_portfolio():
+def load_portfolio(
+    csv_path="depot_watchlist.csv",
+):
     df = pd.read_csv(
-        "depot_watchlist.csv",
-        sep=";",
+        csv_path,
+        sep=None,
+        engine="python",
         decimal=",",
         encoding="utf-8-sig",
     )
