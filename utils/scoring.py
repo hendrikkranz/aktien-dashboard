@@ -1,17 +1,6 @@
 import pandas as pd
 
 
-<<<<<<< HEAD
-def safe_number(value):
-    """Wandelt einen Wert sicher in eine Zahl um."""
-    if value is None or pd.isna(value):
-        return None
-
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-=======
 def calculate_value_score(row):
     """Berechnet den Value Score von 0 bis 100 Punkten."""
 
@@ -98,7 +87,8 @@ def calculate_quality_score(row):
     """
     Berechnet einen vorläufigen Quality Score von 0 bis 100 Punkten.
 
-    Später ergänzen wir ROE, ROIC, Verschuldung und Margen.
+    Später können ROE, ROIC, Verschuldung und Margen
+    ergänzt werden.
     """
 
     score = 0
@@ -189,7 +179,7 @@ def calculate_momentum_score(row):
         elif 10 < distance_sma_50 <= 20:
             score += 8
 
-    # Momentum drei Monate: maximal 20 Punkte
+    # Momentum über drei Monate: maximal 20 Punkte
     if pd.notna(momentum_3m):
         if 5 <= momentum_3m <= 20:
             score += 20
@@ -198,7 +188,7 @@ def calculate_momentum_score(row):
         elif 20 < momentum_3m <= 35:
             score += 8
 
-    # Momentum sechs Monate: maximal 25 Punkte
+    # Momentum über sechs Monate: maximal 25 Punkte
     if pd.notna(momentum_6m):
         if 10 <= momentum_6m <= 30:
             score += 25
@@ -208,7 +198,6 @@ def calculate_momentum_score(row):
             score += 10
 
     return min(score, 100)
->>>>>>> 7f8fdf4 (Teil-Scores für Quality, Value, Growth und Momentum ergänzen)
 
 
 def calculate_score(row):

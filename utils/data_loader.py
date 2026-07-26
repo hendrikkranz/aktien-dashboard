@@ -146,7 +146,7 @@ def load_portfolio(
     fundamentals = load_fundamentals(tickers)
     live_data = load_live_data(tickers)
     analyst_targets = load_analyst_targets(tickers)
-    indicators = load_indicators(tickers)
+    technical_indicators = load_technical_indicators(tickers)
     fx_rates = load_fx_rates()
 
     df["Live-Kurs"] = df["Ticker"].map(
@@ -239,34 +239,16 @@ def load_portfolio(
         "Abstand 50-Tage-Linie Prozent",
         "Abstand 200-Tage-Linie Prozent",
         "Momentum 3 Monate Prozent",
-        "Momentum 6 Monate Prozent",
+          "Momentum 6 Monate Prozent",
     ]
 
-<<<<<<< HEAD
     for column in technical_columns:
         df[column] = df["Ticker"].map(
             lambda ticker: technical_indicators.get(
-=======
-    technical_columns = [
-        "50-Tage-Linie",
-        "200-Tage-Linie",
-        "Abstand 50-Tage-Linie Prozent",
-        "Abstand 200-Tage-Linie Prozent",
-        "Momentum 3 Monate Prozent",
-        "Momentum 6 Monate Prozent",
-    ]
-
-    for column in technical_columns:
-        df[column] = df["Ticker"].map(
-            lambda ticker: indicators.get(
->>>>>>> ebc0672 (Kursdatum und Dashboard-Zeitstempel ergänzen)
                 ticker,
                 {},
             ).get(column, pd.NA)
         )
-<<<<<<< HEAD
-    return df
-=======
 
     # PEG-Ratio:
     # Forward-KGV geteilt durch erwartetes Gewinnwachstum in Prozent.
@@ -285,4 +267,3 @@ def load_portfolio(
     )
 
     return df
->>>>>>> ebc0672 (Kursdatum und Dashboard-Zeitstempel ergänzen)
