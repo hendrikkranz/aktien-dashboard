@@ -12,7 +12,7 @@ seiten = {
     "📁 Meine Listen": [
         st.Page(
             "pages/depot.py",
-            title="Depot",
+            title="Depotaktien",
             icon="💼",
             default=False,
         ),
