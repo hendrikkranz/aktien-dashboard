@@ -3,6 +3,18 @@ import streamlit as st
 import yfinance as yf
 
 
+EMPTY_FUNDAMENTALS = {
+    "Dividendenrendite Prozent": pd.NA,
+    "KGV": pd.NA,
+    "Forward KGV": pd.NA,
+    "Trailing EPS": pd.NA,
+    "Forward EPS": pd.NA,
+    "Umsatzwachstum Prozent": pd.NA,
+    "Gewinnwachstum Prozent": pd.NA,
+    "Ausschüttungsquote Prozent": pd.NA,
+}
+
+
 @st.cache_data(ttl=21600)
 def load_fundamentals(tickers):
     """
@@ -13,9 +25,27 @@ def load_fundamentals(tickers):
     """
     results = {}
 
+    # Diese Ticker liefern bei Yahoo aktuell keine brauchbaren
+    # Fundamentaldaten und werden deshalb übersprungen.
+    skip_tickers = {
+        "WAT.PA",
+        "TDIV.AS",
+    }
+
     for ticker in sorted(set(tickers)):
+        if not ticker or pd.isna(ticker):
+            continue
+
+        if ticker in skip_tickers:
+            results[ticker] = EMPTY_FUNDAMENTALS.copy()
+            continue
+
         try:
             info = yf.Ticker(ticker).get_info()
+
+            if not isinstance(info, dict):
+                results[ticker] = EMPTY_FUNDAMENTALS.copy()
+                continue
 
             dividend_yield = info.get("dividendYield")
             dividend_rate = info.get("dividendRate")
@@ -94,16 +124,11 @@ def load_fundamentals(tickers):
                 ),
             }
 
-        except Exception:
-            results[ticker] = {
-                "Dividendenrendite Prozent": pd.NA,
-                "KGV": pd.NA,
-                "Forward KGV": pd.NA,
-                "Trailing EPS": pd.NA,
-                "Forward EPS": pd.NA,
-                "Umsatzwachstum Prozent": pd.NA,
-                "Gewinnwachstum Prozent": pd.NA,
-                "Ausschüttungsquote Prozent": pd.NA,
-            }
+        except Exception as error:
+            print(
+                f"Fundamentaldaten konnten für "
+                f"{ticker} nicht geladen werden: {error}"
+            )
+            results[ticker] = EMPTY_FUNDAMENTALS.copy()
 
     return results
