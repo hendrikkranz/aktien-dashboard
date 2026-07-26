@@ -28,8 +28,17 @@ seiten = {
             icon="💰",
             default=False,
         ),
-    ]
+    ],
+    "⚙️ Verwaltung": [
+        st.Page(
+            "pages/aktien_verwalten.py",
+            title="Aktien verwalten",
+            icon="🛠️",
+            default=False,
+        ),
+    ],
 }
+
 
 navigation = st.navigation(seiten)
 navigation.run()

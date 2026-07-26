@@ -91,6 +91,7 @@ def load_fx_rates():
 @st.cache_data(ttl=1800)
 def load_portfolio(
     csv_path="depot_watchlist.csv",
+    category_column=None,
 ):
     df = pd.read_csv(
         csv_path,
@@ -99,7 +100,30 @@ def load_portfolio(
         decimal=",",
         encoding="utf-8-sig",
     )
+    if category_column is not None:
+        if category_column not in df.columns:
+            raise ValueError(
+                f"Kategoriespalte '{category_column}' fehlt in {csv_path}."
+            )
 
+        category_values = (
+            df[category_column]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+        )
+
+        df = df[
+            category_values.isin(
+                ["true", "1", "yes", "ja"]
+            )
+        ].copy()
+
+    if "Typ" not in df.columns:
+        df["Typ"] = "Aktie"
+
+    if "ISIN" not in df.columns:
+        df["ISIN"] = pd.NA
     numeric_columns = [
         "Stück",
         "Kaufkurs",
@@ -146,7 +170,6 @@ def load_portfolio(
     fundamentals = load_fundamentals(tickers)
     live_data = load_live_data(tickers)
     analyst_targets = load_analyst_targets(tickers)
-    technical_indicators = load_technical_indicators(tickers)
     fx_rates = load_fx_rates()
 
     df["Live-Kurs"] = df["Ticker"].map(

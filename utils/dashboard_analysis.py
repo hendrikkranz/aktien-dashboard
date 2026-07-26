@@ -14,7 +14,12 @@ from utils.scoring import (
 )
 
 
-def render_dashboard(csv_path, title, subtitle):
+def render_dashboard(
+    csv_path,
+    title,
+    subtitle,
+    category_column=None,
+):
     dashboard_zeitpunkt = datetime.now(
         ZoneInfo("Europe/Berlin")
     )
@@ -26,7 +31,10 @@ def render_dashboard(csv_path, title, subtitle):
         f"{dashboard_zeitpunkt:%d.%m.%Y · %H:%M Uhr}"
     )
 
-    df = load_portfolio(csv_path)
+    df = load_portfolio(
+        csv_path,
+        category_column=category_column,
+    )
 
     
 
@@ -120,7 +128,7 @@ def render_dashboard(csv_path, title, subtitle):
                 "Momentum Score",
                 "Ticker",
                 "Typ",
-                "WKN",
+                "ISIN",
                 "Live-Kurs",
                 "Live-Währung",
                 "Live-Kurs EUR",
