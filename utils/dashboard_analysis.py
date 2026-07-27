@@ -68,8 +68,17 @@ def render_dashboard(
     )
 
     # Empfehlung muss nach den Scores berechnet werden
+    recommendation_strategy = (
+        "dividend"
+        if category_column == "Dividenden"
+        else "default"
+    )
+
     df["Empfehlung"] = df.apply(
-        get_recommendation,
+        lambda row: get_recommendation(
+            row,
+            strategy=recommendation_strategy,
+        ),
         axis=1,
     )
 

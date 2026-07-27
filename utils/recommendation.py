@@ -1,46 +1,80 @@
 import pandas as pd
 
 
-def get_recommendation(row):
+def _safe_value(value, default=0):
+    """Ersetzt fehlende Kennzahlen durch einen neutralen Standardwert."""
+    if pd.isna(value):
+        return default
+
+    return value
+
+
+def get_recommendation(row, strategy="default"):
     """
-    Ermittelt eine einfache Investment-Empfehlung.
+    Ermittelt eine Investment-Empfehlung.
 
-    Grundlage:
-    - Gesamtscore
-    - Analystenpotenzial
-    - Momentum-Score
-    - Gewinnwachstum
-
-    Rückgabe:
-    - 🟢 Kaufkandidat
-    - 🟡 Beobachten
-    - 🔵 Halten
-    - 🔴 Vorsicht
+    Profile:
+    - default: Qualitäts- und Wachstumsaktien
+    - dividend: Dividendenaktien
     """
 
-    score = row.get("Score")
-    analystenpotenzial = row.get(
-        "Analystenpotenzial Prozent"
+    score = _safe_value(row.get("Score"))
+    analystenpotenzial = _safe_value(
+        row.get("Analystenpotenzial Prozent")
     )
-    momentum_score = row.get("Momentum Score")
-    gewinnwachstum = row.get(
-        "Gewinnwachstum Prozent"
+    momentum_score = _safe_value(
+        row.get("Momentum Score")
+    )
+    gewinnwachstum = _safe_value(
+        row.get("Gewinnwachstum Prozent")
+    )
+    dividendenrendite = _safe_value(
+        row.get("Dividendenrendite Prozent")
     )
 
-    # Fehlende Werte neutral behandeln
-    if pd.isna(score):
-        score = 0
+    ausschüttungsquote = row.get(
+        "Ausschüttungsquote Prozent"
+    )
 
-    if pd.isna(analystenpotenzial):
-        analystenpotenzial = 0
+    # Eigenes Profil für Dividendenaktien
+    if strategy == "dividend":
 
-    if pd.isna(momentum_score):
-        momentum_score = 0
+        # Klare Warnsignale
+        if (
+            score < 40
+            or gewinnwachstum < -30
+            or momentum_score < 15
+        ):
+            return "🔴 Vorsicht"
 
-    if pd.isna(gewinnwachstum):
-        gewinnwachstum = 0
+        nachhaltige_ausschüttung = (
+            pd.isna(ausschüttungsquote)
+            or 0 <= ausschüttungsquote <= 90
+        )
 
-    # Klare Warnsignale
+        # Attraktive Dividendenaktie mit positivem Gesamtbild
+        if (
+            score >= 62
+            and dividendenrendite >= 2
+            and momentum_score >= 40
+            and gewinnwachstum >= -5
+            and nachhaltige_ausschüttung
+        ):
+            return "🟢 Kaufkandidat"
+
+        # Gute Dividendenaktie, aber noch kein klares Kaufsignal
+        if (
+            score >= 55
+            and dividendenrendite >= 1.5
+        ):
+            return "🟡 Beobachten"
+
+        if score >= 45:
+            return "🔵 Halten"
+
+        return "🔴 Vorsicht"
+
+    # Standardprofil für Dauergewinner
     if (
         score < 45
         or gewinnwachstum < -20
@@ -48,7 +82,6 @@ def get_recommendation(row):
     ):
         return "🔴 Vorsicht"
 
-    # Kaufkandidat nur bei mehreren positiven Signalen
     if (
         score >= 75
         and analystenpotenzial >= 10
@@ -57,11 +90,9 @@ def get_recommendation(row):
     ):
         return "🟢 Kaufkandidat"
 
-    # Gute Aktie, aber noch kein klares Kaufsignal
     if score >= 65:
         return "🟡 Beobachten"
 
-    # Solides Mittelfeld
     if score >= 50:
         return "🔵 Halten"
 
