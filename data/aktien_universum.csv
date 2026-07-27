@@ -1,62 +1,63 @@
-Name;Ticker;ISIN;Dauergewinner;Dividenden
-ABN AMRO;ABN.AS;NL0011540547;False;True
-AEGON;AGN.AS;BMG0112X1056;False;True
-ASML Holding;ASML.AS;NL0010273215;True;False
-AT&T;T;US00206R1023;False;True
-Alphabet A (Google);GOOGL;US02079K3059;True;False
-Altria Group;MO;US02209S1033;False;True
-Amazon;AMZN;US0231351067;True;False
-Amgen;AMGN;US0311621009;True;False
-Amundi MSCI Water ESG Screened UCITS ETF EUR Dis.;WAT.PA;FR0010527275;True;False
-Apple;AAPL;US0378331005;True;False
-BNP Paribas;BNP.PA;FR0000131104;False;True
-Bechtle;BC8.DE;DE0005158703;True;False
-Berkshire Hathaway B;BRK-B;US0846707026;True;False
-CME Group;CME;US12572Q1058;True;False
-China Mobile;0941.HK;HK0941009539;False;True
-Colgate-Palmolive;CL;US1941621039;True;False
-DWS Group;DWS.DE;DE000DWS1007;False;True
-Danaher;DHR;US2358511028;True;False
-Eurocommercial Properties;ECMPA.AS;NL0015000K93;False;True
-Exxon Mobil;XOM;US30233Q1085;False;True
-Fastenal;FAST;US3119001044;True;False
-Freenet;FNTN.DE;DE000A0Z2ZZ5;False;True
-Frontline;FRO;CY0200352116;False;True
-Greencoat UK Wind;UKW.L;GB00B8SC6K54;False;True
-H&M Hennes & Mauritz;HM-B.ST;SE0000106270;False;True
-Hannover Rück;HNR1.DE;DE0008402215;True;False
-Hoeegh Autoliners;HAUTO.OL;NO0011082075;False;True
-Imperial Brands;IMB.L;GB0004544929;False;True
-Iron Mountain;IRM;US46284V1017;False;True
-KPN;KPN.AS;NL0000009082;False;True
-Land Securities Group;LAND.L;GB00BYW0PQ60;False;True
-Legal & General;LGEN.L;GB0005603997;False;True
-Lyondellbasell Industries;LYB;NL0009434992;False;True
-M&G PLC;MNG.L;GB00BKFB1C65;False;True
-Mastercard;MA;US57636Q1040;True;False
-Mercedes-Benz Group (Daimler);MBG.DE;DE0007100000;False;True
-Microsoft;MSFT;US5949181045;True;False
-Moody's;MCO;US6153691059;True;False
-Mowi ASA;MOWI.OL;NO0003054108;False;True
-NEPI ROCKCASTLE EO -,01;NRP.JO;NL0015000RT3;False;True
-Nemetschek;NEM.DE;DE0006452907;True;False
-Primary Health Properties;PHP.L;GB00BYRJ5J14;False;True
-RTL;RRTL.DE;LU0061462528;False;True
-Rio Tinto;RIO.L;GB0007188757;False;True
-Sartorius Vz.;SRT3.DE;DE0007165631;True;False
-Scor;SCR.PA;FR0010411983;False;True
-Signify;LIGHT.AS;NL0011821392;False;True
-Sixt Vz;SIX3.DE;DE0007231334;False;True
-Standard Life;SDLF.L;GB00BGXQNP29;False;True
-Stryker;SYK;US8636671013;True;False
-Supermarket Income REIT;SUPR.L;GB00BF345X11;False;True
-TAG Immobilien;TEG.DE;DE0008303504;False;True
-TUI;TUI1.DE;DE000TUAG505;False;True
-Tanger Factory Outlet;SKT;US8754651060;False;True
-The Link REIT;0823.HK;HK0823032773;False;True
-Union Pacific;UNP;US9078181081;True;False
-United Overseas Bank;U11.SI;SG1M31001969;True;False
-VanEck Morningstar Developed Markets Dividend Leaders UCITS ETF EUR Dis.;TDIV.AS;NL0011683594;False;True
-Vinci;DG.PA;FR0000125486;True;False
-Visa;V;US92826C8394;True;False
-Wereldhave;WHA.AS;NL0000289213;False;True
+Name;Ticker;Dauergewinner;Dividenden
+ABN AMRO;ABN.AS;False;True
+AEGON;AGN.AS;False;True
+ASML Holding;ASML.AS;True;False
+AT&T;T;False;True
+Alphabet A (Google);GOOGL;True;False
+Altria Group;MO;False;True
+Amazon;AMZN;True;False
+Amgen;AMGN;True;False
+Amundi MSCI Water ESG Screened UCITS ETF EUR Dis.;WAT.PA;True;False
+Apple;AAPL;True;False
+BNP Paribas;BNP.PA;False;True
+Bechtle;BC8.DE;True;False
+Berkshire Hathaway B;BRK-B;True;False
+CME Group;CME;True;False
+China Mobile;0941.HK;False;True
+Colgate-Palmolive;CL;True;False
+DWS Group;DWS.DE;False;True
+Danaher;DHR;True;False
+Eurocommercial Properties;ECMPA.AS;False;True
+Exxon Mobil;XOM;False;True
+Fastenal;FAST;True;False
+Freenet;FNTN.DE;False;True
+Frontline;FRO;False;True
+Greencoat UK Wind;UKW.L;False;True
+H&M Hennes & Mauritz;HM-B.ST;False;True
+Hannover Rück;HNR1.DE;True;False
+Hoeegh Autoliners;HAUTO.OL;False;True
+Imperial Brands;IMB.L;False;True
+Iron Mountain;IRM;False;True
+KPN;KPN.AS;False;True
+Land Securities Group;LAND.L;False;True
+Legal & General;LGEN.L;False;True
+Lyondellbasell Industries;LYB;False;True
+M&G PLC;MNG.L;False;True
+Mastercard;MA;True;False
+Mercedes-Benz Group (Daimler);MBG.DE;False;True
+Microsoft;MSFT;True;False
+Moody's;MCO;True;False
+Mowi ASA;MOWI.OL;False;True
+NEPI ROCKCASTLE EO -,01;NRP.JO;False;True
+Nemetschek;NEM.DE;True;False
+Primary Health Properties;PHP.L;False;True
+RTL;RRTL.DE;False;True
+Rio Tinto;RIO.L;False;True
+Sartorius Vz.;SRT3.DE;True;False
+Scor;SCR.PA;False;True
+Signify;LIGHT.AS;False;True
+Sixt Vz;SIX3.DE;False;True
+Standard Life;SDLF.L;False;True
+Stryker;SYK;True;False
+Supermarket Income REIT;SUPR.L;False;True
+TAG Immobilien;TEG.DE;False;True
+TUI;TUI1.DE;False;True
+Tanger Factory Outlet;SKT;False;True
+The Link REIT;0823.HK;False;True
+The Sherwin-Williams Company;SHW;True;False
+Union Pacific;UNP;True;False
+United Overseas Bank;U11.SI;True;False
+VanEck Morningstar Developed Markets Dividend Leaders UCITS ETF EUR Dis.;TDIV.AS;False;True
+Vinci;DG.PA;True;False
+Visa;V;True;False
+Wereldhave;WHA.AS;False;True

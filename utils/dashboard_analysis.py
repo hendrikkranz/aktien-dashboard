@@ -7,6 +7,7 @@ from utils.data_loader import load_portfolio
 from utils.recommendation import get_recommendation
 from utils.scoring import (
     calculate_growth_score,
+    calculate_income_score,
     calculate_momentum_score,
     calculate_quality_score,
     calculate_score,
@@ -61,6 +62,11 @@ def render_dashboard(
         axis=1,
     )
 
+    df["Income Score"] = df.apply(
+        calculate_income_score,
+        axis=1,
+    )
+
     # Gesamtscore
     df["Score"] = df.apply(
         calculate_score,
@@ -94,6 +100,7 @@ def render_dashboard(
             "Value Score",
             "Growth Score",
             "Momentum Score",
+            "Income Score",
             "Analystenpotenzial Prozent",
             "Analystenziel EUR",
             "Name",
@@ -135,6 +142,7 @@ def render_dashboard(
                 "Value Score",
                 "Growth Score",
                 "Momentum Score",
+                "Income Score",
                 "Ticker",
                 "Typ",
                 "ISIN",
@@ -211,6 +219,17 @@ def render_dashboard(
                 help=(
                     "Technischer Score aus SMA-Abständen "
                     "und Kursmomentum"
+                ),
+                min_value=0,
+                max_value=100,
+                format="%d",
+            ),
+            "Income Score": st.column_config.ProgressColumn(
+                "Income",
+                help=(
+                    "Bewertung der Dividendenqualität anhand "
+                    "von Dividendenrendite, Ausschüttungsquote "
+                    "und Gewinnwachstum"
                 ),
                 min_value=0,
                 max_value=100,

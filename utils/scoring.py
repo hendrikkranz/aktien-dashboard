@@ -200,15 +200,82 @@ def calculate_momentum_score(row):
     return min(score, 100)
 
 
+def calculate_income_score(row):
+    """
+    Berechnet den Income Score von 0 bis 100 Punkten.
+
+    Berücksichtigt:
+    - Dividendenrendite
+    - Ausschüttungsquote
+    - Gewinnwachstum als Hinweis auf die Dividendenstabilität
+    """
+
+    score = 0
+
+    dividend_yield = row.get(
+        "Dividendenrendite Prozent"
+    )
+    payout_ratio = row.get(
+        "Ausschüttungsquote Prozent"
+    )
+    earnings_growth = row.get(
+        "Gewinnwachstum Prozent"
+    )
+
+    # Dividendenrendite: maximal 45 Punkte
+    if pd.notna(dividend_yield):
+        if 4 <= dividend_yield < 6:
+            score += 45
+        elif 6 <= dividend_yield <= 9:
+            score += 40
+        elif 2 <= dividend_yield < 4:
+            score += 32
+        elif 0 < dividend_yield < 2:
+            score += 15
+        elif 9 < dividend_yield <= 12:
+            score += 22
+
+    # Ausschüttungsquote: maximal 35 Punkte
+    if pd.notna(payout_ratio):
+        if 25 <= payout_ratio <= 60:
+            score += 35
+        elif 60 < payout_ratio <= 75:
+            score += 28
+        elif 10 <= payout_ratio < 25:
+            score += 22
+        elif 75 < payout_ratio <= 90:
+            score += 15
+        elif 0 <= payout_ratio < 10:
+            score += 10
+        elif 90 < payout_ratio <= 110:
+            score += 5
+
+    # Gewinnwachstum: maximal 20 Punkte
+    if pd.notna(earnings_growth):
+        if earnings_growth >= 10:
+            score += 20
+        elif earnings_growth >= 5:
+            score += 16
+        elif earnings_growth >= 0:
+            score += 12
+        elif earnings_growth >= -10:
+            score += 6
+
+    return min(score, 100)
+
+
 def calculate_score(row):
     """
-    Berechnet den gewichteten Gesamtscore.
+    Berechnet den bisherigen gewichteten Gesamtscore.
 
     Gewichtung:
     - Quality: 35 Prozent
     - Value: 30 Prozent
     - Growth: 20 Prozent
     - Momentum: 15 Prozent
+
+    Der Income Score ist bereits vorhanden, wird aber
+    in diesem Schritt noch nicht in den Gesamtscore einbezogen.
     """
 
     quality_score = calculate_quality_score(row)

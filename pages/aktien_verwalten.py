@@ -8,6 +8,7 @@ import yfinance as yf
 DATA_PATH = Path("data/aktien_universum.csv")
 
 
+
 st.title("⚙️ Aktien verwalten")
 st.caption(
     "Hier verwaltest du das Research-Universum. "
@@ -122,8 +123,6 @@ def lookup_company_name(ticker: str) -> str:
 
 
 universe_df = load_universe()
-
-
 with st.container(border=True):
     st.subheader("Aktie hinzufügen")
 
@@ -188,7 +187,6 @@ with st.container(border=True):
 
 
 st.subheader("Aktienuniversum")
-
 edited_df = st.data_editor(
     universe_df,
     num_rows="dynamic",
@@ -211,9 +209,8 @@ edited_df = st.data_editor(
             "Dividendenaktie",
         ),
     },
-    key="aktien_universum_editor",
+    key="aktien_universum_editor_v3",
 )
-
 st.caption(
     "Zum Löschen eine Zeile markieren und über das Papierkorb-Symbol entfernen."
 )
