@@ -137,6 +137,8 @@ def render_dashboard(
             [
                 "Empfehlung",
                 "Name",
+                "Sektor",
+                "Branche",
                 "Score",
                 "Quality Score",
                 "Value Score",

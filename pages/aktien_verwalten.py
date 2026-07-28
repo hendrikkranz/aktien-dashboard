@@ -23,6 +23,8 @@ def load_universe() -> pd.DataFrame:
             columns=[
                 "Name",
                 "Ticker",
+                "Sektor",
+                "Branche",
                 "Dauergewinner",
                 "Dividenden",
             ]
@@ -36,7 +38,16 @@ def load_universe() -> pd.DataFrame:
             "Ticker": "string",
         },
     )
+    for column in ["Sektor", "Branche"]:
+        if column not in df.columns:
+            df[column] = ""
 
+        df[column] = (
+            df[column]
+            .astype("string")
+            .fillna("")
+            .str.strip()
+        )
     for column in ["Dauergewinner", "Dividenden"]:
         if column not in df.columns:
             df[column] = False
@@ -64,6 +75,8 @@ def load_universe() -> pd.DataFrame:
         [
             "Name",
             "Ticker",
+            "Sektor",
+            "Branche",
             "Dauergewinner",
             "Dividenden",
         ]
@@ -87,7 +100,13 @@ def save_universe(df: pd.DataFrame) -> None:
         .str.strip()
         .str.upper()
     )
-
+    for column in ["Sektor", "Branche"]:
+        cleaned[column] = (
+            cleaned[column]
+            .astype("string")
+            .fillna("")
+            .str.strip()
+        )
     cleaned = cleaned[cleaned["Ticker"] != ""]
 
     cleaned = cleaned.drop_duplicates(
@@ -107,7 +126,7 @@ def save_universe(df: pd.DataFrame) -> None:
     )
 
 
-def lookup_company_name(ticker: str) -> str:
+def lookup_company_info(ticker: str) -> dict:
     ticker_data = yf.Ticker(ticker)
 
     try:
@@ -115,12 +134,15 @@ def lookup_company_name(ticker: str) -> str:
     except Exception:
         info = {}
 
-    return (
-        info.get("longName")
-        or info.get("shortName")
-        or ticker
-    )
-
+    return {
+        "Name": (
+            info.get("longName")
+            or info.get("shortName")
+            or ticker
+        ),
+        "Sektor": info.get("sector") or "",
+        "Branche": info.get("industry") or "",
+    }
 
 universe_df = load_universe()
 with st.container(border=True):
@@ -161,13 +183,15 @@ with st.container(border=True):
 
         else:
             with st.spinner(f"{ticker} wird geprüft …"):
-                name = lookup_company_name(ticker)
+                company = lookup_company_info(ticker)
 
             new_row = pd.DataFrame(
                 [
                     {
-                        "Name": name,
+                        "Name": company["Name"],
                         "Ticker": ticker,
+                        "Sektor": company["Sektor"],
+                        "Branche": company["Branche"],
                         "Dauergewinner": add_as_dauergewinner,
                         "Dividenden": add_as_dividend,
                     }
@@ -182,7 +206,7 @@ with st.container(border=True):
             save_universe(updated_df)
             st.cache_data.clear()
 
-            st.success(f"{name} ({ticker}) wurde hinzugefügt.")
+            st.success(f'{company["Name"]} ({ticker}) wurde hinzugefügt.')
             st.rerun()
 
 
@@ -202,14 +226,22 @@ edited_df = st.data_editor(
             required=True,
             width="medium",
         ),
+        "Sektor": st.column_config.TextColumn(
+            "Sektor",
+            width="medium",
+        ),
+        "Branche": st.column_config.TextColumn(
+            "Branche",
+            width="large",
+        ),
         "Dauergewinner": st.column_config.CheckboxColumn(
             "Dauergewinner",
         ),
         "Dividenden": st.column_config.CheckboxColumn(
             "Dividendenaktie",
         ),
-    },
-    key="aktien_universum_editor_v3",
+},
+key="aktien_universum_editor_v4",
 )
 st.caption(
     "Zum Löschen eine Zeile markieren und über das Papierkorb-Symbol entfernen."

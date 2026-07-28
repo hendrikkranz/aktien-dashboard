@@ -41,7 +41,8 @@ def load_fundamentals(tickers):
             continue
 
         try:
-            info = yf.Ticker(ticker).get_info()
+            ticker_data = yf.Ticker(ticker)
+            info = ticker_data.get_info()
 
             if not isinstance(info, dict):
                 results[ticker] = EMPTY_FUNDAMENTALS.copy()
@@ -86,6 +87,13 @@ def load_fundamentals(tickers):
                 dividend_yield_percent = pd.NA
 
             results[ticker] = {
+                "ISIN": (
+                    info.get("isin")
+                    or ticker_data.get_isin()
+                    or pd.NA
+                ),
+                "Sektor": info.get("sector") or pd.NA,
+                "Branche": info.get("industry") or pd.NA,
                 "Dividendenrendite Prozent": dividend_yield_percent,
                 "KGV": (
                     float(trailing_pe)

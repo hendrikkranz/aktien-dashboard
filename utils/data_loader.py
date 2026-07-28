@@ -239,6 +239,9 @@ def load_portfolio(
     )
 
     fundamental_columns = [
+        "Sektor",
+        "Branche",
+        "ISIN",
         "Dividendenrendite Prozent",
         "KGV",
         "Forward KGV",
