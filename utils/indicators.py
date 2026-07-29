@@ -37,6 +37,14 @@ def load_technical_indicators(tickers):
 
             current_price = float(close.iloc[-1])
 
+            high_52w = float(close.max())
+
+            distance_52w_high = (
+                (current_price / high_52w - 1) * 100
+                if high_52w > 0
+                else pd.NA
+            )
+
             sma_50 = (
                 float(close.tail(50).mean())
                 if len(close) >= 50
@@ -76,6 +84,7 @@ def load_technical_indicators(tickers):
             results[ticker] = {
                 "50-Tage-Linie": sma_50,
                 "200-Tage-Linie": sma_200,
+                "Abstand 52-Wochen-Hoch Prozent": distance_52w_high,
                 "Abstand 50-Tage-Linie Prozent": distance_sma_50,
                 "Abstand 200-Tage-Linie Prozent": distance_sma_200,
                 "Momentum 3 Monate Prozent": momentum_3m,
@@ -91,6 +100,7 @@ def load_technical_indicators(tickers):
             results[ticker] = {
                 "50-Tage-Linie": pd.NA,
                 "200-Tage-Linie": pd.NA,
+                "Abstand 52-Wochen-Hoch Prozent": pd.NA,
                 "Abstand 50-Tage-Linie Prozent": pd.NA,
                 "Abstand 200-Tage-Linie Prozent": pd.NA,
                 "Momentum 3 Monate Prozent": pd.NA,

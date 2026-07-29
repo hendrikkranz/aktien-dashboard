@@ -46,6 +46,63 @@ def calculate_value_score(row):
     return min(score, 100)
 
 
+def calculate_attractiveness_score(row):
+    """
+    Bewertet die Attraktivität eines Einstiegs zum aktuellen Kurs
+    von 0 bis 100 Punkten.
+    """
+
+    score = 0
+
+    value_score = row.get("Value Score")
+    momentum_3m = row.get("Momentum 3 Monate Prozent")
+    momentum_6m = row.get("Momentum 6 Monate Prozent")
+    distance_sma_200 = row.get("Abstand 200-Tage-Linie Prozent")
+    distance_52w_high = row.get("Abstand 52-Wochen-Hoch Prozent")
+
+    # Fundamentale Bewertung: maximal 50 Punkte
+    if pd.notna(value_score):
+        score += value_score * 0.50
+
+    # Kursanstieg der letzten 3 Monate: maximal 10 Punkte
+    if pd.notna(momentum_3m):
+        if -10 <= momentum_3m <= 5:
+            score += 10
+        elif 5 < momentum_3m <= 15:
+            score += 7
+        elif 15 < momentum_3m <= 30:
+            score += 3
+
+    # Kursanstieg der letzten 6 Monate: maximal 10 Punkte
+    if pd.notna(momentum_6m):
+        if -15 <= momentum_6m <= 10:
+            score += 10
+        elif 10 < momentum_6m <= 25:
+            score += 6
+        elif 25 < momentum_6m <= 45:
+            score += 3
+
+    # Abstand zur 200-Tage-Linie: maximal 15 Punkte
+    if pd.notna(distance_sma_200):
+        if -10 <= distance_sma_200 <= 10:
+            score += 15
+        elif 10 < distance_sma_200 <= 20:
+            score += 10
+        elif 20 < distance_sma_200 <= 35:
+            score += 5
+
+        # Abstand zum 52-Wochen-Hoch: maximal 15 Punkte
+    if pd.notna(distance_52w_high):
+        if -30 <= distance_52w_high <= -15:
+            score += 15
+        elif -15 < distance_52w_high <= -7:
+            score += 10
+        elif -7 < distance_52w_high <= 0:
+            score += 5
+
+    return round(min(score, 100))
+
+
 def calculate_growth_score(row):
     """Berechnet den Growth Score von 0 bis 100 Punkten."""
 

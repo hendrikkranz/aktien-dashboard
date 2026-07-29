@@ -264,6 +264,7 @@ def load_portfolio(
         "200-Tage-Linie",
         "Abstand 50-Tage-Linie Prozent",
         "Abstand 200-Tage-Linie Prozent",
+        "Abstand 52-Wochen-Hoch Prozent",
         "Momentum 3 Monate Prozent",
           "Momentum 6 Monate Prozent",
     ]

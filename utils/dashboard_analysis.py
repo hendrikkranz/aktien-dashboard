@@ -6,6 +6,7 @@ import streamlit as st
 from utils.data_loader import load_portfolio
 from utils.recommendation import get_recommendation
 from utils.scoring import (
+    calculate_attractiveness_score,
     calculate_growth_score,
     calculate_income_score,
     calculate_momentum_score,
@@ -49,6 +50,11 @@ def render_dashboard(
 
     df["Value Score"] = df.apply(
         calculate_value_score,
+        axis=1,
+    )
+
+    df["Attraktivität Score"] = df.apply(
+        calculate_attractiveness_score,
         axis=1,
     )
 
@@ -114,6 +120,7 @@ def render_dashboard(
             "Ausschüttungsquote Prozent",
             "50-Tage-Linie",
             "200-Tage-Linie",
+            "Abstand 52-Wochen-Hoch Prozent",
             "Abstand 50-Tage-Linie Prozent",
             "Abstand 200-Tage-Linie Prozent",
             "Momentum 3 Monate Prozent",
@@ -142,6 +149,7 @@ def render_dashboard(
                 "Score",
                 "Quality Score",
                 "Value Score",
+                "Attraktivität Score",
                 "Growth Score",
                 "Momentum Score",
                 "Income Score",
@@ -166,6 +174,7 @@ def render_dashboard(
                 "200-Tage-Linie",
                 "Abstand 50-Tage-Linie Prozent",
                 "Abstand 200-Tage-Linie Prozent",
+                "Abstand 52-Wochen-Hoch Prozent",
                 "Momentum 3 Monate Prozent",
                 "Momentum 6 Monate Prozent",
             ]
@@ -324,6 +333,12 @@ def render_dashboard(
             "Abstand 200-Tage-Linie Prozent": (
                 st.column_config.NumberColumn(
                     "Abstand SMA 200",
+                    format="%.2f %%",
+                )
+            ),
+            "Abstand 52-Wochen-Hoch Prozent": (
+                st.column_config.NumberColumn(
+                    "Abst. 52W-Hoch",
                     format="%.2f %%",
                 )
             ),
