@@ -253,12 +253,17 @@ def load_portfolio(
     ]
 
     for column in fundamental_columns:
-        df[column] = df["Ticker"].map(
+        loaded_values = df["Ticker"].map(
             lambda ticker: fundamentals.get(
                 ticker,
                 {},
             ).get(column, pd.NA)
         )
+
+        if column in df.columns:
+            df[column] = loaded_values.fillna(df[column])
+        else:
+            df[column] = loaded_values
     technical_columns = [
         "50-Tage-Linie",
         "200-Tage-Linie",
