@@ -16,6 +16,9 @@ if ticker:
 
     st.subheader(data["Name"])
 
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+with col1:
     st.metric(
         "Kurs",
         f'{data["Kurs"]:.2f} {data["Währung"]}'
@@ -23,6 +26,7 @@ if ticker:
         else "Keine Daten",
     )
 
+with col2:
     st.metric(
         "Dividendenrendite",
         f'{data["Dividendenrendite"]:.2f} %'
@@ -30,9 +34,75 @@ if ticker:
         else "Keine Dividende",
     )
 
+with col3:
     st.metric(
         "KGV",
         f'{data["KGV"]:.1f}'
         if data["KGV"] is not None
         else "Keine Daten",
     )
+
+with col4:
+    st.metric(
+        "Forward KGV",
+        f'{data["Forward KGV"]:.1f}'
+        if data["Forward KGV"] is not None
+        else "Keine Daten",
+    )
+with col5:
+    st.metric(
+        "Analystenziel",
+        f'{data["Analystenziel"]:.2f} {data["Währung"]}'
+        if data["Analystenziel"] is not None
+        else "Keine Daten",
+    )
+
+with col6:
+    st.metric(
+        "Potenzial",
+        f'{data["Analystenpotenzial"]:.1f} %'
+        if data["Analystenpotenzial"] is not None
+        else "Keine Daten",
+    )
+st.divider()
+
+st.subheader("Kaufchance")
+
+buy_score = data["Kaufchance"]
+
+if buy_score >= 80:
+    rating = "🟢 Kaufen"
+elif buy_score >= 50:
+    rating = "🟡 Beobachten"
+else:
+    rating = "🔴 Abwarten"
+
+st.metric(rating, f"{buy_score} / 100")
+
+reasons = []
+
+if data["Analystenpotenzial"] is not None and data["Analystenpotenzial"] >= 20:
+    reasons.append("✅ Hohes Analystenpotenzial")
+
+if data["Forward KGV"] is not None and data["Forward KGV"] <= 20:
+    reasons.append("✅ Attraktive Bewertung (Forward KGV)")
+
+if data["Dividendenrendite"] is not None and data["Dividendenrendite"] >= 2:
+    reasons.append("✅ Solide Dividendenrendite")
+
+if reasons:
+    st.info("\n".join(reasons))
+else:
+    st.info("Noch keine besonderen Kaufsignale.")
+
+st.divider()
+
+st.subheader("Unternehmensqualität")
+
+st.metric(
+    "Quality Score",
+    f'{data["Unternehmensqualität"]} / 100',
+)
+st.write(data["Eigenkapitalrendite"])
+st.write(data["Nettomarge"])
+st.write(data["Verschuldungsgrad"])
