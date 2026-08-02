@@ -37,6 +37,9 @@ def load_company_snapshot(ticker: str) -> dict:
     snapshot = {
         "Ticker": ticker,
         "Name": info.get("longName") or info.get("shortName") or ticker,
+        "Land": info.get("country"),
+        "Sektor": info.get("sector"),
+        "Branche": info.get("industry"),
         "Kurs": current_price,
         "Währung": info.get("currency"),
         "Dividendenrendite": dividend_yield,
