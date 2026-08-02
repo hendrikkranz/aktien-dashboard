@@ -1,44 +1,12 @@
 import streamlit as st
 
-
 st.set_page_config(
-    page_title="Mein Aktien-Dashboard",
+    page_title="InRA",
     page_icon="📈",
     layout="wide",
 )
 
+st.title("InRA")
+st.caption("Investment Research Assistant")
 
-seiten = {
-    "📁 Meine Listen": [
-        st.Page(
-            "pages/depot.py",
-            title="Depotaktien",
-            icon="💼",
-            default=False,
-        ),
-        st.Page(
-            "pages/dauergewinner.py",
-            title="Dauergewinner",
-            icon="🏆",
-            default=True,
-        ),
-        st.Page(
-            "pages/dividendenaktien.py",
-            title="Dividendenaktien",
-            icon="💰",
-            default=False,
-        ),
-    ],
-    "⚙️ Verwaltung": [
-        st.Page(
-            "pages/aktien_verwalten.py",
-            title="Aktien verwalten",
-            icon="🛠️",
-            default=False,
-        ),
-    ],
-}
-
-
-navigation = st.navigation(seiten)
-navigation.run()
+st.write("Version 0.1")
