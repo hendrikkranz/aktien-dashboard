@@ -21,6 +21,7 @@ if ticker:
         data["Währung"],
         data.get("Land"),
         data.get("Sektor"),
+        data.get("Branche"),
     ]
 
     st.caption(
@@ -31,7 +32,7 @@ if ticker:
         )
     )
 
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
         st.metric(
@@ -51,13 +52,23 @@ if ticker:
 
     with col3:
         st.metric(
+            "Potenzial",
+            f'{data["Analystenpotenzial"]:.1f} %'
+            if data["Analystenpotenzial"] is not None
+            else "Keine Daten",
+        )
+
+    col4, col5, col6 = st.columns(3)
+
+    with col4:
+        st.metric(
             "KGV",
             f'{data["KGV"]:.1f}'
             if data["KGV"] is not None
             else "Keine Daten",
         )
 
-    with col4:
+    with col5:
         st.metric(
             "Forward KGV",
             f'{data["Forward KGV"]:.1f}'
@@ -65,19 +76,11 @@ if ticker:
             else "Keine Daten",
         )
 
-    with col5:
+    with col6:
         st.metric(
             "Analystenziel",
             f'{data["Analystenziel"]:.2f} {data["Währung"]}'
             if data["Analystenziel"] is not None
-            else "Keine Daten",
-        )
-
-    with col6:
-        st.metric(
-            "Potenzial",
-            f'{data["Analystenpotenzial"]:.1f} %'
-            if data["Analystenpotenzial"] is not None
             else "Keine Daten",
         )
 
