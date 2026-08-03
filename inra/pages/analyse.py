@@ -3,7 +3,10 @@ import streamlit as st
 from components.key_metrics import render_key_metrics
 from components.quality_section import render_quality_section
 from utils.data_loader import find_ticker
-from utils.market_data import load_company_snapshot
+from utils.market_data import (
+    load_company_snapshot,
+    load_price_history,
+)
 
 
 st.title("Analyse")
@@ -62,6 +65,26 @@ if ticker:
         )
     )
 
+    price_history = load_price_history(
+        data["Ticker"],
+        period="6mo",
+    )
+
+    if not price_history.empty:
+        st.markdown("### Kursverlauf – 6 Monate")
+
+        chart_data = price_history.set_index(
+            "Datum"
+        )[["Schlusskurs"]]
+
+        st.line_chart(
+            chart_data,
+            height=280,
+        )
+    else:
+        st.info(
+            "Für den Kursverlauf liegen derzeit keine Daten vor."
+        )
     col1, col2, col3 = st.columns(3)
 
     with col1:
