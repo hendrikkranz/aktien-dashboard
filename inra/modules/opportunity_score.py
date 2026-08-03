@@ -1,3 +1,6 @@
+from config.scoring import OPPORTUNITY_WEIGHTS
+
+
 def calculate_opportunity_score(data: dict) -> int:
     score = 0
 
@@ -7,20 +10,26 @@ def calculate_opportunity_score(data: dict) -> int:
 
     if analyst_upside is not None:
         if analyst_upside >= 20:
-            score += 40
+            score += OPPORTUNITY_WEIGHTS["analystenpotenzial"]
         elif analyst_upside >= 10:
-            score += 25
+            score += round(
+                OPPORTUNITY_WEIGHTS["analystenpotenzial"] * 0.625
+            )
 
     if forward_pe is not None:
         if forward_pe <= 20:
-            score += 30
+            score += OPPORTUNITY_WEIGHTS["bewertung"]
         elif forward_pe <= 25:
-            score += 20
+            score += round(
+                OPPORTUNITY_WEIGHTS["bewertung"] * 0.57
+            )
 
     if dividend_yield is not None:
         if dividend_yield >= 2:
-            score += 20
+            score += OPPORTUNITY_WEIGHTS["dividende"]
         elif dividend_yield >= 1:
-            score += 10
+            score += round(
+                OPPORTUNITY_WEIGHTS["dividende"] * 0.4
+            )
 
-    return score
+    return min(score, 100)
