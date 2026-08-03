@@ -2,6 +2,7 @@ import streamlit as st
 
 from components.key_metrics import render_key_metrics
 from components.quality_section import render_quality_section
+from utils.data_loader import find_ticker
 from utils.market_data import load_company_snapshot
 
 
@@ -15,14 +16,33 @@ if "analyse_ticker" in st.session_state:
 elif "analyse_input" not in st.session_state:
     st.session_state["analyse_input"] = "MSFT"
 
-ticker = st.text_input(
-    "Ticker",
+search_text = st.text_input(
+    "Aktie oder Ticker",
     key="analyse_input",
-    placeholder="z. B. MSFT",
-).strip().upper()
+    placeholder="z. B. Microsoft, Telekom, MSFT oder DTE.DE",
+).strip()
+
+ticker = None
+
+if search_text:
+    ticker = find_ticker(search_text)
+
+    if ticker is None:
+        direct_ticker = search_text.upper()
+
+        if " " not in direct_ticker:
+            ticker = direct_ticker
+        else:
+            st.warning(
+                "Der Unternehmensname wurde im Research-Universum "
+                "nicht gefunden. Bitte den Yahoo-Ticker eingeben."
+            )
 
 if ticker:
     data = load_company_snapshot(ticker)
+
+    st.session_state["last_analyzed_ticker"] = data["Ticker"]
+    st.session_state["last_analyzed_name"] = data["Name"]
 
     st.header(data["Name"])
 
