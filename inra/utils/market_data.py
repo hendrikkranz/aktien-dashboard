@@ -1,7 +1,10 @@
 import yfinance as yf
 
 from modules.opportunity_score import calculate_opportunity_score
-from modules.quality_score import calculate_quality_score
+from modules.quality_score import (
+    calculate_quality_breakdown,
+    calculate_quality_score,
+)
 
 
 def load_company_snapshot(ticker: str) -> dict:
@@ -57,5 +60,6 @@ def load_company_snapshot(ticker: str) -> dict:
 
     snapshot["Kaufchance"] = calculate_opportunity_score(snapshot)
     snapshot["Unternehmensqualität"] = calculate_quality_score(snapshot)
+    snapshot["Quality Breakdown"] = calculate_quality_breakdown(snapshot)
 
     return snapshot
