@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pandas as pd
 import yfinance as yf
 
@@ -9,6 +11,60 @@ from modules.quality_score import (
     calculate_quality_breakdown,
     calculate_quality_score,
 )
+
+
+def _calculate_period_return(
+    close_prices: pd.Series,
+    trading_days: int,
+) -> Optional[float]:
+    clean_prices = close_prices.dropna()
+
+    if len(clean_prices) <= trading_days:
+        return None
+
+    start_price = clean_prices.iloc[-trading_days - 1]
+    end_price = clean_prices.iloc[-1]
+
+    if start_price is None or start_price == 0:
+        return None
+
+    return ((end_price / start_price) - 1) * 100
+
+
+def load_momentum_metrics(ticker: str) -> dict:
+    empty_result = {
+        "Momentum 3M": None,
+        "Momentum 6M": None,
+        "Momentum 12M": None,
+    }
+
+    try:
+        history = yf.Ticker(ticker).history(
+            period="2y",
+            auto_adjust=True,
+        )
+    except Exception:
+        return empty_result
+
+    if history.empty or "Close" not in history.columns:
+        return empty_result
+
+    close_prices = history["Close"]
+
+    return {
+        "Momentum 3M": _calculate_period_return(
+            close_prices,
+            63,
+        ),
+        "Momentum 6M": _calculate_period_return(
+            close_prices,
+            126,
+        ),
+        "Momentum 12M": _calculate_period_return(
+            close_prices,
+            251,
+        ),
+    }
 
 
 def load_company_snapshot(ticker: str) -> dict:
@@ -46,6 +102,8 @@ def load_company_snapshot(ticker: str) -> dict:
     if earnings_growth is not None:
         earnings_growth *= 100
 
+    momentum = load_momentum_metrics(ticker)
+
     snapshot = {
         "Ticker": ticker,
         "Name": (
@@ -68,6 +126,9 @@ def load_company_snapshot(ticker: str) -> dict:
         "Verschuldungsgrad": debt_to_equity,
         "Umsatzwachstum": revenue_growth,
         "Gewinnwachstum": earnings_growth,
+        "Momentum 3M": momentum["Momentum 3M"],
+        "Momentum 6M": momentum["Momentum 6M"],
+        "Momentum 12M": momentum["Momentum 12M"],
     }
 
     snapshot["Kaufchance"] = calculate_opportunity_score(

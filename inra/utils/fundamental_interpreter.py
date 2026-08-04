@@ -212,3 +212,49 @@ def interpret_dividend_yield(
         "neutral",
         "eine niedrige Dividendenrendite",
     )
+
+
+def interpret_momentum(
+    value: Optional[float],
+) -> Optional[dict]:
+    if value is None:
+        return None
+
+    if value >= 20:
+        return _result(
+            "excellent",
+            5,
+            "strength",
+            "ein sehr starkes Momentum",
+        )
+
+    if value >= 10:
+        return _result(
+            "good",
+            4,
+            "strength",
+            "ein starkes Momentum",
+        )
+
+    if value >= 0:
+        return _result(
+            "solid",
+            3,
+            "neutral",
+            "ein positives Momentum",
+        )
+
+    if value >= -10:
+        return _result(
+            "weak",
+            2,
+            "warning",
+            "ein schwaches Momentum",
+        )
+
+    return _result(
+        "poor",
+        1,
+        "warning",
+        "ein deutlich negatives Momentum",
+    )

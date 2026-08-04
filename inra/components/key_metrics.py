@@ -4,6 +4,7 @@ import streamlit as st
 
 from utils.fundamental_interpreter import (
     interpret_debt_equity,
+    interpret_momentum,
     interpret_net_margin,
     interpret_roe,
 )
@@ -53,6 +54,13 @@ def _render_rating(result: Optional[dict]) -> None:
     st.markdown(
         f"{_icon(level)} **{_label(result)}**"
     )
+
+
+def _format_percentage(value: Optional[float]) -> str:
+    if value is None:
+        return "–"
+
+    return f"{value:+.1f} %"
 
 
 def render_key_metrics(data: dict) -> None:

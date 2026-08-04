@@ -1,3 +1,4 @@
+import altair as alt
 import streamlit as st
 
 from components.investment_decision import (
@@ -98,13 +99,64 @@ if ticker:
     if not price_history.empty:
         st.markdown("### Kursverlauf · 6 Monate")
 
-        chart_data = price_history.set_index(
-            "Datum"
-        )[["Schlusskurs"]]
+        minimum_price = price_history["Schlusskurs"].min()
+        maximum_price = price_history["Schlusskurs"].max()
 
-        st.line_chart(
-            chart_data,
-            height=280,
+        price_range = maximum_price - minimum_price
+
+        if price_range > 0:
+            axis_padding = price_range * 0.04
+        else:
+            axis_padding = maximum_price * 0.05
+
+        y_min = max(
+            0,
+            minimum_price - axis_padding,
+        )
+        y_max = maximum_price + axis_padding
+
+        chart = (
+            alt.Chart(price_history)
+            .mark_line()
+            .encode(
+                x=alt.X(
+                    "Datum:T",
+                    title=None,
+                    axis=alt.Axis(
+                        format="%d.%m.",
+                        labelAngle=0,
+                    ),
+                ),
+                y=alt.Y(
+                    "Schlusskurs:Q",
+                    title=None,
+                    scale=alt.Scale(
+                        domain=[y_min, y_max],
+                        zero=False,
+                        nice=False,
+                    ),
+                ),
+                tooltip=[
+                    alt.Tooltip(
+                        "Datum:T",
+                        title="Datum",
+                        format="%d.%m.%Y",
+                    ),
+                    alt.Tooltip(
+                        "Schlusskurs:Q",
+                        title="Kurs",
+                        format=".2f",
+                    ),
+                ],
+            )
+            .properties(
+                height=280,
+            )
+        )
+
+        st.altair_chart(
+            chart,
+            use_container_width=True,
         )
     else:
         st.info(
@@ -208,9 +260,3 @@ if ticker:
     st.divider()
 
     render_quality_section(data)
-
-    st.divider()
-
-    st.markdown("#### Kennzahlen")
-
-    render_key_metrics(data)

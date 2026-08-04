@@ -2,6 +2,8 @@ from typing import Optional
 
 import streamlit as st
 
+from utils.fundamental_interpreter import interpret_momentum
+
 
 def _format_value(
     value: Optional[float],
@@ -13,8 +15,61 @@ def _format_value(
     return f"{value:.1f}{suffix}"
 
 
-def _render_opportunity_breakdown(data: dict) -> None:
-    breakdown = data.get("Opportunity Breakdown", [])
+def _format_momentum(
+    value: Optional[float],
+) -> str:
+    if value is None:
+        return "–"
+
+    return f"{value:+.1f} %"
+
+
+def _momentum_icon(
+    result: Optional[dict],
+) -> str:
+    if result is None:
+        return "⚪"
+
+    level = result.get("level")
+
+    if level in ("excellent", "good"):
+        return "🟢"
+
+    if level == "solid":
+        return "🟡"
+
+    return "🔴"
+
+
+def _momentum_label(
+    result: Optional[dict],
+) -> str:
+    if result is None:
+        return "Keine Einordnung"
+
+    mapping = {
+        "excellent": "Sehr stark",
+        "good": "Stark",
+        "solid": "Positiv",
+        "weak": "Schwach",
+        "poor": "Sehr schwach",
+    }
+
+    return mapping.get(
+        result.get("level"),
+        "Keine Einordnung",
+    )
+
+
+def _render_opportunity_breakdown(
+    data: dict,
+    rating: str,
+) -> None:
+
+    breakdown = data.get(
+        "Opportunity Breakdown",
+        [],
+    )
 
     values = {
         "Analystenpotenzial": _format_value(
@@ -37,18 +92,28 @@ def _render_opportunity_breakdown(data: dict) -> None:
         ),
         "Forward KGV": (
             "Bis 20 werden 35 Punkte vergeben. "
-            "Bis 22 gibt es 30 Punkte, bis 25 noch 25 Punkte "
+            "Bis 22 gibt es 30 Punkte, "
+            "bis 25 noch 25 Punkte "
             "und bis 30 noch 15 Punkte."
         ),
         "Dividendenrendite": (
             "Ab 2 % wird die volle Punktzahl vergeben. "
-            "Ab 1 % gibt es 15 Punkte, bei einer positiven "
-            "Rendite unter 1 % noch 10 Punkte."
+            "Ab 1 % gibt es 15 Punkte, "
+            "bei einer positiven Rendite "
+            "unter 1 % noch 10 Punkte."
         ),
     }
 
-    with st.expander("Warum diese Kaufchance?"):
+    with st.expander(
+        f"Warum {rating.lower()}?"
+    ):
+
+        st.markdown(
+            "##### 📊 Bewertung"
+        )
+
         for item in breakdown:
+
             criterion = item["Kriterium"]
             points = item["Punkte"]
             maximum = item["Maximum"]
@@ -71,18 +136,94 @@ def _render_opportunity_breakdown(data: dict) -> None:
                 f"{explanations.get(criterion, '')}"
             )
 
+        st.divider()
+
+        st.markdown(
+            "##### 📈 Timing"
+        )
+
+        momentum_3m = data.get(
+            "Momentum 3M"
+        )
+        momentum_6m = data.get(
+            "Momentum 6M"
+        )
+        momentum_12m = data.get(
+            "Momentum 12M"
+        )
+
+        momentum_3m_result = (
+            interpret_momentum(
+                momentum_3m
+            )
+        )
+        momentum_6m_result = (
+            interpret_momentum(
+                momentum_6m
+            )
+        )
+        momentum_12m_result = (
+            interpret_momentum(
+                momentum_12m
+            )
+        )
+
+        c1, c2, c3 = st.columns(3)
+
+        with c1:
+            st.metric(
+                "3 Monate",
+                _format_momentum(
+                    momentum_3m
+                ),
+            )
+
+            st.markdown(
+                f"{_momentum_icon(momentum_3m_result)} "
+                f"**{_momentum_label(momentum_3m_result)}**"
+            )
+
+        with c2:
+            st.metric(
+                "6 Monate",
+                _format_momentum(
+                    momentum_6m
+                ),
+            )
+
+            st.markdown(
+                f"{_momentum_icon(momentum_6m_result)} "
+                f"**{_momentum_label(momentum_6m_result)}**"
+            )
+
+        with c3:
+            st.metric(
+                "12 Monate",
+                _format_momentum(
+                    momentum_12m
+                ),
+            )
+
+            st.markdown(
+                f"{_momentum_icon(momentum_12m_result)} "
+                f"**{_momentum_label(momentum_12m_result)}**"
+            )
+
         total = sum(
             item["Punkte"]
             for item in breakdown
         )
 
         st.divider()
+
         st.markdown(
-            f"**Gesamt: {min(total, 100)} von 100 Punkten**"
+            f"**Gesamt: {min(total,100)} von 100 Punkten**"
         )
 
+def render_opportunity_section(
+    data: dict,
+) -> None:
 
-def render_opportunity_section(data: dict) -> None:
     buy_score = data["Kaufchance"]
 
     if buy_score >= 80:
@@ -91,25 +232,28 @@ def render_opportunity_section(data: dict) -> None:
         border = "#2EAD7B"
         explanation = (
             "Der aktuelle Einstieg erscheint attraktiv. "
-            "Risiken und die eigene Anlagestrategie sollten "
-            "dennoch geprüft werden."
+            "Risiken und die eigene Anlagestrategie "
+            "sollten dennoch geprüft werden."
         )
+
     elif buy_score >= 50:
         rating = "Beobachten"
         icon = "🟡"
         border = "#D9A514"
         explanation = (
-            "Die Aktie ist interessant, aber das "
-            "Chancen-Risiko-Verhältnis ist aktuell noch "
-            "nicht eindeutig genug."
+            "Die Aktie ist interessant, "
+            "erfüllt derzeit aber noch nicht "
+            "alle Voraussetzungen für "
+            "eine klare Kaufempfehlung."
         )
+
     else:
         rating = "Abwarten"
         icon = "🔴"
         border = "#D9534F"
         explanation = (
-            "Der aktuelle Einstieg erscheint auf Basis der "
-            "berücksichtigten Kennzahlen noch nicht attraktiv genug."
+            "Der aktuelle Einstieg erscheint "
+            "momentan nicht attraktiv genug."
         )
 
     card = f"""
@@ -161,4 +305,7 @@ def render_opportunity_section(data: dict) -> None:
 
     st.html(card)
 
-    _render_opportunity_breakdown(data)
+    _render_opportunity_breakdown(
+        data,
+        rating,
+    )
