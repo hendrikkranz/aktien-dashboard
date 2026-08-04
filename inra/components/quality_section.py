@@ -16,6 +16,16 @@ def _score_icon(score: int, maximum: int) -> str:
     return "🔴"
 
 
+def _quality_rating(score: int) -> tuple:
+    if score >= 80:
+        return "Sehr hoch", "🟢", "#2EAD7B"
+
+    if score >= 60:
+        return "Solide", "🟡", "#D9A514"
+
+    return "Schwach", "🔴", "#D9534F"
+
+
 def _render_subscore(
     column,
     label: str,
@@ -73,19 +83,62 @@ def _plus(column) -> None:
 
 
 def render_quality_section(data: dict) -> None:
-    st.subheader("Unternehmensqualität")
+    quality_score = data["Unternehmensqualität"]
+    rating, icon, border = _quality_rating(quality_score)
 
-    st.metric(
-        "Quality Score",
-        f'{data["Unternehmensqualität"]} / 100',
-        help=(
-            "Gesamtbewertung der Unternehmensqualität. "
-            "Der Score setzt sich aus Profitabilität, "
-            "Wachstum, Bilanz und Dividende zusammen."
-        ),
+    summary = html.escape(
+        create_investment_summary(data)
     )
 
-    st.info(create_investment_summary(data))
+    card = f"""
+<div style="
+    background:#1b1f27;
+    border-left:6px solid {border};
+    border-radius:12px;
+    padding:22px 24px;
+    margin:10px 0 22px 0;
+">
+    <div style="
+        color:#8b949e;
+        font-size:12px;
+        font-weight:700;
+        text-transform:uppercase;
+        letter-spacing:1px;
+    ">
+        Unternehmensqualität
+    </div>
+
+    <div style="
+        color:white;
+        font-size:32px;
+        font-weight:700;
+        margin-top:10px;
+    ">
+        {quality_score} / 100
+    </div>
+
+    <div style="
+        color:#d0d7de;
+        font-size:15px;
+        font-weight:600;
+        margin-top:5px;
+    ">
+        {icon} {rating}
+    </div>
+
+    <div style="
+        color:#c9d1d9;
+        font-size:15px;
+        line-height:1.55;
+        margin-top:14px;
+        max-width:1000px;
+    ">
+        {summary}
+    </div>
+</div>
+"""
+
+    st.html(card)
 
     breakdown = data["Quality Breakdown"]
 
