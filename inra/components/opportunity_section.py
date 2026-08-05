@@ -2,7 +2,10 @@ from typing import Optional
 
 import streamlit as st
 
-from utils.fundamental_interpreter import interpret_momentum
+from utils.fundamental_interpreter import (
+    interpret_momentum,
+    interpret_rsi,
+)
 
 
 def _format_value(
@@ -245,6 +248,40 @@ def _render_opportunity_breakdown(
                     "Abstand des aktuellen Kurses zum 52-Wochen-Hoch."
                 ),
             )
+
+        rsi = data.get(
+            "RSI 14"
+        )
+
+        rsi_result = interpret_rsi(
+            rsi
+        )
+
+        if rsi is not None:
+            st.metric(
+                "RSI (14)",
+                f"{rsi:.1f}",
+                help=(
+                    "Relative-Stärke-Index "
+                    "(14 Handelstage)."
+                ),
+            )
+
+            if rsi >= 70:
+                label = "Überkauft"
+            elif rsi >= 60:
+                label = "Heiß gelaufen"
+            elif rsi >= 40:
+                label = "Neutral"
+            elif rsi >= 30:
+                label = "Schwach"
+            else:
+                label = "Überverkauft"
+
+            st.markdown(
+                f"{_momentum_icon(rsi_result)} "
+                f"**{label}**"
+            )        
 
         st.caption(
             "V0.1: Die Charttechnik wird derzeit noch nicht bewertet. "

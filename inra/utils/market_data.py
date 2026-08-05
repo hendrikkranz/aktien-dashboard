@@ -36,6 +36,7 @@ def load_momentum_metrics(ticker: str) -> dict:
         "Momentum 3M": None,
         "Momentum 6M": None,
         "Momentum 12M": None,
+        "RSI 14": None,
     }
 
     try:
@@ -49,7 +50,46 @@ def load_momentum_metrics(ticker: str) -> dict:
     if history.empty or "Close" not in history.columns:
         return empty_result
 
-    close_prices = history["Close"]
+    close_prices = history["Close"].dropna()
+
+    if close_prices.empty:
+        return empty_result
+
+    rsi_14 = None
+
+    if len(close_prices) >= 15:
+        price_changes = close_prices.diff()
+
+        gains = price_changes.clip(lower=0)
+        losses = -price_changes.clip(upper=0)
+
+        average_gain = gains.ewm(
+            alpha=1 / 14,
+            adjust=False,
+            min_periods=14,
+        ).mean()
+
+        average_loss = losses.ewm(
+            alpha=1 / 14,
+            adjust=False,
+            min_periods=14,
+        ).mean()
+
+        current_gain = average_gain.iloc[-1]
+        current_loss = average_loss.iloc[-1]
+
+        if current_loss == 0:
+            rsi_14 = 100.0
+        elif current_gain == 0:
+            rsi_14 = 0.0
+        else:
+            relative_strength = (
+                current_gain / current_loss
+            )
+
+            rsi_14 = 100 - (
+                100 / (1 + relative_strength)
+            )
 
     return {
         "Momentum 3M": _calculate_period_return(
@@ -64,6 +104,7 @@ def load_momentum_metrics(ticker: str) -> dict:
             close_prices,
             251,
         ),
+        "RSI 14": rsi_14,
     }
 
 
@@ -144,6 +185,7 @@ def load_company_snapshot(ticker: str) -> dict:
         "Momentum 3M": momentum["Momentum 3M"],
         "Momentum 6M": momentum["Momentum 6M"],
         "Momentum 12M": momentum["Momentum 12M"],
+        "RSI 14": momentum["RSI 14"],
     }
 
     snapshot["Kaufchance"] = calculate_opportunity_score(

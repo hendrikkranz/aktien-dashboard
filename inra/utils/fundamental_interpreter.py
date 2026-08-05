@@ -258,3 +258,48 @@ def interpret_momentum(
         "warning",
         "ein deutlich negatives Momentum",
     )
+
+def interpret_rsi(
+    value: Optional[float],
+) -> Optional[dict]:
+    if value is None:
+        return None
+
+    if value >= 70:
+        return _result(
+            "poor",
+            1,
+            "warning",
+            "eine überkaufte Situation",
+        )
+
+    if value >= 60:
+        return _result(
+            "weak",
+            2,
+            "warning",
+            "ein erhöhtes Kursniveau",
+        )
+
+    if value >= 40:
+        return _result(
+            "good",
+            4,
+            "neutral",
+            "ein neutrales Kursniveau",
+        )
+
+    if value >= 30:
+        return _result(
+            "weak",
+            2,
+            "warning",
+            "ein erhöhtes Rückschlagpotenzial",
+        )
+
+    return _result(
+        "excellent",
+        5,
+        "strength",
+        "eine überverkaufte Situation",
+    )
