@@ -83,6 +83,10 @@ def _render_opportunity_breakdown(
             data.get("Dividendenrendite"),
             " %",
         ),
+        "Abstand 52W-Hoch": _format_value(
+            data.get("Abstand 52W Hoch"),
+            " %",
+        ),
     }
 
     explanations = {
@@ -102,6 +106,10 @@ def _render_opportunity_breakdown(
             "bei einer positiven Rendite "
             "unter 1 % noch 10 Punkte."
         ),
+        "Abstand 52W-Hoch": (
+            "Je näher der Kurs am 52-Wochen-Hoch liegt, "
+            "desto mehr Punkte werden vergeben."
+        ),
     }
 
     with st.expander(
@@ -109,7 +117,7 @@ def _render_opportunity_breakdown(
     ):
 
         st.markdown(
-            "##### 📊 Bewertung"
+            "##### 💰 Fundamentale Bewertung"
         )
 
         for item in breakdown:
@@ -138,8 +146,11 @@ def _render_opportunity_breakdown(
 
         st.divider()
 
+        st.markdown("##### 📊 Charttechnik"
+        )
+
         st.markdown(
-            "##### 📈 Timing"
+            "##### 📈 Momentum"
         )
 
         momentum_3m = data.get(
@@ -209,9 +220,6 @@ def _render_opportunity_breakdown(
                 f"**{_momentum_label(momentum_12m_result)}**"
             )
 
-        st.divider()
-
-        st.markdown("##### 🛠 Technische Lage")
 
         tech1, tech2 = st.columns(2)
 
@@ -238,6 +246,12 @@ def _render_opportunity_breakdown(
                 ),
             )
 
+        st.caption(
+            "V0.1: Die Charttechnik wird derzeit noch nicht bewertet. "
+            "In V2 fließen Trendkanal, Unterstützungen/Widerstände, "
+            "CM MACD Refined und RSI in einen eigenen Charttechnik-Score ein."
+        )
+
         total = sum(
             item["Punkte"]
             for item in breakdown
@@ -246,7 +260,7 @@ def _render_opportunity_breakdown(
         st.divider()
 
         st.markdown(
-            f"**Gesamt: {min(total,100)} von 100 Punkten**"
+            f"**Aktueller Kaufchance-Score: {min(total,100)} von 100 Punkten**"
         )
 
 def render_opportunity_section(
