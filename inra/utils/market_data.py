@@ -90,6 +90,19 @@ def load_company_snapshot(ticker: str) -> dict:
     revenue_growth = info.get("revenueGrowth")
     earnings_growth = info.get("earningsGrowth")
 
+    week_52_high = info.get("fiftyTwoWeekHigh")
+
+    distance_to_52w_high = None
+
+    if (
+        current_price is not None
+        and week_52_high is not None
+        and week_52_high > 0
+    ):
+        distance_to_52w_high = (
+            (current_price / week_52_high) - 1
+        ) * 100
+
     if return_on_equity is not None:
         return_on_equity *= 100
 
@@ -121,6 +134,8 @@ def load_company_snapshot(ticker: str) -> dict:
         "Forward KGV": info.get("forwardPE"),
         "Analystenziel": analyst_target,
         "Analystenpotenzial": analyst_upside,
+        "52W Hoch": week_52_high,
+        "Abstand 52W Hoch": distance_to_52w_high,
         "Eigenkapitalrendite": return_on_equity,
         "Nettomarge": profit_margin,
         "Verschuldungsgrad": debt_to_equity,

@@ -209,6 +209,35 @@ def _render_opportunity_breakdown(
                 f"**{_momentum_label(momentum_12m_result)}**"
             )
 
+        st.divider()
+
+        st.markdown("##### 🛠 Technische Lage")
+
+        tech1, tech2 = st.columns(2)
+
+        with tech1:
+            st.metric(
+                "52W-Hoch",
+                (
+                    f'{data["52W Hoch"]:.2f} {data["Währung"]}'
+                    if data.get("52W Hoch") is not None
+                    else "Keine Daten"
+                ),
+            )
+
+        with tech2:
+            st.metric(
+                "Abstand 52W-Hoch",
+                (
+                    f'{data["Abstand 52W Hoch"]:+.1f} %'
+                    if data.get("Abstand 52W Hoch") is not None
+                    else "Keine Daten"
+                ),
+                help=(
+                    "Abstand des aktuellen Kurses zum 52-Wochen-Hoch."
+                ),
+            )
+
         total = sum(
             item["Punkte"]
             for item in breakdown
