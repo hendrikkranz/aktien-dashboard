@@ -6,7 +6,16 @@ QUALITY_WEIGHTS = {
 }
 
 OPPORTUNITY_WEIGHTS = {
-    "analystenpotenzial": 40,
-    "bewertung": 35,
-    "dividende": 25,
+    "analystenpotenzial": 20,
+    "bewertung": 20,
+    "dividende": 15,
+}
+
+CHART_WEIGHTS = {
+    "momentum": 10,
+    "rsi": 8,
+    "hoch_52w": 7,
+    "trendkanal": 8,
+    "cm_macd": 7,
+    "unterstuetzung": 5,
 }

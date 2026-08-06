@@ -1,4 +1,5 @@
 from config.scoring import OPPORTUNITY_WEIGHTS
+from modules.chart_score import calculate_chart_score
 
 
 def calculate_opportunity_breakdown(data: dict) -> list:
@@ -39,11 +40,11 @@ def calculate_opportunity_breakdown(data: dict) -> list:
                 "bewertung"
             ]
         elif forward_pe <= 22:
-            valuation_points = 30
+            valuation_points = 17
         elif forward_pe <= 25:
-            valuation_points = 25
+            valuation_points = 14
         elif forward_pe <= 30:
-            valuation_points = 15
+            valuation_points = 8
 
     breakdown.append(
         {
@@ -56,18 +57,18 @@ def calculate_opportunity_breakdown(data: dict) -> list:
     dividend_points = 0
 
     if dividend_yield is not None:
-        if dividend_yield >= 2:
-            dividend_points = OPPORTUNITY_WEIGHTS[
-                "dividende"
-            ]
+        if dividend_yield >= 5:
+            dividend_points = 15
+        elif dividend_yield >= 4:
+            dividend_points = 12
+        elif dividend_yield >= 3:
+            dividend_points = 9
+        elif dividend_yield >= 2:
+            dividend_points = 6
         elif dividend_yield >= 1:
-            dividend_points = round(
-                OPPORTUNITY_WEIGHTS["dividende"] * 0.6
-            )
+            dividend_points = 4
         elif dividend_yield > 0:
-            dividend_points = round(
-                OPPORTUNITY_WEIGHTS["dividende"] * 0.4
-            )
+            dividend_points = 2
 
     breakdown.append(
         {
@@ -87,5 +88,7 @@ def calculate_opportunity_score(data: dict) -> int:
         item["Punkte"]
         for item in breakdown
     )
+
+    score += calculate_chart_score(data)
 
     return min(score, 100)

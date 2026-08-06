@@ -7,6 +7,7 @@ from utils.fundamental_interpreter import (
     interpret_rsi,
 )
 
+from modules.chart_score import calculate_chart_breakdown
 
 def _format_value(
     value: Optional[float],
@@ -74,6 +75,8 @@ def _render_opportunity_breakdown(
         [],
     )
 
+    chart_breakdown = calculate_chart_breakdown(data)
+
     values = {
         "Analystenpotenzial": _format_value(
             data.get("Analystenpotenzial"),
@@ -98,16 +101,18 @@ def _render_opportunity_breakdown(
             "ab 10 % eine reduzierte Punktzahl."
         ),
         "Forward KGV": (
-            "Bis 20 werden 35 Punkte vergeben. "
-            "Bis 22 gibt es 30 Punkte, "
-            "bis 25 noch 25 Punkte "
-            "und bis 30 noch 15 Punkte."
+            "Bis 20 werden 20 Punkte vergeben. "
+            "Bis 22 gibt es 17 Punkte, "
+            "bis 25 noch 14 Punkte "
+            "und bis 30 noch 8 Punkte."
         ),
         "Dividendenrendite": (
-            "Ab 2 % wird die volle Punktzahl vergeben. "
-            "Ab 1 % gibt es 15 Punkte, "
-            "bei einer positiven Rendite "
-            "unter 1 % noch 10 Punkte."
+            "Ab 5 % werden 15 Punkte vergeben. "
+            "Ab 4 % gibt es 12 Punkte, "
+            "ab 3 % 9 Punkte, "
+            "ab 2 % 6 Punkte, "
+            "ab 1 % 4 Punkte "
+            "und bei einer positiven Rendite unter 1 % noch 2 Punkte."
         ),
         "Abstand 52W-Hoch": (
             "Je näher der Kurs am 52-Wochen-Hoch liegt, "
@@ -149,8 +154,26 @@ def _render_opportunity_breakdown(
 
         st.divider()
 
-        st.markdown("##### 📊 Charttechnik"
+        st.markdown(
+            "##### 📊 Charttechnik"
         )
+        for item in chart_breakdown:
+
+            criterion = item["Kriterium"]
+            points = item["Punkte"]
+            maximum = item["Maximum"]
+
+            if points >= maximum:
+                icon = "✅"
+            elif points > 0:
+                icon = "🟡"
+            else:
+                icon = "⚪"
+
+            st.markdown(
+                f"**{icon} {criterion}: "
+                f"{points} von {maximum} Punkten**"
+            )
 
         st.markdown(
             "##### 📈 Momentum"
@@ -249,9 +272,7 @@ def _render_opportunity_breakdown(
                 ),
             )
 
-        rsi = data.get(
-            "RSI 14"
-        )
+        rsi = data.get("RSI 14")
 
         rsi_result = interpret_rsi(
             rsi
@@ -282,12 +303,6 @@ def _render_opportunity_breakdown(
                 f"{_momentum_icon(rsi_result)} "
                 f"**{label}**"
             )        
-
-        st.caption(
-            "V0.1: Die Charttechnik wird derzeit noch nicht bewertet. "
-            "In V2 fließen Trendkanal, Unterstützungen/Widerstände, "
-            "CM MACD Refined und RSI in einen eigenen Charttechnik-Score ein."
-        )
 
         total = sum(
             item["Punkte"]
