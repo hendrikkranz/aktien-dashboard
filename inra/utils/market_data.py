@@ -40,6 +40,9 @@ def load_momentum_metrics(ticker: str) -> dict:
         "CM MACD": None,
         "CM Signal": None,
         "CM Histogram": None,
+        "CM MACD Weekly": None,
+        "CM Signal Weekly": None,
+        "CM Histogram Weekly": None,
     }
 
     try:

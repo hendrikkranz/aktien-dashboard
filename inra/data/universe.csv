@@ -1,4 +1,95 @@
-Name,Ticker
-Microsoft,MSFT
-Apple,AAPL
-Deutsche Telekom, DTE.DE
+Name,Ticker,Sektor,Branche,Land,Liste,Aktiv
+Microsoft,MSFT,Technology,Software Infrastructure,USA,Benchmark;Watchlist,1
+Apple,AAPL,Technology,Consumer Electronics,USA,Benchmark;Watchlist,1
+Deutsche Telekom,DTE.DE,Communication Services,Telecom Services,Germany,Benchmark;Watchlist,1
+Visa,V,Financial Services,Credit Services,USA,Benchmark,1
+Mastercard,MA,Financial Services,Credit Services,USA,Benchmark,1
+Alphabet,GOOGL,Communication Services,Internet Content & Information,USA,Benchmark,1
+Amazon,AMZN,Consumer Cyclical,Internet Retail,USA,Benchmark,1
+Meta Platforms,META,Communication Services,Internet Content & Information,USA,Benchmark,1
+NVIDIA,NVDA,Technology,Semiconductors,USA,Benchmark,1
+Broadcom,AVGO,Technology,Semiconductors,USA,Benchmark,1
+Taiwan Semiconductor,TSM,Technology,Semiconductors,Taiwan,Benchmark,1
+ASML,ASML.AS,Technology,Semiconductor Equipment,Netherlands,Benchmark,1
+SAP,SAP.DE,Technology,Software,Germany,Benchmark,1
+Oracle,ORCL,Technology,Software Infrastructure,USA,Benchmark,1
+Adobe,ADBE,Technology,Software,USA,Benchmark,1
+Salesforce,CRM,Technology,Software,USA,Benchmark,1
+Allianz,ALV.DE,Financial Services,Insurance - Diversified,Germany,Benchmark,1
+Muenchener Rueck,MUV2.DE,Financial Services,Insurance - Reinsurance,Germany,Benchmark,1
+Berkshire Hathaway,BRK-B,Financial Services,Insurance - Diversified,USA,Benchmark,1
+CME Group,CME,Financial Services,Financial Exchanges & Data,USA,Benchmark,1
+S&P Global,SPGI,Financial Services,Financial Data & Stock Exchanges,USA,Benchmark,1
+Moody's,MCO,Financial Services,Financial Data & Stock Exchanges,USA,Benchmark,1
+BlackRock,BLK,Financial Services,Asset Management,USA,Benchmark,1
+Brookfield Corporation,BN,Financial Services,Asset Management,Canada,Benchmark,1
+Deutsche Boerse,DB1.DE,Financial Services,Financial Exchanges & Data,Germany,Benchmark,1
+Ares Management,ARES,Financial Services,Asset Management,USA,Benchmark,1
+Siemens,SIE.DE,Industrials,Specialty Industrial Machinery,Germany,Benchmark,1
+Siemens Healthineers,SHL.DE,Healthcare,Medical Devices,Germany,Benchmark,1
+Schneider Electric,SU.PA,Industrials,Electrical Equipment,France,Benchmark,1
+Vinci,DG.PA,Industrials,Engineering & Construction,France,Benchmark,1
+Air Liquide,AI.PA,Basic Materials,Specialty Chemicals,France,Benchmark,1
+Stryker,SYK,Healthcare,Medical Devices,USA,Benchmark,1
+Danaher,DHR,Healthcare,Diagnostics & Research,USA,Benchmark,1
+Thermo Fisher Scientific,TMO,Healthcare,Diagnostics & Research,USA,Benchmark,1
+Intuitive Surgical,ISRG,Healthcare,Medical Instruments & Supplies,USA,Benchmark,1
+Abbott Laboratories,ABT,Healthcare,Medical Devices,USA,Benchmark,1
+Medtronic,MDT,Healthcare,Medical Devices,Ireland,Benchmark,1
+Novo Nordisk,NOVO-B.CO,Healthcare,Drug Manufacturers - General,Denmark,Benchmark,1
+LVMH,MC.PA,Consumer Cyclical,Luxury Goods,France,Benchmark,1
+Hermes,RMS.PA,Consumer Cyclical,Luxury Goods,France,Benchmark,1
+L'Oreal,OR.PA,Consumer Defensive,Household & Personal Products,France,Benchmark,1
+Nestle,NESN.SW,Consumer Defensive,Packaged Foods,Switzerland,Benchmark,1
+Procter & Gamble,PG,Consumer Defensive,Household & Personal Products,USA,Benchmark,1
+Coca-Cola,KO,Consumer Defensive,Beverages - Non-Alcoholic,USA,Benchmark,1
+PepsiCo,PEP,Consumer Defensive,Beverages - Non-Alcoholic,USA,Benchmark,1
+Costco,COST,Consumer Defensive,Discount Stores,USA,Benchmark,1
+McDonald's,MCD,Consumer Cyclical,Restaurants,USA,Benchmark,1
+Sherwin-Williams,SHW,Basic Materials,Specialty Chemicals,USA,Benchmark,1
+Rollins,ROL,Industrials,Specialty Business Services,USA,Benchmark,1
+Nemetschek,NEM.DE,Technology,Software,Germany,Benchmark,1
+JPMorgan Chase,JPM,Financial Services,Banks - Diversified,USA,Benchmark,1
+Goldman Sachs,GS,Financial Services,Capital Markets,USA,Benchmark,1
+Deutsche Bank,DBK.DE,Financial Services,Banks - Regional,Germany,Benchmark,1
+Commerzbank,CBK.DE,Financial Services,Banks - Regional,Germany,Benchmark,1
+Exxon Mobil,XOM,Energy,Oil & Gas Integrated,USA,Benchmark,1
+Chevron,CVX,Energy,Oil & Gas Integrated,USA,Benchmark,1
+Shell,SHEL,Energy,Oil & Gas Integrated,United Kingdom,Benchmark,1
+TotalEnergies,TTE.PA,Energy,Oil & Gas Integrated,France,Benchmark,1
+Barrick Mining,B,Basic Materials,Gold,Canada,Benchmark,1
+Rio Tinto,RIO,Basic Materials,Industrial Metals & Mining,United Kingdom,Benchmark,1
+BHP,BHP,Basic Materials,Industrial Metals & Mining,Australia,Benchmark,1
+Befesa,BFSA.F,Industrials,Waste Management,Luxembourg,Benchmark,1
+Vallourec,VACD.F,Basic Materials,Steel,France,Benchmark,1
+Realty Income,O,Real Estate,REIT - Retail,USA,Benchmark,1
+Prologis,PLD,Real Estate,REIT - Industrial,USA,Benchmark,1
+Simon Property Group,SPG,Real Estate,REIT - Retail,USA,Benchmark,1
+American Tower,AMT,Real Estate,REIT - Specialty,USA,Benchmark,1
+NextEra Energy,NEE,Utilities,Utilities - Regulated Electric,USA,Benchmark,1
+RWE,RWE.DE,Utilities,Utilities - Renewable,Germany,Benchmark,1
+E.ON,EOAN.DE,Utilities,Utilities - Diversified,Germany,Benchmark,1
+Iberdrola,IBE.MC,Utilities,Utilities - Diversified,Spain,Benchmark,1
+Verizon,VZ,Communication Services,Telecom Services,USA,Benchmark,1
+AT&T,T,Communication Services,Telecom Services,USA,Benchmark,1
+Orange,ORA.PA,Communication Services,Telecom Services,France,Benchmark,1
+Adobe,ADBE,Technology,Software,USA,Benchmark,1
+ServiceNow,NOW,Technology,Software,USA,Benchmark,1
+Cadence Design Systems,CDNS,Technology,Software,USA,Benchmark,1
+Synopsys,SNPS,Technology,Software,USA,Benchmark,1
+KLA Corporation,KLAC,Technology,Semiconductor Equipment,USA,Benchmark,1
+Lam Research,LRCX,Technology,Semiconductor Equipment,USA,Benchmark,1
+Amgen,AMGN,Healthcare,Drug Manufacturers - General,USA,Benchmark,1
+Eli Lilly,LLY,Healthcare,Drug Manufacturers - General,USA,Benchmark,1
+Merck & Co,MRK,Healthcare,Drug Manufacturers - General,USA,Benchmark,1
+Roche,ROG.SW,Healthcare,Drug Manufacturers - General,Switzerland,Benchmark,1
+Novartis,NOVN.SW,Healthcare,Drug Manufacturers - General,Switzerland,Benchmark,1
+Booking Holdings,BKNG,Consumer Cyclical,Travel Services,USA,Benchmark,1
+Airbnb,ABNB,Consumer Cyclical,Travel Services,USA,Benchmark,1
+FedEx,FDX,Industrials,Integrated Freight & Logistics,USA,Benchmark,1
+Union Pacific,UNP,Industrials,Railroads,USA,Benchmark,1
+Canadian National Railway,CNI,Industrials,Railroads,Canada,Benchmark,1
+Waste Management,WM,Industrials,Waste Management,USA,Benchmark,1
+Republic Services,RSG,Industrials,Waste Management,USA,Benchmark,1
+Blackstone,BX,Financial Services,Asset Management,USA,Benchmark,1
+KKR,KKR,Financial Services,Asset Management,USA,Benchmark,1
