@@ -64,11 +64,60 @@ if "favorite_tickers" not in st.session_state:
     st.session_state["favorite_tickers"] = load_favorites()
 
 universe = load_universe()
+list_options = sorted(
+    set(
+        option.strip()
+        for value in universe["Liste"].fillna("")
+        for option in value.split(";")
+        if option.strip()
+    )
+)
 
 search = st.text_input(
     "Aktie suchen",
     key="scout_search",
     placeholder="Name oder Ticker eingeben",
+)
+
+selected_list = st.selectbox(
+    "Liste",
+    options=["Alle"] + list_options,
+)
+
+sector_options = sorted(
+    universe["Sektor"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
+
+selected_sector = st.selectbox(
+    "Sektor",
+    options=["Alle"] + sector_options,
+)
+
+industry_options = sorted(
+    universe["Branche"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
+
+selected_industry = st.selectbox(
+    "Branche",
+    options=["Alle"] + industry_options,
+)
+
+country_options = sorted(
+    universe["Land"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
+
+selected_country = st.selectbox(
+    "Land",
+    options=["Alle"] + country_options,
 )
 
 show_favorites_only = st.checkbox(
@@ -90,6 +139,35 @@ if search:
             case=False,
             na=False,
         )
+    ]
+
+if selected_list != "Alle":
+    filtered_universe = filtered_universe[
+        filtered_universe["Liste"]
+        .fillna("")
+        .str.contains(
+            selected_list,
+            case=False,
+            regex=False,
+        )
+    ]
+
+if selected_sector != "Alle":
+    filtered_universe = filtered_universe[
+        filtered_universe["Sektor"]
+        == selected_sector
+    ]
+
+if selected_industry != "Alle":
+    filtered_universe = filtered_universe[
+        filtered_universe["Branche"]
+        == selected_industry
+    ]
+
+if selected_country != "Alle":
+    filtered_universe = filtered_universe[
+        filtered_universe["Land"]
+        == selected_country
     ]
 
 if show_favorites_only:
