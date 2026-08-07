@@ -37,11 +37,14 @@ def load_momentum_metrics(ticker: str) -> dict:
         "Momentum 6M": None,
         "Momentum 12M": None,
         "RSI 14": None,
+        "CM MACD": None,
+        "CM Signal": None,
+        "CM Histogram": None,
     }
 
     try:
         history = yf.Ticker(ticker).history(
-            period="2y",
+            period="5y",
             auto_adjust=True,
         )
     except Exception:
@@ -51,11 +54,23 @@ def load_momentum_metrics(ticker: str) -> dict:
         return empty_result
 
     close_prices = history["Close"].dropna()
+    weekly_close_prices = (
+        close_prices
+        .resample("W-FRI")
+        .last()
+        .dropna()
+    )    
 
     if close_prices.empty:
         return empty_result
 
     rsi_14 = None
+    cm_macd = None
+    cm_signal = None
+    cm_histogram = None
+    cm_macd_weekly = None
+    cm_signal_weekly = None
+    cm_histogram_weekly = None    
 
     if len(close_prices) >= 15:
         price_changes = close_prices.diff()
@@ -91,6 +106,58 @@ def load_momentum_metrics(ticker: str) -> dict:
                 100 / (1 + relative_strength)
             )
 
+    if len(close_prices) >= 35:
+        ema_12 = close_prices.ewm(
+            span=12,
+            adjust=False,
+        ).mean()
+
+        ema_26 = close_prices.ewm(
+            span=26,
+            adjust=False,
+        ).mean()
+
+        macd_line = ema_12 - ema_26
+
+        signal_line = macd_line.ewm(
+            span=9,
+            adjust=False,
+        ).mean()
+
+        histogram = macd_line - signal_line
+
+        cm_macd = macd_line.iloc[-1]
+        cm_signal = signal_line.iloc[-1]
+        cm_histogram = histogram.iloc[-1]
+
+    if len(weekly_close_prices) >= 35:
+        weekly_ema_12 = weekly_close_prices.ewm(
+            span=12,
+            adjust=False,
+        ).mean()
+
+        weekly_ema_26 = weekly_close_prices.ewm(
+            span=26,
+            adjust=False,
+        ).mean()
+
+        weekly_macd_line = (
+            weekly_ema_12 - weekly_ema_26
+        )
+
+        weekly_signal_line = weekly_macd_line.ewm(
+            span=9,
+            adjust=False,
+        ).mean()
+
+        weekly_histogram = (
+            weekly_macd_line - weekly_signal_line
+        )
+
+        cm_macd_weekly = weekly_macd_line
+        cm_signal_weekly = weekly_signal_line
+        cm_histogram_weekly = weekly_histogram        
+
     return {
         "Momentum 3M": _calculate_period_return(
             close_prices,
@@ -105,6 +172,24 @@ def load_momentum_metrics(ticker: str) -> dict:
             251,
         ),
         "RSI 14": rsi_14,
+        "CM MACD": cm_macd,
+        "CM Signal": cm_signal,
+        "CM Histogram": cm_histogram,
+        "CM MACD Weekly": (
+            cm_macd_weekly.tolist()
+            if cm_macd_weekly is not None
+            else None
+        ),
+        "CM Signal Weekly": (
+            cm_signal_weekly.tolist()
+            if cm_signal_weekly is not None
+            else None
+        ),
+        "CM Histogram Weekly": (
+            cm_histogram_weekly.tolist()
+            if cm_histogram_weekly is not None
+            else None
+        ),        
     }
 
 
@@ -186,6 +271,12 @@ def load_company_snapshot(ticker: str) -> dict:
         "Momentum 6M": momentum["Momentum 6M"],
         "Momentum 12M": momentum["Momentum 12M"],
         "RSI 14": momentum["RSI 14"],
+        "CM MACD": momentum["CM MACD"],
+        "CM Signal": momentum["CM Signal"],
+        "CM Histogram": momentum["CM Histogram"],
+        "CM MACD Weekly": momentum["CM MACD Weekly"],
+        "CM Signal Weekly": momentum["CM Signal Weekly"],
+        "CM Histogram Weekly": momentum["CM Histogram Weekly"],        
     }
 
     snapshot["Kaufchance"] = calculate_opportunity_score(

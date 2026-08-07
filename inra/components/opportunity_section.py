@@ -304,15 +304,22 @@ def _render_opportunity_breakdown(
                 f"**{label}**"
             )        
 
-        total = sum(
+        fundamental_total = sum(
             item["Punkte"]
             for item in breakdown
         )
 
+        chart_total = sum(
+            item["Punkte"]
+            for item in chart_breakdown
+        )
+
+        total = fundamental_total + chart_total
+
         st.divider()
 
         st.markdown(
-            f"**Aktueller Kaufchance-Score: {min(total,100)} von 100 Punkten**"
+            f"**Aktueller Kaufchance-Score: {min(total, 100)} von 100 Punkten**"
         )
 
 def render_opportunity_section(

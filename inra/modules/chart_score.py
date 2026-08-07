@@ -5,10 +5,14 @@ def calculate_chart_breakdown(data: dict) -> list:
     momentum_6m = data.get("Momentum 6M")
     rsi = data.get("RSI 14")
     distance_52w = data.get("Abstand 52W Hoch")
+    cm_macd_weekly = data.get("CM MACD Weekly")
+    cm_signal_weekly = data.get("CM Signal Weekly")
+    cm_histogram_weekly = data.get("CM Histogram Weekly")
 
     momentum_points = 0
     rsi_points = 0
     distance_52w_points = 0
+    cm_macd_points = 0
 
     if (
         momentum_3m is not None
@@ -47,7 +51,72 @@ def calculate_chart_breakdown(data: dict) -> list:
         elif distance_52w >= -20:
             distance_52w_points = 4
         elif distance_52w >= -30:
-            distance_52w_points = 2   
+            distance_52w_points = 2 
+
+            # CM MACD Refined
+    if (
+        cm_histogram_weekly is not None
+        and cm_macd_weekly is not None
+        and cm_signal_weekly is not None
+        and len(cm_histogram_weekly) >= 5
+        and len(cm_macd_weekly) >= 5
+        and len(cm_signal_weekly) >= 5
+    ):
+        # 1. Histogramm steigt
+        if (
+            cm_histogram_weekly[-1]
+            > cm_histogram_weekly[-2]
+        ):
+            cm_macd_points += 1
+
+        # 2. Histogramm beschleunigt sich
+        if (
+            cm_histogram_weekly[-1]
+            > cm_histogram_weekly[-2]
+            > cm_histogram_weekly[-3]
+        ):
+            cm_macd_points += 1
+
+        # 3. Histogramm erst seit max. 3 Wochen positiv
+        positive_weeks = 0
+
+        for value in reversed(cm_histogram_weekly):
+            if value > 0:
+                positive_weeks += 1
+            else:
+                break
+
+        if 1 <= positive_weeks <= 3:
+            cm_macd_points += 1
+
+        # 4. MACD steigt seit mindestens 3 Wochen
+        if (
+            cm_macd_weekly[-1] > cm_macd_weekly[-2]
+            and cm_macd_weekly[-2] > cm_macd_weekly[-3]
+        ):
+            cm_macd_points += 1
+
+        # 5. MACD erst seit max. 3 Wochen über Signallinie
+        crossover_weeks = 0
+
+        for macd_value, signal_value in reversed(
+            list(zip(cm_macd_weekly, cm_signal_weekly))
+        ):
+            if macd_value > signal_value:
+                crossover_weeks += 1
+            else:
+                break
+
+        if 1 <= crossover_weeks <= 3:
+            cm_macd_points += 1
+
+    breakdown.append(
+        {
+            "Kriterium": "CM MACD Refined",
+            "Punkte": cm_macd_points,
+            "Maximum": 5,
+        }
+    )        
 
     breakdown.append(
         {
