@@ -249,16 +249,26 @@ else:
         ),
     )
 
+    display_universe = display_universe.sort_values(
+        by="Kaufchance",
+        ascending=False,
+        na_position="last",
+    )
+
     display_universe = display_universe[
         [
             "Favorit",
             "Name",
             "Ticker",
+            "Unternehmensqualität",
+            "Kaufchance",
             "Sektor",
             "Branche",
             "Land",
         ]
     ]
+
+    st.subheader("Aktienübersicht")
 
     edited_universe = st.data_editor(
         display_universe,
@@ -267,6 +277,8 @@ else:
         disabled=[
             "Name",
             "Ticker",
+            "Unternehmensqualität",
+            "Kaufchance",
             "Sektor",
             "Branche",
             "Land",
@@ -295,3 +307,73 @@ else:
         )
 
         st.rerun()
+    
+    st.subheader("Rankings")
+
+    ranking_col1, ranking_col2 = st.columns(2)
+
+    with ranking_col1:
+        st.markdown("#### Top 10 Kaufchancen")
+
+        top_opportunities = (
+            universe[
+                [
+                    "Name",
+                    "Ticker",
+                    "Kaufchance",
+                    "Unternehmensqualität",
+                ]
+            ]
+            .dropna(subset=["Kaufchance"])
+            .sort_values(
+                by="Kaufchance",
+                ascending=False,
+            )
+            .head(10)
+        )
+
+        top_opportunities = top_opportunities.rename(
+            columns={
+                "Kaufchance": "Chance",
+                "Unternehmensqualität": "Qualität",
+            }
+        )
+
+        st.dataframe(
+            top_opportunities,
+            width="stretch",
+            hide_index=True,
+        )
+
+    with ranking_col2:
+        st.markdown("#### Top 10 Unternehmensqualität")
+
+        top_quality = (
+            universe[
+                [
+                    "Name",
+                    "Ticker",
+                    "Unternehmensqualität",
+                    "Kaufchance",
+                ]
+            ]
+            .dropna(subset=["Unternehmensqualität"])
+            .sort_values(
+                by="Unternehmensqualität",
+                ascending=False,
+            )
+            .head(10)
+        )
+
+        top_quality = top_quality.rename(
+            columns={
+                "Unternehmensqualität": "Qualität",
+                "Kaufchance": "Chance",
+            }
+        )
+
+        st.dataframe(
+            top_quality,
+            width="stretch",
+            hide_index=True,
+        )
