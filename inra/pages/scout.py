@@ -76,7 +76,7 @@ if not benchmark_cache.empty:
         how="left",
         suffixes=("", "_cache"),
     )
-    
+
 list_options = sorted(
     set(
         option.strip()
@@ -231,60 +231,21 @@ else:
 
     selected_ticker = stock_options[selected_label]
 
-    is_favorite = (
-        selected_ticker
-        in st.session_state["favorite_tickers"]
-    )
-
-    action1, action2 = st.columns(2)
-
-    with action1:
-        if st.button(
-            "Aktie analysieren",
-            type="primary",
-            use_container_width=True,
-        ):
-            st.session_state["analyse_ticker"] = selected_ticker
-            st.switch_page("pages/analyse.py")
-
-    with action2:
-        favorite_label = (
-            "★ Favorit entfernen"
-            if is_favorite
-            else "☆ Als Favorit speichern"
-        )
-
-        if st.button(
-            favorite_label,
-            use_container_width=True,
-        ):
-            if is_favorite:
-                st.session_state["favorite_tickers"].remove(
-                    selected_ticker
-                )
-            else:
-                st.session_state["favorite_tickers"].append(
-                    selected_ticker
-                )
-
-            save_favorites(
-                st.session_state["favorite_tickers"]
-            )
-
-            st.rerun()
+    if st.button(
+        "Aktie analysieren",
+        type="primary",
+        use_container_width=True,
+    ):
+        st.session_state["analyse_ticker"] = selected_ticker
+        st.switch_page("pages/analyse.py")
 
     display_universe = filtered_universe.copy()
 
     display_universe.insert(
         0,
         "Favorit",
-        display_universe["Ticker"].apply(
-            lambda ticker: (
-                "★"
-                if ticker
-                in st.session_state["favorite_tickers"]
-                else ""
-            )
+        display_universe["Ticker"].isin(
+            st.session_state["favorite_tickers"]
         ),
     )
 
@@ -299,8 +260,38 @@ else:
         ]
     ]
 
-    st.dataframe(
+    edited_universe = st.data_editor(
         display_universe,
         width="stretch",
         hide_index=True,
+        disabled=[
+            "Name",
+            "Ticker",
+            "Sektor",
+            "Branche",
+            "Land",
+        ],
+        column_config={
+            "Favorit": st.column_config.CheckboxColumn(
+                "★",
+                help="Aktie als Favorit markieren",
+            ),
+        },
+        key="scout_favorites_editor",
     )
+
+    selected_favorites = edited_universe.loc[
+        edited_universe["Favorit"] == True,
+        "Ticker",
+    ].tolist()
+
+    if set(selected_favorites) != set(
+        st.session_state["favorite_tickers"]
+    ):
+        st.session_state["favorite_tickers"] = selected_favorites
+
+        save_favorites(
+            st.session_state["favorite_tickers"]
+        )
+
+        st.rerun()
