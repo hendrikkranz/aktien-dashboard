@@ -3,7 +3,10 @@ from pathlib import Path
 
 import streamlit as st
 
-from utils.data_loader import load_universe
+from utils.data_loader import (
+    load_benchmark_cache,
+    load_universe,
+)
 
 
 FAVORITES_PATH = (
@@ -64,6 +67,16 @@ if "favorite_tickers" not in st.session_state:
     st.session_state["favorite_tickers"] = load_favorites()
 
 universe = load_universe()
+benchmark_cache = load_benchmark_cache()
+
+if not benchmark_cache.empty:
+    universe = universe.merge(
+        benchmark_cache,
+        on="Ticker",
+        how="left",
+        suffixes=("", "_cache"),
+    )
+    
 list_options = sorted(
     set(
         option.strip()
@@ -177,18 +190,30 @@ if show_favorites_only:
         )
     ]
 
-metric1, metric2 = st.columns(2)
+metric1, metric2, metric3, metric4 = st.columns(4)
 
 with metric1:
     st.metric(
-        "Gefundene Aktien",
+        "Aktien",
         len(filtered_universe),
     )
 
 with metric2:
     st.metric(
-        "Favoriten",
-        len(st.session_state["favorite_tickers"]),
+        "Länder",
+        filtered_universe["Land"].nunique(),
+    )
+
+with metric3:
+    st.metric(
+        "Sektoren",
+        filtered_universe["Sektor"].nunique(),
+    )
+
+with metric4:
+    st.metric(
+        "Branchen",
+        filtered_universe["Branche"].nunique(),
     )
 
 if filtered_universe.empty:
@@ -262,6 +287,17 @@ else:
             )
         ),
     )
+
+    display_universe = display_universe[
+        [
+            "Favorit",
+            "Name",
+            "Ticker",
+            "Sektor",
+            "Branche",
+            "Land",
+        ]
+    ]
 
     st.dataframe(
         display_universe,

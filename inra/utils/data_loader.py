@@ -7,10 +7,16 @@ import yfinance as yf
 
 UNIVERSE_PATH = Path("inra/data/universe.csv")
 
+BENCHMARK_CACHE_PATH = Path("inra/data/benchmark_cache.csv")
 
 def load_universe() -> pd.DataFrame:
     return pd.read_csv(UNIVERSE_PATH)
 
+def load_benchmark_cache() -> pd.DataFrame:
+    if not BENCHMARK_CACHE_PATH.exists():
+        return pd.DataFrame()
+
+    return pd.read_csv(BENCHMARK_CACHE_PATH)
 
 def find_ticker_in_universe(
     search_text: str,

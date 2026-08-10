@@ -73,7 +73,6 @@ Iberdrola,IBE.MC,Utilities,Utilities - Diversified,Spain,Benchmark,1
 Verizon,VZ,Communication Services,Telecom Services,USA,Benchmark,1
 AT&T,T,Communication Services,Telecom Services,USA,Benchmark,1
 Orange,ORA.PA,Communication Services,Telecom Services,France,Benchmark,1
-Adobe,ADBE,Technology,Software,USA,Benchmark,1
 ServiceNow,NOW,Technology,Software,USA,Benchmark,1
 Cadence Design Systems,CDNS,Technology,Software,USA,Benchmark,1
 Synopsys,SNPS,Technology,Software,USA,Benchmark,1
@@ -82,7 +81,7 @@ Lam Research,LRCX,Technology,Semiconductor Equipment,USA,Benchmark,1
 Amgen,AMGN,Healthcare,Drug Manufacturers - General,USA,Benchmark,1
 Eli Lilly,LLY,Healthcare,Drug Manufacturers - General,USA,Benchmark,1
 Merck & Co,MRK,Healthcare,Drug Manufacturers - General,USA,Benchmark,1
-Roche,ROG.SW,Healthcare,Drug Manufacturers - General,Switzerland,Benchmark,1
+Roche,RO.SW,Healthcare,Drug Manufacturers - General,Switzerland,Benchmark,1
 Novartis,NOVN.SW,Healthcare,Drug Manufacturers - General,Switzerland,Benchmark,1
 Booking Holdings,BKNG,Consumer Cyclical,Travel Services,USA,Benchmark,1
 Airbnb,ABNB,Consumer Cyclical,Travel Services,USA,Benchmark,1
