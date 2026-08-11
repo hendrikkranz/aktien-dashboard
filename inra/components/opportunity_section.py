@@ -85,9 +85,17 @@ def _render_opportunity_breakdown(
         "Forward KGV": _format_value(
             data.get("Forward KGV"),
         ),
-        "Dividendenrendite": _format_value(
-            data.get("Dividendenrendite"),
-            " %",
+        "Dividendenrendite": (
+            "Keine Daten"
+            if data.get("Dividendenrendite") is None
+            else (
+                "0,0 % (keine Dividende)"
+                if data.get("Dividendenrendite") == 0
+                else _format_value(
+                    data.get("Dividendenrendite"),
+                    " %",
+                )
+            )
         ),
         "Abstand 52W-Hoch": _format_value(
             data.get("Abstand 52W Hoch"),

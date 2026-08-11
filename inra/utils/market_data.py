@@ -200,6 +200,12 @@ def load_company_snapshot(ticker: str) -> dict:
     info = yf.Ticker(ticker).get_info()
 
     dividend_yield = info.get("dividendYield")
+
+    if (
+        dividend_yield is None
+        and info.get("trailingAnnualDividendRate") == 0
+    ):
+        dividend_yield = 0.0
     current_price = (
         info.get("currentPrice")
         or info.get("regularMarketPrice")
