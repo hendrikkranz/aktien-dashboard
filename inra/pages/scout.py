@@ -2,6 +2,7 @@ import csv
 from pathlib import Path
 
 import streamlit as st
+import plotly.express as px
 
 from utils.data_loader import (
     load_benchmark_cache,
@@ -377,3 +378,190 @@ else:
             width="stretch",
             hide_index=True,
         )
+    st.subheader("Qualität × Kaufchance")
+
+    matrix_data = (
+        universe[
+            [
+                "Name",
+                "Ticker",
+                "Unternehmensqualität",
+                "Kaufchance",
+            ]
+        ]
+        .dropna(
+            subset=[
+                "Unternehmensqualität",
+                "Kaufchance",
+            ]
+        )
+        .copy()
+    )
+
+    matrix_data["Quadrant"] = "Beobachten"
+
+    matrix_data.loc[
+        (matrix_data["Unternehmensqualität"] >= 70)
+        & (matrix_data["Kaufchance"] >= 50),
+        "Quadrant",
+    ] = "Top-Kandidaten"
+
+    matrix_data.loc[
+        (matrix_data["Unternehmensqualität"] < 70)
+        & (matrix_data["Kaufchance"] >= 50),
+        "Quadrant",
+    ] = "Qualitätsunternehmen"
+
+    matrix_data.loc[
+        (matrix_data["Unternehmensqualität"] >= 70)
+        & (matrix_data["Kaufchance"] < 50),
+        "Quadrant",
+    ] = "Chancen"
+
+    fig = px.scatter(
+        matrix_data,
+        x="Unternehmensqualität",
+        y="Kaufchance",
+        color="Quadrant",
+        color_discrete_map={
+            "Top-Kandidaten": "#2ecc71",
+            "Qualitätsunternehmen": "#4da3ff",
+            "Chancen": "#f1c40f",
+            "Beobachten": "#e74c3c",
+        },
+        hover_name="Name",
+        hover_data={
+            "Ticker": ":",
+            "Unternehmensqualität": False,
+            "Kaufchance": False,
+            "Quadrant": False,
+        },
+        labels={
+            "Unternehmensqualität": "Unternehmensqualität",
+            "Kaufchance": "Kaufchance",
+        },
+    )
+
+    fig.update_traces(
+        hovertemplate=(
+            "<b>%{hovertext}</b><br><br>"
+            "Ticker: %{customdata[0]}<br>"
+            "Qualität: %{x:.0f}<br>"
+            "Chance: %{y:.0f}"
+            "<extra></extra>"
+        )
+    )
+
+    fig.add_vline(
+        x=70,
+        line_dash="dash",
+    )
+
+    fig.add_hline(
+        y=50,
+        line_dash="dash",
+    )
+
+    fig.add_shape(
+        type="rect",
+        x0=70,
+        x1=100,
+        y0=50,
+        y1=100,
+        fillcolor="green",
+        opacity=0.03,
+        line_width=0,
+        layer="below",
+    )
+
+    fig.add_shape(
+        type="rect",
+        x0=0,
+        x1=70,
+        y0=50,
+        y1=100,
+        fillcolor="blue",
+        opacity=0.02,
+        line_width=0,
+        layer="below",
+    )
+
+    fig.add_shape(
+        type="rect",
+        x0=70,
+        x1=100,
+        y0=0,
+        y1=50,
+        fillcolor="yellow",
+        opacity=0.05,
+        line_width=0,
+        layer="below",
+    )
+
+    fig.add_shape(
+        type="rect",
+        x0=0,
+        x1=70,
+        y0=0,
+        y1=50,
+        fillcolor="red",
+        opacity=0.02,
+        line_width=0,
+        layer="below",
+    )
+
+    fig.add_annotation(
+        x=89,
+        y=69,
+        text="Top-Kandidaten",
+        showarrow=False,
+        font=dict(
+            size=10,
+            color="#2ecc71",
+        ),
+    )
+
+    fig.add_annotation(
+        x=44,
+        y=69,
+        text="Einstiegsoptionen",
+        showarrow=False,
+        font=dict(
+            size=10,
+            color="#4da3ff",
+        ),
+    )
+
+    fig.add_annotation(
+        x=89,
+        y=23,
+        text="Qualitätsaktien",
+        showarrow=False,
+        font=dict(
+            size=10,
+            color="#f1c40f",
+        ),
+    )
+
+    fig.add_annotation(
+        x=44,
+        y=23,
+        text="Keine Priorität",
+        showarrow=False,
+        font=dict(
+            size=10,
+            color="#e74c3c",
+        ),
+    )
+
+    fig.update_layout(
+        height=550,
+        xaxis_range=[40, 92],
+        yaxis_range=[22, 72],
+        showlegend=False,
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+    )
