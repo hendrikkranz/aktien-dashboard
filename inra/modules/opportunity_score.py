@@ -35,7 +35,9 @@ def calculate_opportunity_breakdown(data: dict) -> list:
     valuation_points = 0
 
     if forward_pe is not None:
-        if forward_pe <= 20:
+        if forward_pe <= 0:
+            valuation_points = 0
+        elif forward_pe <= 20:
             valuation_points = OPPORTUNITY_WEIGHTS[
                 "bewertung"
             ]
