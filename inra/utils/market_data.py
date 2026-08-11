@@ -218,6 +218,7 @@ def load_company_snapshot(ticker: str) -> dict:
     debt_to_equity = info.get("debtToEquity")
     revenue_growth = info.get("revenueGrowth")
     earnings_growth = info.get("earningsGrowth")
+    market_cap = info.get("marketCap")
 
     week_52_high = info.get("fiftyTwoWeekHigh")
 
@@ -270,6 +271,7 @@ def load_company_snapshot(ticker: str) -> dict:
         "Verschuldungsgrad": debt_to_equity,
         "Umsatzwachstum": revenue_growth,
         "Gewinnwachstum": earnings_growth,
+        "Marktkapitalisierung": market_cap,
         "Momentum 3M": momentum["Momentum 3M"],
         "Momentum 6M": momentum["Momentum 6M"],
         "Momentum 12M": momentum["Momentum 12M"],
