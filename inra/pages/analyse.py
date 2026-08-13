@@ -65,12 +65,7 @@ if search_text:
             )
 
 if ticker:
-    data = load_company_snapshot(ticker)
-
-    st.write("CM MACD Weekly", data.get("CM MACD Weekly"))
-    st.write("CM Signal Weekly", data.get("CM Signal Weekly"))
-    st.write("CM Histogram Weekly", data.get("CM Histogram Weekly"))
-    st.divider()    
+    data = load_company_snapshot(ticker)    
 
     st.session_state["last_analyzed_ticker"] = data["Ticker"]
     st.session_state["last_analyzed_name"] = data["Name"]
