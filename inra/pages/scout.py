@@ -320,79 +320,81 @@ else:
     
     st.subheader("🏆 Rankings")
 
-    ranking_col1, ranking_col2 = st.columns(2)
+    is_mobile = st.session_state.get("is_mobile", False)
 
-    with ranking_col1:
-        st.markdown("#### Top 10 Kaufchancen")
+if is_mobile:
+    ranking_col1 = st.container()
+    ranking_col2 = st.container()
+else:
+    st.markdown("#### Top 10 Kaufchancen")
 
-        top_opportunities = (
-            universe[
-                [
-                    "Name",
-                    "Ticker",
-                    "Kaufchance",
-                    "Unternehmensqualität",
-                ]
+    top_opportunities = (
+        filtered_universe[
+            [
+                "Name",
+                "Ticker",
+                "Kaufchance",
+                "Unternehmensqualität",
             ]
-            .dropna(subset=["Kaufchance"])
-            .sort_values(
-                by="Kaufchance",
-                ascending=False,
-            )
-            .head(10)
+        ]
+        .dropna(subset=["Kaufchance"])
+        .sort_values(
+            by="Kaufchance",
+            ascending=False,
         )
+        .head(10)
+    )
 
-        top_opportunities = top_opportunities.rename(
-            columns={
-                "Kaufchance": "Chance",
-                "Unternehmensqualität": "Qualität",
-            }
-        )
+    top_opportunities = top_opportunities.rename(
+        columns={
+            "Kaufchance": "Chance",
+            "Unternehmensqualität": "Qualität",
+        }
+    )
 
-        st.dataframe(
-            top_opportunities,
-            width="stretch",
-            hide_index=True,
-        )
+    st.dataframe(
+        top_opportunities,
+        width="stretch",
+        hide_index=True,
+    )
 
-    with ranking_col2:
-        st.markdown("#### Top 10 Unternehmensqualität")
+    st.markdown("#### Top 10 Unternehmensqualität")
 
-        top_quality = (
-            universe[
-                [
-                    "Name",
-                    "Ticker",
-                    "Unternehmensqualität",
-                    "Kaufchance",
-                ]
+    top_quality = (
+        filtered_universe[
+            [
+                "Name",
+                "Ticker",
+                "Unternehmensqualität",
+                "Kaufchance",
             ]
-            .dropna(subset=["Unternehmensqualität"])
-            .sort_values(
-                by="Unternehmensqualität",
-                ascending=False,
-            )
-            .head(10)
+        ]
+        .dropna(subset=["Unternehmensqualität"])
+        .sort_values(
+            by="Unternehmensqualität",
+            ascending=False,
         )
+        .head(10)
+    )
 
-        top_quality = top_quality.rename(
-            columns={
-                "Unternehmensqualität": "Qualität",
-                "Kaufchance": "Chance",
-            }
-        )
+    top_quality = top_quality.rename(
+        columns={
+            "Unternehmensqualität": "Qualität",
+            "Kaufchance": "Chance",
+        }
+    )
 
-        st.dataframe(
-            top_quality,
-            width="stretch",
-            hide_index=True,
-        )
+    st.dataframe(
+        top_quality,
+        width="stretch",
+        hide_index=True,
+    )
     
     st.header("🔥 Heatmaps")
     st.subheader("1. Qualität × Kaufchance")
 
     matrix_data = (
-        universe[
+        filtered_universe[
             [
                 "Name",
                 "Ticker",
