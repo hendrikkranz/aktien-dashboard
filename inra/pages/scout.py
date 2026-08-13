@@ -87,10 +87,15 @@ list_options = sorted(
     )
 )
 
+overview_container = st.container()
+
+st.subheader("🔎 Aktiensuche")
+
 search = st.text_input(
-    "Aktie suchen",
+    "",
     key="scout_search",
     placeholder="Name oder Ticker eingeben",
+    label_visibility="collapsed",
 )
 
 selected_list = st.selectbox(
@@ -269,29 +274,33 @@ else:
         ]
     ]
 
-    st.subheader("Aktienübersicht")
+    with overview_container:
+        st.subheader("📊 Aktienübersicht")
+        st.caption(
+            f"{len(display_universe)} Aktien entsprechend der aktuellen Filter"
+        )
 
-    edited_universe = st.data_editor(
-        display_universe,
-        width="stretch",
-        hide_index=True,
-        disabled=[
-            "Name",
-            "Ticker",
-            "Unternehmensqualität",
-            "Kaufchance",
-            "Sektor",
-            "Branche",
-            "Land",
-        ],
-        column_config={
-            "Favorit": st.column_config.CheckboxColumn(
-                "★",
-                help="Aktie als Favorit markieren",
-            ),
-        },
-        key="scout_favorites_editor",
-    )
+        edited_universe = st.data_editor(
+            display_universe,
+            width="stretch",
+            hide_index=True,
+            disabled=[
+                "Name",
+                "Ticker",
+                "Unternehmensqualität",
+                "Kaufchance",
+                "Sektor",
+                "Branche",
+                "Land",
+            ],
+            column_config={
+                "Favorit": st.column_config.CheckboxColumn(
+                    "★",
+                    help="Aktie als Favorit markieren",
+                ),
+            },
+            key="scout_favorites_editor",
+        )
 
     selected_favorites = edited_universe.loc[
         edited_universe["Favorit"] == True,
@@ -309,7 +318,7 @@ else:
 
         st.rerun()
     
-    st.subheader("Rankings")
+    st.subheader("🏆 Rankings")
 
     ranking_col1, ranking_col2 = st.columns(2)
 
@@ -378,7 +387,9 @@ else:
             width="stretch",
             hide_index=True,
         )
-    st.subheader("Qualität × Kaufchance")
+    
+    st.header("🔥 Heatmaps")
+    st.subheader("1. Qualität × Kaufchance")
 
     matrix_data = (
         universe[
@@ -563,5 +574,197 @@ else:
 
     st.plotly_chart(
         fig,
+        use_container_width=True,
+    )
+
+    st.subheader("2. Marktüberblick")
+    st.markdown("#### Sektor-Heatmap")
+
+    sector_stats = (
+        filtered_universe
+        .dropna(subset=["Sektor"])
+        .groupby("Sektor")
+        .agg(
+            Kaufchance=("Kaufchance", "mean"),
+            Unternehmensqualität=(
+                "Unternehmensqualität",
+                "mean",
+            ),
+            Anzahl=("Sektor", "size"),
+        )
+        .round(1)
+        .sort_values(
+            by="Kaufchance",
+            ascending=False,
+        )
+    )
+
+    sector_heatmap = sector_stats.rename(
+        columns={
+            "Unternehmensqualität": "Qualität",
+            "Kaufchance": "Kaufchance",
+        }
+    )
+
+    sector_heatmap.index = [
+        f"{sector} ({int(sector_stats.loc[sector, 'Anzahl'])})"
+        for sector in sector_heatmap.index
+    ]
+
+    sector_heatmap = sector_heatmap[
+        ["Kaufchance", "Qualität"]
+    ]
+
+    heatmap_fig = px.imshow(
+        sector_heatmap,
+        text_auto=".0f",
+        aspect="auto",
+        color_continuous_scale="RdYlGn",
+        zmin=0,
+        zmax=100,
+        labels={
+            "x": "Kennzahl",
+            "y": "Sektor",
+            "color": "Score",
+        },
+    )
+
+    heatmap_fig.update_layout(
+        height=500,
+    )
+
+    st.plotly_chart(
+        heatmap_fig,
+        use_container_width=True,
+    )
+
+    st.markdown("#### Branchen-Heatmap")
+
+    industry_stats = (
+        filtered_universe
+        .dropna(subset=["Branche"])
+        .groupby("Branche")
+        .agg(
+            Kaufchance=("Kaufchance", "mean"),
+            Unternehmensqualität=(
+                "Unternehmensqualität",
+                "mean",
+            ),
+            Anzahl=("Branche", "size"),
+        )
+        .round(1)
+        .sort_values(
+            by="Kaufchance",
+            ascending=False,
+        )
+    )
+
+    industry_heatmap = industry_stats.rename(
+        columns={
+            "Unternehmensqualität": "Qualität",
+            "Kaufchance": "Kaufchance",
+        }
+    )
+
+    industry_heatmap.index = [
+        f"{industry} ({int(industry_stats.loc[industry, 'Anzahl'])})"
+        for industry in industry_heatmap.index
+    ]
+
+    industry_heatmap = industry_heatmap[
+        ["Kaufchance", "Qualität"]
+    ]
+
+    industry_heatmap_fig = px.imshow(
+        industry_heatmap,
+        text_auto=".0f",
+        aspect="auto",
+        color_continuous_scale="RdYlGn",
+        zmin=0,
+        zmax=100,
+        labels={
+            "x": "Kennzahl",
+            "y": "Branche",
+            "color": "Score",
+        },
+    )
+
+    industry_heatmap_fig.update_layout(
+        height=max(700, len(industry_heatmap) * 24),
+    )
+
+    st.plotly_chart(
+        industry_heatmap_fig,
+        use_container_width=True,
+    )
+
+    st.markdown("#### Länder-Heatmap")
+
+    country_heatmap = (
+        filtered_universe[
+            [
+                "Land",
+                "Unternehmensqualität",
+                "Kaufchance",
+            ]
+        ]
+        .dropna(subset=["Land"])
+        .groupby("Land")[
+            [
+                "Unternehmensqualität",
+                "Kaufchance",
+            ]
+        ]
+        .mean()
+        .round(1)
+        .sort_values(
+            by="Kaufchance",
+            ascending=False,
+        )
+    )
+
+    country_heatmap = country_heatmap.rename(
+        columns={
+            "Unternehmensqualität": "Qualität",
+            "Kaufchance": "Kaufchance",
+        }
+    )
+
+    country_counts = (
+        filtered_universe
+        .dropna(subset=["Land"])
+        .groupby("Land")
+        .size()
+    )
+
+    country_heatmap.index = [
+        f"{country} ({int(country_counts.loc[country])})"
+        for country in country_heatmap.index
+    ]
+
+    country_heatmap = country_heatmap[
+        ["Kaufchance", "Qualität"]
+    ]
+
+    country_heatmap_fig = px.imshow(
+        country_heatmap,
+        text_auto=".0f",
+        aspect="auto",
+        color_continuous_scale="RdYlGn",
+        zmin=0,
+        zmax=100,
+        labels={
+            "x": "Kennzahl",
+            "y": "Land",
+            "color": "Score",
+        },
+    )
+
+    country_heatmap_fig.update_layout(
+        height=500,
+    )
+
+    st.plotly_chart(
+        country_heatmap_fig,
         use_container_width=True,
     )
