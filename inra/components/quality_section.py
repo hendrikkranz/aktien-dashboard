@@ -276,7 +276,7 @@ def render_quality_section(data: dict) -> None:
     dividend_yield = data.get("Dividendenrendite")
 
     with st.expander(
-        f"Warum {rating.lower()}?"
+         f"Warum {quality_score} von 100 Punkten?"
     ):
         _render_section_header(
             "💰 Profitabilität",
@@ -376,7 +376,7 @@ def render_quality_section(data: dict) -> None:
         st.divider()
 
         _render_section_header(
-            "💎 Dividende",
+            "💎 Dividendenqualität",
             breakdown["Dividende"],
             15,
         )

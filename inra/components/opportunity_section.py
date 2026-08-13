@@ -129,11 +129,25 @@ def _render_opportunity_breakdown(
     }
 
     with st.expander(
-        f"Warum {rating.lower()}?"
+        f"Warum {data['Kaufchance']} von 85 Punkten?"
     ):
 
+        fundamental_total = sum(
+            item["Punkte"]
+            for item in breakdown
+        )
+
+        fundamental_maximum = sum(
+            item["Maximum"]
+            for item in breakdown
+        )
+
         st.markdown(
-            "##### 💰 Fundamentale Bewertung"
+            f"##### 💰 Bewertung"
+            f"<span style='float:right'>"
+            f"{fundamental_total} / {fundamental_maximum}"
+            f"</span>",
+            unsafe_allow_html=True,
         )
 
         for item in breakdown:
@@ -150,21 +164,42 @@ def _render_opportunity_breakdown(
                 icon = "⚪"
 
             st.markdown(
-                f"**{icon} {criterion}: "
-                f"{points} von {maximum} Punkten**"
+                f"###### {criterion}"
+            )
+
+            st.markdown(
+                f"{icon} **{points} von {maximum} Punkten**"
             )
 
             st.caption(
                 f"Aktueller Wert: "
-                f"{values.get(criterion, 'Keine Daten')}. "
-                f"{explanations.get(criterion, '')}"
+                f"{values.get(criterion, 'Keine Daten')}"
             )
 
-        st.divider()
+            st.caption(
+                explanations.get(criterion, "")
+            )
+
+            st.divider()
+
+        chart_total = sum(
+            item["Punkte"]
+            for item in chart_breakdown
+        )
+
+        chart_maximum = sum(
+            item["Maximum"]
+            for item in chart_breakdown
+        )
 
         st.markdown(
-            "##### 📊 Charttechnik"
+            f"##### 📊 Charttechnik"
+            f"<span style='float:right'>"
+            f"{chart_total} / {chart_maximum}"
+            f"</span>",
+            unsafe_allow_html=True,
         )
+
         for item in chart_breakdown:
 
             criterion = item["Kriterium"]
@@ -179,12 +214,17 @@ def _render_opportunity_breakdown(
                 icon = "⚪"
 
             st.markdown(
-                f"**{icon} {criterion}: "
-                f"{points} von {maximum} Punkten**"
+                f"###### {criterion}"
             )
 
+            st.markdown(
+                f"{icon} **{points} von {maximum} Punkten**"
+            )
+
+            st.divider()
+
         st.markdown(
-            "##### 📈 Momentum"
+            "##### 📈 Technische Kennzahlen"
         )
 
         momentum_3m = data.get(
@@ -336,7 +376,7 @@ def render_opportunity_section(
 
     buy_score = data["Kaufchance"]
 
-    if buy_score >= 80:
+    if buy_score >= 68:
         rating = "Kaufen"
         icon = "🟢"
         border = "#2EAD7B"
@@ -346,7 +386,7 @@ def render_opportunity_section(
             "sollten dennoch geprüft werden."
         )
 
-    elif buy_score >= 50:
+    elif buy_score >= 51:
         rating = "Beobachten"
         icon = "🟡"
         border = "#D9A514"
@@ -390,7 +430,7 @@ def render_opportunity_section(
         font-weight:700;
         margin-top:10px;
     ">
-        {buy_score} / 100
+        {buy_score} / 85
     </div>
 
     <div style="

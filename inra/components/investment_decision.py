@@ -7,7 +7,7 @@ def render_investment_decision(data: dict) -> None:
     buy_score = data["Kaufchance"]
     quality_score = data["Unternehmensqualität"]
 
-    if buy_score >= 80 and quality_score >= 70:
+    if buy_score >= 68 and quality_score >= 70:
         title = "Kaufen"
         icon = "🟢"
         background = "#EAF7F2"
@@ -17,7 +17,7 @@ def render_investment_decision(data: dict) -> None:
             "Auch die Unternehmensqualität unterstützt ein "
             "langfristiges Investment."
         )
-    elif buy_score >= 60:
+    elif buy_score >=51:
         title = "Beobachten"
         icon = "🟡"
         background = "#FFF8E1"

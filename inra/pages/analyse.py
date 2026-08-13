@@ -17,6 +17,26 @@ from utils.market_data import (
 )
 
 
+def format_market_cap(value, currency):
+    if value is None:
+        return "Keine Daten"
+
+    units = [
+        (1_000_000_000_000, "Bio."),
+        (1_000_000_000, "Mrd."),
+        (1_000_000, "Mio."),
+    ]
+
+    for divisor, label in units:
+        if value >= divisor:
+            return (
+                f"{value / divisor:.1f} "
+                f"{label} {currency}"
+            )
+
+    return f"{value:,.0f} {currency}"
+
+
 st.markdown(
     """
     <div style="
@@ -88,9 +108,13 @@ if ticker:
         )
     )
 
-    render_investment_decision(data)
-
-    st.divider()
+    st.caption(
+        "🏢 Marktkapitalisierung: "
+        + format_market_cap(
+            data.get("Marktkapitalisierung"),
+            data.get("Währung"),
+        )
+    )
 
     col_title, col_period = st.columns([3, 2])
 
@@ -219,95 +243,9 @@ if ticker:
             "Für den gewählten Zeitraum liegen keine Kursdaten vor."
         )
 
-    col1, col2, col3 = st.columns(3)
+        st.divider()
 
-    with col1:
-        st.metric(
-            "Kurs",
-            (
-                f'{data["Kurs"]:.2f} {data["Währung"]}'
-                if data["Kurs"] is not None
-                else "Keine Daten"
-            ),
-        )
-
-    with col2:
-        st.metric(
-            "Dividendenrendite",
-            (
-                f'{data["Dividendenrendite"]:.2f} %'
-                if data["Dividendenrendite"] is not None
-                else "Keine Dividende"
-            ),
-            help=(
-                "Jährliche Dividende im Verhältnis zum aktuellen "
-                "Aktienkurs. Renditen von etwa 2 bis 4 % gelten "
-                "häufig als attraktiv. Sehr hohe Werte können auch "
-                "durch einen stark gefallenen Kurs entstehen."
-            ),
-        )
-
-    with col3:
-        st.metric(
-            "Potenzial",
-            (
-                f'{data["Analystenpotenzial"]:.1f} %'
-                if data["Analystenpotenzial"] is not None
-                else "Keine Daten"
-            ),
-            help=(
-                "Prozentualer Abstand zwischen aktuellem Kurs und "
-                "durchschnittlichem Analystenziel. Analystenziele "
-                "sind nur eine Orientierung."
-            ),
-        )
-
-    col4, col5, col6 = st.columns(3)
-
-    with col4:
-        st.metric(
-            "KGV",
-            (
-                f'{data["KGV"]:.1f}'
-                if data["KGV"] is not None
-                else "Keine Daten"
-            ),
-            help=(
-                "Kurs-Gewinn-Verhältnis auf Basis der zuletzt "
-                "erzielten Gewinne. Die Einordnung hängt von "
-                "Branche, Wachstum und Unternehmensqualität ab."
-            ),
-        )
-
-    with col5:
-        st.metric(
-            "Forward KGV",
-            (
-                f'{data["Forward KGV"]:.1f}'
-                if data["Forward KGV"] is not None
-                else "Keine Daten"
-            ),
-            help=(
-                "Kurs-Gewinn-Verhältnis auf Basis der erwarteten "
-                "zukünftigen Gewinne. Die Kennzahl beruht auf "
-                "Prognosen."
-            ),
-        )
-
-    with col6:
-        st.metric(
-            "Analystenziel",
-            (
-                f'{data["Analystenziel"]:.2f} '
-                f'{data["Währung"]}'
-                if data["Analystenziel"] is not None
-                else "Keine Daten"
-            ),
-            help=(
-                "Durchschnittliches Kursziel der erfassten "
-                "Analysten. Kursziele können sich schnell ändern."
-            ),
-        )
+    render_investment_decision(data)
 
     st.divider()
 
