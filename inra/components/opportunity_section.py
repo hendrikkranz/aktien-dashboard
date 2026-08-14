@@ -176,8 +176,6 @@ def _render_opportunity_breakdown(
 
             st.divider()
 
-        st.divider()
-
         chart_total = sum(
             item["Punkte"]
             for item in chart_breakdown
@@ -202,20 +200,35 @@ def _render_opportunity_breakdown(
             points = item["Punkte"]
             maximum = item["Maximum"]
 
-            if points >= maximum:
-                icon = "✅"
-            elif points > 0:
-                icon = "🟡"
-            else:
-                icon = "🔴"
+            placeholder_criteria = {
+                "Trendkanal",
+                "Langfristiger Trend",
+                "Überhitzungsgefahr",
+            }
 
             st.markdown(
                 f"###### {criterion}"
             )
 
-            st.markdown(
-                f"{icon} **{points} von {maximum} Punkten**"
-            )
+            if criterion in placeholder_criteria:
+                st.markdown(
+                    "⚪ **Noch nicht bewertet**"
+                )
+                st.caption(
+                    "Dieser Baustein wird in V2 ergänzt."
+                )
+            else:
+                if points >= maximum:
+                    icon = "🟢"
+                elif points > 0:
+                    icon = "🟡"
+                else:
+                    icon = "🔴"
+
+                st.markdown(
+                    f"{icon} **{points} von "
+                    f"{maximum} Punkten**"
+                )
 
             if criterion == "Momentum":
                 momentum_3m = data.get("Momentum 3M")
@@ -257,7 +270,7 @@ def _render_opportunity_breakdown(
                     else:
                         label = "Überverkauft"
 
-                    st.caption("Grundlage")
+                    st.caption("Grunddaten Relative Stärke")
                     st.markdown(
                         f"**RSI (14): {rsi:.1f} · {label}**"
                     )

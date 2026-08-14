@@ -13,6 +13,9 @@ def calculate_chart_breakdown(data: dict) -> list:
     rsi_points = 0
     distance_52w_points = 0
     cm_macd_points = 0
+    trend_channel_points = 0
+    overheating_points = 0
+    long_term_trend_points = 0
 
     if (
         momentum_3m is not None
@@ -112,11 +115,27 @@ def calculate_chart_breakdown(data: dict) -> list:
 
     breakdown.append(
         {
+            "Kriterium": "Trendkanal",
+            "Punkte": trend_channel_points,
+            "Maximum": 8,
+        }
+    )
+
+    breakdown.append(
+        {
+            "Kriterium": "Langfristiger Trend",
+            "Punkte": long_term_trend_points,
+            "Maximum": 3,
+        }
+    )
+
+    breakdown.append(
+        {
             "Kriterium": "CM MACD Refined",
             "Punkte": cm_macd_points,
             "Maximum": 5,
         }
-    )        
+    )
 
     breakdown.append(
         {
@@ -141,6 +160,16 @@ def calculate_chart_breakdown(data: dict) -> list:
             "Maximum": 7,
         }
     )
+
+    breakdown.append(
+        {
+            "Kriterium": "Überhitzungsgefahr",
+            "Punkte": overheating_points,
+            "Maximum": 4,
+        }
+    )
+
+    return breakdown
 
     return breakdown
 
