@@ -5,7 +5,6 @@ import streamlit as st
 
 from utils.fundamental_interpreter import (
     interpret_debt_equity,
-    interpret_dividend_yield,
     interpret_net_margin,
     interpret_revenue_growth,
     interpret_roe,
@@ -273,7 +272,6 @@ def render_quality_section(data: dict) -> None:
     revenue_growth = data.get("Umsatzwachstum")
     earnings_growth = data.get("Gewinnwachstum")
     debt = data.get("Verschuldungsgrad")
-    dividend_yield = data.get("Dividendenrendite")
 
     with st.expander(
          f"Warum {quality_score} von 100 Punkten?"
@@ -281,7 +279,7 @@ def render_quality_section(data: dict) -> None:
         _render_section_header(
             "💰 Profitabilität",
             breakdown["Profitabilität"],
-            35,
+            40,
         )
 
         _render_metric_row(
@@ -312,7 +310,7 @@ def render_quality_section(data: dict) -> None:
         _render_section_header(
             "📈 Wachstum",
             breakdown["Wachstum"],
-            30,
+            35,
         )
 
         _render_metric_row(
@@ -353,7 +351,7 @@ def render_quality_section(data: dict) -> None:
         _render_section_header(
             "🏦 Bilanz",
             breakdown["Bilanz"],
-            20,
+            25,
         )
 
         _render_metric_row(
@@ -371,28 +369,6 @@ def render_quality_section(data: dict) -> None:
         st.caption(
             "Kapitalintensive Geschäftsmodelle benötigen "
             "später einen stärkeren Branchenkontext."
-        )
-
-        st.divider()
-
-        _render_section_header(
-            "💎 Dividendenqualität",
-            breakdown["Dividende"],
-            15,
-        )
-
-        _render_metric_row(
-            "Dividendenrendite",
-            _format_percentage(dividend_yield),
-            interpret_dividend_yield(
-                dividend_yield
-            ),
-            (
-                "Jährliche Dividende im Verhältnis zum "
-                "Aktienkurs. Die Rendite allein sagt noch "
-                "nichts über Sicherheit, Ausschüttungsquote "
-                "oder Dividendenwachstum aus."
-            ),
         )
 
         st.divider()

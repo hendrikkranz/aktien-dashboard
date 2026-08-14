@@ -1,14 +1,12 @@
 QUALITY_WEIGHTS = {
-    "profitabilitaet": 35,
-    "wachstum": 30,
-    "bilanz": 20,
-    "dividende": 15,
+    "profitabilitaet": 40,
+    "wachstum": 35,
+    "bilanz": 25,
 }
 
 OPPORTUNITY_WEIGHTS = {
-    "analystenpotenzial": 20,
-    "bewertung": 20,
-    "dividende": 15,
+    "analystenpotenzial": 25,
+    "bewertung": 30,
 }
 
 CHART_WEIGHTS = {

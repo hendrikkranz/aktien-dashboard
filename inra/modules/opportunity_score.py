@@ -7,7 +7,6 @@ def calculate_opportunity_breakdown(data: dict) -> list:
 
     analyst_upside = data.get("Analystenpotenzial")
     forward_pe = data.get("Forward KGV")
-    dividend_yield = data.get("Dividendenrendite")
 
     analyst_points = 0
 
@@ -53,30 +52,6 @@ def calculate_opportunity_breakdown(data: dict) -> list:
             "Kriterium": "Forward KGV",
             "Punkte": valuation_points,
             "Maximum": OPPORTUNITY_WEIGHTS["bewertung"],
-        }
-    )
-
-    dividend_points = 0
-
-    if dividend_yield is not None:
-        if dividend_yield >= 5:
-            dividend_points = 15
-        elif dividend_yield >= 4:
-            dividend_points = 12
-        elif dividend_yield >= 3:
-            dividend_points = 9
-        elif dividend_yield >= 2:
-            dividend_points = 6
-        elif dividend_yield >= 1:
-            dividend_points = 4
-        elif dividend_yield > 0:
-            dividend_points = 2
-
-    breakdown.append(
-        {
-            "Kriterium": "Dividendenrendite",
-            "Punkte": dividend_points,
-            "Maximum": OPPORTUNITY_WEIGHTS["dividende"],
         }
     )
 

@@ -4,6 +4,9 @@ import streamlit as st
 from components.investment_decision import (
     render_investment_decision,
 )
+from components.dividend_section import (
+    render_dividend_section,
+)
 from components.opportunity_section import (
     render_opportunity_section,
 )
@@ -249,8 +252,12 @@ if ticker:
 
     st.divider()
 
-    render_opportunity_section(data)
+    render_quality_section(data)
 
     st.divider()
 
-    render_quality_section(data)
+    render_dividend_section(data)
+
+    st.divider()
+
+    render_opportunity_section(data)

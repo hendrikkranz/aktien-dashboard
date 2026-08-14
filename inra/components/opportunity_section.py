@@ -85,7 +85,7 @@ def _render_opportunity_breakdown(
         "Forward KGV": _format_value(
             data.get("Forward KGV"),
         ),
-        "Dividendenrendite": (
+        "Dividendenstrategie": (
             "Keine Daten"
             if data.get("Dividendenrendite") is None
             else (
@@ -114,14 +114,6 @@ def _render_opportunity_breakdown(
             "bis 25 noch 14 Punkte "
             "und bis 30 noch 8 Punkte."
         ),
-        "Dividendenrendite": (
-            "Ab 5 % werden 15 Punkte vergeben. "
-            "Ab 4 % gibt es 12 Punkte, "
-            "ab 3 % 9 Punkte, "
-            "ab 2 % 6 Punkte, "
-            "ab 1 % 4 Punkte "
-            "und bei einer positiven Rendite unter 1 % noch 2 Punkte."
-        ),
         "Abstand 52W-Hoch": (
             "Je näher der Kurs am 52-Wochen-Hoch liegt, "
             "desto mehr Punkte werden vergeben."
@@ -129,28 +121,30 @@ def _render_opportunity_breakdown(
     }
 
     with st.expander(
-        f"Warum {data['Kaufchance']} von 85 Punkten?"
-    ):
+    f"Warum {data['Kaufchance']} von 100 Punkten?"
+):
 
-        fundamental_total = sum(
+        course_breakdown = breakdown
+
+        course_total = sum(
             item["Punkte"]
-            for item in breakdown
+            for item in course_breakdown
         )
 
-        fundamental_maximum = sum(
+        course_maximum = sum(
             item["Maximum"]
-            for item in breakdown
+            for item in course_breakdown
         )
 
         st.markdown(
-            f"##### 💰 Bewertung"
+            f"##### 💰 Kursbewertung"
             f"<span style='float:right'>"
-            f"{fundamental_total} / {fundamental_maximum}"
+            f"{course_total} / {course_maximum}"
             f"</span>",
             unsafe_allow_html=True,
         )
 
-        for item in breakdown:
+        for item in course_breakdown:
 
             criterion = item["Kriterium"]
             points = item["Punkte"]
@@ -161,7 +155,7 @@ def _render_opportunity_breakdown(
             elif points > 0:
                 icon = "🟡"
             else:
-                icon = "⚪"
+                icon = "🔴"
 
             st.markdown(
                 f"###### {criterion}"
@@ -181,6 +175,8 @@ def _render_opportunity_breakdown(
             )
 
             st.divider()
+
+        st.divider()
 
         chart_total = sum(
             item["Punkte"]
@@ -211,7 +207,7 @@ def _render_opportunity_breakdown(
             elif points > 0:
                 icon = "🟡"
             else:
-                icon = "⚪"
+                icon = "🔴"
 
             st.markdown(
                 f"###### {criterion}"
@@ -221,136 +217,79 @@ def _render_opportunity_breakdown(
                 f"{icon} **{points} von {maximum} Punkten**"
             )
 
-            st.divider()
+            if criterion == "Momentum":
+                momentum_3m = data.get("Momentum 3M")
+                momentum_6m = data.get("Momentum 6M")
+                momentum_12m = data.get("Momentum 12M")
 
-        st.markdown(
-            "##### 📈 Technische Kennzahlen"
-        )
+                m1, m2, m3 = st.columns(3)
 
-        momentum_3m = data.get(
-            "Momentum 3M"
-        )
-        momentum_6m = data.get(
-            "Momentum 6M"
-        )
-        momentum_12m = data.get(
-            "Momentum 12M"
-        )
+                with m1:
+                    st.caption("3 Monate")
+                    st.markdown(
+                        f"**{_format_momentum(momentum_3m)}**"
+                    )
 
-        momentum_3m_result = (
-            interpret_momentum(
-                momentum_3m
-            )
-        )
-        momentum_6m_result = (
-            interpret_momentum(
-                momentum_6m
-            )
-        )
-        momentum_12m_result = (
-            interpret_momentum(
-                momentum_12m
-            )
-        )
+                with m2:
+                    st.caption("6 Monate")
+                    st.markdown(
+                        f"**{_format_momentum(momentum_6m)}**"
+                    )
 
-        c1, c2, c3 = st.columns(3)
+                with m3:
+                    st.caption("12 Monate")
+                    st.markdown(
+                        f"**{_format_momentum(momentum_12m)}**"
+                    )
 
-        with c1:
-            st.metric(
-                "3 Monate",
-                _format_momentum(
-                    momentum_3m
-                ),
-            )
+            elif criterion == "RSI":
+                rsi = data.get("RSI 14")
 
-            st.markdown(
-                f"{_momentum_icon(momentum_3m_result)} "
-                f"**{_momentum_label(momentum_3m_result)}**"
-            )
+                if rsi is not None:
+                    if rsi >= 70:
+                        label = "Überkauft"
+                    elif rsi >= 60:
+                        label = "Heiß gelaufen"
+                    elif rsi >= 40:
+                        label = "Neutral"
+                    elif rsi >= 30:
+                        label = "Schwach"
+                    else:
+                        label = "Überverkauft"
 
-        with c2:
-            st.metric(
-                "6 Monate",
-                _format_momentum(
-                    momentum_6m
-                ),
-            )
+                    st.caption("Grundlage")
+                    st.markdown(
+                        f"**RSI (14): {rsi:.1f} · {label}**"
+                    )
 
-            st.markdown(
-                f"{_momentum_icon(momentum_6m_result)} "
-                f"**{_momentum_label(momentum_6m_result)}**"
-            )
+            elif criterion == "Abstand 52W-Hoch":
+                high_52w = data.get("52W Hoch")
+                distance_52w = data.get("Abstand 52W Hoch")
+                currency = data.get("Währung", "")
 
-        with c3:
-            st.metric(
-                "12 Monate",
-                _format_momentum(
-                    momentum_12m
-                ),
-            )
+                c1, c2 = st.columns(2)
 
-            st.markdown(
-                f"{_momentum_icon(momentum_12m_result)} "
-                f"**{_momentum_label(momentum_12m_result)}**"
-            )
+                with c1:
+                    st.caption("52W-Hoch")
+                    st.markdown(
+                        (
+                            f"**{high_52w:.2f} {currency}**"
+                            if high_52w is not None
+                            else "**Keine Daten**"
+                        )
+                    )
 
+                with c2:
+                    st.caption("Abstand")
+                    st.markdown(
+                        (
+                            f"**{distance_52w:+.1f} %**"
+                            if distance_52w is not None
+                            else "**Keine Daten**"
+                        )
+                    )
 
-        tech1, tech2 = st.columns(2)
-
-        with tech1:
-            st.metric(
-                "52W-Hoch",
-                (
-                    f'{data["52W Hoch"]:.2f} {data["Währung"]}'
-                    if data.get("52W Hoch") is not None
-                    else "Keine Daten"
-                ),
-            )
-
-        with tech2:
-            st.metric(
-                "Abstand 52W-Hoch",
-                (
-                    f'{data["Abstand 52W Hoch"]:+.1f} %'
-                    if data.get("Abstand 52W Hoch") is not None
-                    else "Keine Daten"
-                ),
-                help=(
-                    "Abstand des aktuellen Kurses zum 52-Wochen-Hoch."
-                ),
-            )
-
-        rsi = data.get("RSI 14")
-
-        rsi_result = interpret_rsi(
-            rsi
-        )
-
-        if rsi is not None:
-            st.metric(
-                "RSI (14)",
-                f"{rsi:.1f}",
-                help=(
-                    "Relative-Stärke-Index "
-                    "(14 Handelstage)."
-                ),
-            )
-
-            if rsi >= 70:
-                label = "Überkauft"
-            elif rsi >= 60:
-                label = "Heiß gelaufen"
-            elif rsi >= 40:
-                label = "Neutral"
-            elif rsi >= 30:
-                label = "Schwach"
-            else:
-                label = "Überverkauft"
-
-            st.markdown(
-                f"{_momentum_icon(rsi_result)} "
-                f"**{label}**"
-            )        
+            st.divider()        
 
         fundamental_total = sum(
             item["Punkte"]
@@ -430,7 +369,7 @@ def render_opportunity_section(
         font-weight:700;
         margin-top:10px;
     ">
-        {buy_score} / 85
+        {buy_score} / 100
     </div>
 
     <div style="

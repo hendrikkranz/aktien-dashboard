@@ -40,10 +40,11 @@ def render_investment_decision(data: dict) -> None:
     f"""
 <div style="
     background:#1b1f27;
-    border-left:6px solid {border};
+    border:3px solid {border};
     border-radius:12px;
-    padding:22px 24px;
-    margin:10px 0 18px 0;
+    padding:26px 30px;
+    margin:8px 0 26px 0;
+    box-shadow:0 8px 28px rgba(0,0,0,0.35);
 ">
 
 <div style="

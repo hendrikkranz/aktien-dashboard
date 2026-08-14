@@ -2,7 +2,6 @@ from typing import Dict, List, Optional
 
 from utils.fundamental_interpreter import (
     interpret_debt_equity,
-    interpret_dividend_yield,
     interpret_net_margin,
     interpret_revenue_growth,
     interpret_roe,
@@ -28,7 +27,6 @@ def create_investment_summary(data: dict) -> str:
         interpret_net_margin(data.get("Nettomarge")),
         interpret_revenue_growth(data.get("Umsatzwachstum")),
         interpret_debt_equity(data.get("Verschuldungsgrad")),
-        interpret_dividend_yield(data.get("Dividendenrendite")),
     )
 
     strengths = []

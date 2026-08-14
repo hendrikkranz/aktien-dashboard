@@ -213,9 +213,6 @@ def calculate_quality_breakdown(data: dict) -> dict:
             data.get("Verschuldungsgrad"),
             balance_weight,
         ),
-        "Dividende": calculate_dividend_score(
-            data.get("Dividendenrendite"),
-        ),
     }
 
 
