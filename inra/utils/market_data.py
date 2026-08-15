@@ -11,7 +11,10 @@ from modules.quality_score import (
     calculate_quality_breakdown,
     calculate_quality_score,
 )
-
+from modules.trend_structure import (
+    analyze_trend_structure,
+    calculate_long_term_trend_score,
+)
 
 def _calculate_period_return(
     close_prices: pd.Series,
@@ -253,6 +256,23 @@ def load_company_snapshot(ticker: str) -> dict:
 
     momentum = load_momentum_metrics(ticker)
 
+    history_5y = yf.Ticker(ticker).history(
+        period="5y",
+        interval="1wk",
+        auto_adjust=True,
+    )
+
+    long_term_trend = analyze_trend_structure(
+        history_5y,
+        periods_per_year=52,
+    )
+
+    long_term_trend_score, long_term_trend_explanation = (
+        calculate_long_term_trend_score(
+            long_term_trend
+        )
+    )
+
     snapshot = {
         "Ticker": ticker,
         "Name": (
@@ -285,6 +305,11 @@ def load_company_snapshot(ticker: str) -> dict:
         "CM MACD": momentum["CM MACD"],
         "CM Signal": momentum["CM Signal"],
         "CM Histogram": momentum["CM Histogram"],
+        "Langfristiger Trend": long_term_trend["direction"],
+        "Langfristiger Trend Status": long_term_trend["status"],
+        "Langfristiger Trend Confidence": long_term_trend["confidence"],
+        "Langfristiger Trend Score": long_term_trend_score,
+        "Langfristiger Trend Erklärung": long_term_trend_explanation,
         "CM MACD Weekly": momentum["CM MACD Weekly"],
         "CM Signal Weekly": momentum["CM Signal Weekly"],
         "CM Histogram Weekly": momentum["CM Histogram Weekly"],        

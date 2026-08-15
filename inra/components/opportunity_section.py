@@ -151,7 +151,7 @@ def _render_opportunity_breakdown(
             maximum = item["Maximum"]
 
             if points >= maximum:
-                icon = "✅"
+                icon = "🟢"
             elif points > 0:
                 icon = "🟡"
             else:
@@ -164,6 +164,26 @@ def _render_opportunity_breakdown(
             st.markdown(
                 f"{icon} **{points} von {maximum} Punkten**"
             )
+
+            if criterion == "Langfristiger Trend":
+                st.caption("Trendanalyse")
+
+                st.markdown(
+                    f"**Trend: "
+                    f"{data.get('Langfristiger Trend', 'Keine Daten')}**"
+                )
+
+                st.markdown(
+                    f"**Validität: "
+                    f"{data.get('Langfristiger Trend Confidence', 'Keine Daten')}**"
+                )
+
+                st.caption(
+                    data.get(
+                        "Langfristiger Trend Erklärung",
+                        "",
+                    )
+                )
 
             st.caption(
                 f"Aktueller Wert: "
@@ -202,8 +222,6 @@ def _render_opportunity_breakdown(
 
             placeholder_criteria = {
                 "Trendkanal",
-                "Langfristiger Trend",
-                "Überhitzungsgefahr",
             }
 
             st.markdown(
@@ -217,6 +235,28 @@ def _render_opportunity_breakdown(
                 st.caption(
                     "Dieser Baustein wird in V2 ergänzt."
                 )
+
+            elif criterion == "Überhitzungsgefahr":
+                if points == 0:
+                    icon = "🟢"
+                    label = "Keine Überhitzungsgefahr"
+                elif points == -2:
+                    icon = "🟡"
+                    label = "Leicht erhöht"
+                elif points == -4:
+                    icon = "🟠"
+                    label = "Erhöht"
+                else:
+                    icon = "🔴"
+                    label = "Sehr hoch"
+
+                st.markdown(
+                    f"{icon} **{label} · {points} Punkte**"
+                )
+                st.caption(
+                    "Bewertung aus RSI, Abstand zum 52W-Hoch "
+                    "und Momentum 3M / 6M / 12M."
+                )
             else:
                 if points >= maximum:
                     icon = "🟢"
@@ -228,6 +268,26 @@ def _render_opportunity_breakdown(
                 st.markdown(
                     f"{icon} **{points} von "
                     f"{maximum} Punkten**"
+                )
+
+            if criterion == "Langfristiger Trend":
+                st.caption("Trendanalyse")
+
+                st.markdown(
+                    f"**Trend: "
+                    f"{data.get('Langfristiger Trend', 'Keine Daten')}**"
+                )
+
+                st.markdown(
+                    f"**Validität: "
+                    f"{data.get('Langfristiger Trend Confidence', 'Keine Daten')}**"
+                )
+
+                st.caption(
+                    data.get(
+                        "Langfristiger Trend Erklärung",
+                        "",
+                    )
                 )
 
             if criterion == "Momentum":

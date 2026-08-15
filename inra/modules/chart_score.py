@@ -5,6 +5,7 @@ def calculate_chart_breakdown(data: dict) -> list:
     momentum_6m = data.get("Momentum 6M")
     rsi = data.get("RSI 14")
     distance_52w = data.get("Abstand 52W Hoch")
+    momentum_12m = data.get("Momentum 12M")
     cm_macd_weekly = data.get("CM MACD Weekly")
     cm_signal_weekly = data.get("CM Signal Weekly")
     cm_histogram_weekly = data.get("CM Histogram Weekly")
@@ -15,7 +16,52 @@ def calculate_chart_breakdown(data: dict) -> list:
     cm_macd_points = 0
     trend_channel_points = 0
     overheating_points = 0
-    long_term_trend_points = 0
+    overheating_risk = 0
+
+    if rsi is not None:
+        if rsi >= 80:
+            overheating_risk += 3
+        elif rsi >= 70:
+            overheating_risk += 2
+        elif rsi >= 60:
+            overheating_risk += 1
+
+    if distance_52w is not None:
+        if distance_52w >= -3:
+            overheating_risk += 2
+        elif distance_52w >= -8:
+            overheating_risk += 1
+
+    if (
+        momentum_3m is not None
+        and momentum_6m is not None
+        and momentum_12m is not None
+    ):
+        if (
+            momentum_3m >= 25
+            and momentum_6m >= 35
+            and momentum_12m >= 50
+        ):
+            overheating_risk += 3
+        elif (
+            momentum_3m >= 15
+            and momentum_6m >= 25
+        ):
+            overheating_risk += 2
+        elif momentum_3m >= 10:
+            overheating_risk += 1
+        if overheating_risk >= 7:
+            overheating_points = -8
+        elif overheating_risk >= 5:
+            overheating_points = -4
+        elif overheating_risk >= 3:
+            overheating_points = -2
+        else:
+            overheating_points = 0
+    long_term_trend_points = data.get(
+    "Langfristiger Trend Score",
+    0,
+    )
 
     if (
         momentum_3m is not None
@@ -165,11 +211,9 @@ def calculate_chart_breakdown(data: dict) -> list:
         {
             "Kriterium": "Überhitzungsgefahr",
             "Punkte": overheating_points,
-            "Maximum": 4,
+            "Maximum": 0,
         }
     )
-
-    return breakdown
 
     return breakdown
 
