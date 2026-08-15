@@ -17,6 +17,7 @@ def calculate_chart_breakdown(data: dict) -> list:
     trend_channel_points = 0
     overheating_points = 0
     overheating_risk = 0
+    prime_entry_points = 0
 
     if rsi is not None:
         if rsi >= 80:
@@ -50,14 +51,33 @@ def calculate_chart_breakdown(data: dict) -> list:
             overheating_risk += 2
         elif momentum_3m >= 10:
             overheating_risk += 1
-        if overheating_risk >= 7:
-            overheating_points = -8
-        elif overheating_risk >= 5:
-            overheating_points = -4
-        elif overheating_risk >= 3:
-            overheating_points = -2
-        else:
-            overheating_points = 0
+
+    if overheating_risk >= 7:
+        overheating_points = -8
+    elif overheating_risk >= 5:
+        overheating_points = -4
+    elif overheating_risk >= 3:
+        overheating_points = -2
+    else:
+        overheating_points = 0
+
+    if (
+        rsi is not None
+        and distance_52w is not None
+        and momentum_3m is not None
+    ):
+        if (
+            45 <= rsi <= 60
+            and -15 <= distance_52w <= -5
+            and momentum_3m > 0
+        ):
+            prime_entry_points = 4
+        elif (
+            40 <= rsi <= 65
+            and -20 <= distance_52w <= -3
+        ):
+            prime_entry_points = 2
+
     long_term_trend_points = data.get(
     "Langfristiger Trend Score",
     0,
@@ -204,6 +224,14 @@ def calculate_chart_breakdown(data: dict) -> list:
             "Kriterium": "Abstand 52W-Hoch",
             "Punkte": distance_52w_points,
             "Maximum": 7,
+        }
+    )
+
+    breakdown.append(
+        {
+            "Kriterium": "Prime Entry",
+            "Punkte": prime_entry_points,
+            "Maximum": 4,
         }
     )
 
