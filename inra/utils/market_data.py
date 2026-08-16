@@ -200,15 +200,150 @@ def load_momentum_metrics(ticker: str) -> dict:
 
 
 def load_company_snapshot(ticker: str) -> dict:
-    info = yf.Ticker(ticker).get_info()
+    ticker_obj = yf.Ticker(ticker)
+    info = ticker_obj.get_info()
+    dividend_history = ticker_obj.dividends
+    annual_dividends = {}
+
+    if not dividend_history.empty:
+        annual_dividends = (
+            dividend_history
+            .groupby(dividend_history.index.year)
+            .sum()
+            .to_dict()
+        )
+
+    dividend_growth_3y = None
+
+    completed_years = sorted(
+        year
+        for year in annual_dividends
+        if year < pd.Timestamp.now().year
+    )
+
+    if len(completed_years) >= 3:
+        last_three_years = completed_years[-3:]
+
+        start_dividend = annual_dividends[
+            last_three_years[0]
+        ]
+        end_dividend = annual_dividends[
+            last_three_years[-1]
+        ]
+
+        if start_dividend > 0:
+            dividend_growth_3y = (
+                (
+                    end_dividend / start_dividend
+                ) ** (1 / 2)
+                - 1
+            ) * 100
+
+    dividend_growth_points = None
+
+    if dividend_growth_3y is not None:
+        if dividend_growth_3y >= 5:
+            dividend_growth_points = 2
+        elif dividend_growth_3y >= 0:
+            dividend_growth_points = 1
+        else:
+            dividend_growth_points = 0
+
+    dividend_continuity_years = None
+    dividend_cut_last_3y = None
+
+    if len(completed_years) >= 3:
+        recent_years = completed_years[-5:]
+
+        cuts = []
+
+        for previous_year, current_year in zip(
+            recent_years,
+            recent_years[1:],
+        ):
+            previous_dividend = annual_dividends[
+                previous_year
+            ]
+            current_dividend = annual_dividends[
+                current_year
+            ]
+
+            if current_dividend < previous_dividend:
+                cuts.append(current_year)
+
+        dividend_cut_last_3y = any(
+            year in completed_years[-3:]
+            for year in cuts
+        )
+
+        if not cuts:
+            dividend_continuity_years = len(
+                recent_years
+            )
+        else:
+            last_cut_year = max(cuts)
+
+            dividend_continuity_years = len(
+                [
+                    year
+                    for year in recent_years
+                    if year > last_cut_year
+                ]
+            )
+
+    dividend_continuity_points = None
+
+    if dividend_continuity_years is not None:
+        if dividend_cut_last_3y:
+            dividend_continuity_points = 0
+        elif dividend_continuity_years >= 5:
+            dividend_continuity_points = 2
+        elif dividend_continuity_years >= 3:
+            dividend_continuity_points = 1
 
     dividend_yield = info.get("dividendYield")
+    payout_ratio = info.get("payoutRatio")
+
+    payout_ratio_points = None
+
+    if payout_ratio is not None:
+        payout_percent = payout_ratio * 100
+
+        if payout_percent > 110:
+            payout_ratio_points = 0
+        elif payout_percent > 90:
+            payout_ratio_points = 1
+        elif payout_percent > 70:
+            payout_ratio_points = 2
+        elif payout_percent > 20:
+            payout_ratio_points = 3
+        elif payout_percent > 0:
+            payout_ratio_points = 2
+        else:
+            payout_ratio_points = 0
+    five_year_avg_dividend_yield = info.get("fiveYearAvgDividendYield")
+    dividend_rate = info.get("dividendRate")
 
     if (
         dividend_yield is None
         and info.get("trailingAnnualDividendRate") == 0
     ):
         dividend_yield = 0.0
+        dividend_yield_points = None
+
+    if dividend_yield is not None:
+        if dividend_yield >= 5:
+            dividend_yield_points = 5
+        elif dividend_yield >= 4:
+            dividend_yield_points = 4
+        elif dividend_yield >= 3:
+            dividend_yield_points = 3
+        elif dividend_yield >= 2:
+            dividend_yield_points = 2
+        elif dividend_yield > 0:
+            dividend_yield_points = 1
+        else:
+            dividend_yield_points = 0
     current_price = (
         info.get("currentPrice")
         or info.get("regularMarketPrice")
@@ -227,6 +362,74 @@ def load_company_snapshot(ticker: str) -> dict:
     debt_to_equity = info.get("debtToEquity")
     revenue_growth = info.get("revenueGrowth")
     earnings_growth = info.get("earningsGrowth")
+    capital_allocation_points = None
+
+    if (
+        payout_ratio is not None
+        and revenue_growth is not None
+        and earnings_growth is not None
+    ):
+        payout_percent = payout_ratio * 100
+        revenue_growth_percent = revenue_growth * 100
+        earnings_growth_percent = earnings_growth * 100
+
+        if (
+            payout_percent <= 25
+            and (
+                revenue_growth_percent >= 10
+                or earnings_growth_percent >= 10
+            )
+        ):
+            capital_allocation_points = 3
+
+        elif (
+            25 < payout_percent <= 70
+            and (
+                revenue_growth_percent > 0
+                or earnings_growth_percent > 0
+            )
+        ):
+            capital_allocation_points = 3
+
+        elif (
+            payout_percent > 70
+            and revenue_growth_percent < 5
+            and earnings_growth_percent < 5
+        ):
+            capital_allocation_points = 3
+
+        else:
+            capital_allocation_points = 2
+
+    dividend_components = [
+        (dividend_yield_points, 5),
+        (payout_ratio_points, 3),
+        (dividend_growth_points, 2),
+        (dividend_continuity_points, 2),
+        (capital_allocation_points, 3),
+    ]
+
+    dividend_available_points = sum(
+        points
+        for points, maximum in dividend_components
+        if points is not None
+    )
+
+    dividend_available_maximum = sum(
+        maximum
+        for points, maximum in dividend_components
+        if points is not None
+    )
+
+    dividend_strategy_score = None
+
+    if dividend_available_maximum > 0:
+        dividend_strategy_score = round(
+            dividend_available_points
+            / dividend_available_maximum
+            * 15
+        )
+
     market_cap = info.get("marketCap")
 
     week_52_high = info.get("fiftyTwoWeekHigh")
@@ -286,6 +489,17 @@ def load_company_snapshot(ticker: str) -> dict:
         "Kurs": current_price,
         "Währung": info.get("currency"),
         "Dividendenrendite": dividend_yield,
+        "Dividendenrendite Punkte": dividend_yield_points,
+        "Ausschüttungsquote": payout_ratio,
+        "Ausschüttungsquote Punkte": payout_ratio_points,
+        "Dividendenrendite 5J Ø": five_year_avg_dividend_yield,
+        "Dividendenrate": dividend_rate,
+        "Dividendenwachstum 3J": dividend_growth_3y,
+        "Dividendenwachstum Punkte": dividend_growth_points,
+        "Dividendenkontinuität Jahre": dividend_continuity_years,
+        "Dividendenkürzung letzte 3J": dividend_cut_last_3y,
+        "Dividendenkontinuität Punkte": dividend_continuity_points,
+        "Dividenden jährlich": annual_dividends,
         "KGV": info.get("trailingPE"),
         "Forward KGV": info.get("forwardPE"),
         "Analystenziel": analyst_target,
@@ -297,6 +511,8 @@ def load_company_snapshot(ticker: str) -> dict:
         "Verschuldungsgrad": debt_to_equity,
         "Umsatzwachstum": revenue_growth,
         "Gewinnwachstum": earnings_growth,
+        "Kapitalallokation Punkte": capital_allocation_points,
+        "Dividendenstrategie Score": dividend_strategy_score,
         "Marktkapitalisierung": market_cap,
         "Momentum 3M": momentum["Momentum 3M"],
         "Momentum 6M": momentum["Momentum 6M"],
