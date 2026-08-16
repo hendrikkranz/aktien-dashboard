@@ -161,9 +161,14 @@ def _render_opportunity_breakdown(
                 f"###### {criterion}"
             )
 
-            st.markdown(
-                f"{icon} **{points} von {maximum} Punkten**"
-            )
+            if points < 0:
+                st.markdown(
+                    f"{icon} **{points} Punkte**"
+                )
+            else:
+                st.markdown(
+                    f"{icon} **{points} von {maximum} Punkten**"
+                )
 
             if criterion == "Langfristiger Trend":
                 st.caption("Trendanalyse")
@@ -263,10 +268,15 @@ def _render_opportunity_breakdown(
                 else:
                     icon = "🔴"
 
-                st.markdown(
-                    f"{icon} **{points} von "
-                    f"{maximum} Punkten**"
-                )
+                if points < 0:
+                    st.markdown(
+                        f"{icon} **{points} Punkte**"
+                    )
+                else:
+                    st.markdown(
+                        f"{icon} **{points} von "
+                        f"{maximum} Punkten**"
+                    )
 
             if criterion == "Langfristiger Trend":
                 st.caption("Trendanalyse")
