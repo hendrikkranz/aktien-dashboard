@@ -320,7 +320,7 @@ else:
     
     st.subheader("🏆 Rankings")
 
-    is_mobile = st.session_state.get("is_mobile", False)
+is_mobile = st.session_state.get("is_mobile", False)
 
 if is_mobile:
     ranking_col1 = st.container()
