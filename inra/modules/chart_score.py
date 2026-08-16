@@ -9,6 +9,8 @@ def calculate_chart_breakdown(data: dict) -> list:
     cm_macd_weekly = data.get("CM MACD Weekly")
     cm_signal_weekly = data.get("CM Signal Weekly")
     cm_histogram_weekly = data.get("CM Histogram Weekly")
+    trend_channel_position = data.get("Trendkanal Position")
+    trend_channel_normalized = data.get("Trendkanal Position Normalisiert")
 
     momentum_points = 0
     rsi_points = 0
@@ -71,12 +73,28 @@ def calculate_chart_breakdown(data: dict) -> list:
             and -15 <= distance_52w <= -5
             and momentum_3m > 0
         ):
-            prime_entry_points = 4
+            prime_entry_points = 6
         elif (
             40 <= rsi <= 65
             and -20 <= distance_52w <= -3
         ):
-            prime_entry_points = 2
+            prime_entry_points = 3
+
+    if (
+        trend_channel_normalized is not None
+        and data.get("Langfristiger Trend Status") == "Belastbar"
+        and data.get("Langfristiger Trend") == "Aufwärtstrend"
+    ):
+        if trend_channel_normalized <= -1.0:
+            trend_channel_points = 4
+        elif trend_channel_normalized <= -0.5:
+            trend_channel_points = 3
+        elif trend_channel_normalized < 0.5:
+            trend_channel_points = 2
+        elif trend_channel_normalized < 1.0:
+            trend_channel_points = 1
+        else:
+            trend_channel_points = 0
 
     long_term_trend_points = data.get(
     "Langfristiger Trend Score",
@@ -144,7 +162,7 @@ def calculate_chart_breakdown(data: dict) -> list:
             > cm_histogram_weekly[-2]
             > cm_histogram_weekly[-3]
         ):
-            cm_macd_points += 1
+            cm_macd_points += 2
 
         # 3. Histogramm erst seit max. 3 Wochen positiv
         positive_weeks = 0
@@ -163,7 +181,7 @@ def calculate_chart_breakdown(data: dict) -> list:
             cm_macd_weekly[-1] > cm_macd_weekly[-2]
             and cm_macd_weekly[-2] > cm_macd_weekly[-3]
         ):
-            cm_macd_points += 1
+            cm_macd_points += 2
 
         # 5. MACD erst seit max. 3 Wochen über Signallinie
         crossover_weeks = 0
@@ -183,7 +201,7 @@ def calculate_chart_breakdown(data: dict) -> list:
         {
             "Kriterium": "Trendkanal",
             "Punkte": trend_channel_points,
-            "Maximum": 8,
+            "Maximum": 4,
         }
     )
 
@@ -199,7 +217,7 @@ def calculate_chart_breakdown(data: dict) -> list:
         {
             "Kriterium": "CM MACD Refined",
             "Punkte": cm_macd_points,
-            "Maximum": 5,
+            "Maximum": 7,
         }
     )
 
@@ -231,7 +249,7 @@ def calculate_chart_breakdown(data: dict) -> list:
         {
             "Kriterium": "Prime Entry",
             "Punkte": prime_entry_points,
-            "Maximum": 4,
+            "Maximum": 6,
         }
     )
 

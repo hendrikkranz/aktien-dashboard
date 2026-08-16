@@ -224,6 +224,7 @@ def analyze_trend_structure(
         "status": status,
         "direction": direction,
         "position": position_result["position"],
+        "normalized_position": position_result["normalized_position"],
         "confidence": confidence,
         "confidence_raw": confidence_score,
         "r_squared": regression["r_squared"],

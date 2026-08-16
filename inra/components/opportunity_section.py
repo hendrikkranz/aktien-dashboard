@@ -220,9 +220,7 @@ def _render_opportunity_breakdown(
             points = item["Punkte"]
             maximum = item["Maximum"]
 
-            placeholder_criteria = {
-                "Trendkanal",
-            }
+            placeholder_criteria = set()
 
             st.markdown(
                 f"###### {criterion}"
@@ -288,6 +286,12 @@ def _render_opportunity_breakdown(
                         "Langfristiger Trend Erklärung",
                         "",
                     )
+                )
+
+                st.caption(
+                    f"Kanalposition: "
+                    f"{data.get('Trendkanal Position', 'Keine Daten')} · "
+                    f"{data.get('Trendkanal Position Normalisiert', 'Keine Daten')}"
                 )
 
             if criterion == "Momentum":

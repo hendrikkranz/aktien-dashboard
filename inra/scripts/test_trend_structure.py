@@ -20,7 +20,7 @@ for ticker in TEST_TICKERS:
     ticker_obj = yf.Ticker(ticker)
 
     history_5y = ticker_obj.history(
-        period="10y",
+        period="5y",
         interval="1wk",
         auto_adjust=True,
     )

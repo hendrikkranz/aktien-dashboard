@@ -306,6 +306,8 @@ def load_company_snapshot(ticker: str) -> dict:
         "CM Signal": momentum["CM Signal"],
         "CM Histogram": momentum["CM Histogram"],
         "Langfristiger Trend": long_term_trend["direction"],
+        "Trendkanal Position": long_term_trend["position"],
+        "Trendkanal Position Normalisiert": long_term_trend["normalized_position"],
         "Langfristiger Trend Status": long_term_trend["status"],
         "Langfristiger Trend Confidence": long_term_trend["confidence"],
         "Langfristiger Trend Score": long_term_trend_score,
