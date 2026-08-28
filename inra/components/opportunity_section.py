@@ -7,6 +7,8 @@ from utils.fundamental_interpreter import (
     interpret_rsi,
 )
 
+from modules.opportunity_score import calculate_opportunity_breakdown
+
 from modules.chart_score import calculate_chart_breakdown
 
 def _format_value(
@@ -120,15 +122,36 @@ def _render_opportunity_breakdown(
         ),
     }
 
-    with st.expander(
-    f"Warum {data['Kaufchance']} von 100 Punkten?"
-):
+    available_maximum = (
+        sum(
+            item["Maximum"]
+            for item in breakdown
+            if item["Punkte"] is not None
+        )
+        + sum(
+            item["Maximum"]
+            for item in chart_breakdown
+        )
+    )
+
+    if available_maximum == 100:
+        expander_title = (
+            f"Warum {data['Kaufchance']} von 100 Punkten?"
+        )
+    else:
+        expander_title = (
+            f"Warum {data['Kaufchance']} von "
+            f"{available_maximum} verfügbaren Punkten?"
+        )
+
+    with st.expander(expander_title):
 
         course_breakdown = breakdown
 
         course_total = sum(
             item["Punkte"]
             for item in course_breakdown
+            if item["Punkte"] is not None
         )
 
         course_maximum = sum(
@@ -136,10 +159,19 @@ def _render_opportunity_breakdown(
             for item in course_breakdown
         )
 
+        course_score_display = (
+            "Nicht bewertbar"
+            if all(
+                item["Punkte"] is None
+                for item in course_breakdown
+            )
+            else f"{course_total} / {course_maximum}"
+        )
+
         st.markdown(
             f"##### 💰 Kursbewertung"
             f"<span style='float:right'>"
-            f"{course_total} / {course_maximum}"
+            f"{course_score_display}"
             f"</span>",
             unsafe_allow_html=True,
         )
@@ -150,7 +182,9 @@ def _render_opportunity_breakdown(
             points = item["Punkte"]
             maximum = item["Maximum"]
 
-            if points >= maximum:
+            if points is None:
+                icon = "⚪"
+            elif points >= maximum:
                 icon = "🟢"
             elif points > 0:
                 icon = "🟡"
@@ -161,14 +195,18 @@ def _render_opportunity_breakdown(
                 f"###### {criterion}"
             )
 
-            if points < 0:
+            if points is None:
+                st.markdown(
+                    f"{icon} **Nicht bewertbar**"
+                )
+            elif points < 0:
                 st.markdown(
                     f"{icon} **{points} Punkte**"
                 )
             else:
                 st.markdown(
                     f"{icon} **{points} von {maximum} Punkten**"
-                )
+            )
 
             if criterion == "Langfristiger Trend":
                 st.caption("Trendanalyse")
@@ -381,6 +419,7 @@ def _render_opportunity_breakdown(
         fundamental_total = sum(
             item["Punkte"]
             for item in breakdown
+            if item["Punkte"] is not None
         )
 
         chart_total = sum(
@@ -390,10 +429,27 @@ def _render_opportunity_breakdown(
 
         total = fundamental_total + chart_total
 
+        available_maximum = sum(
+            item["Maximum"]
+            for item in breakdown
+            if item["Punkte"] is not None
+        ) + sum(
+            item["Maximum"]
+            for item in chart_breakdown
+        )
+
+        coverage = round(
+            available_maximum / 100 * 100
+        )
+
         st.divider()
 
         st.markdown(
-            f"**Aktueller Kaufchance-Score: {min(total, 100)} von 100 Punkten**"
+            f"**Aktuell bewertet: {total} von {available_maximum} verfügbaren Punkten**"
+        )
+
+        st.caption(
+            f"Datenabdeckung: {coverage} %"
         )
 
 def render_opportunity_section(
@@ -401,8 +457,28 @@ def render_opportunity_section(
 ) -> None:
 
     buy_score = data["Kaufchance"]
+    opportunity_breakdown = calculate_opportunity_breakdown(data)
 
-    if buy_score >= 68:
+    available_maximum = sum(
+        item["Maximum"]
+        for item in opportunity_breakdown
+        if item["Punkte"] is not None
+    ) + 45
+
+    coverage = round(
+        available_maximum / 100 * 100
+    )
+
+    if coverage < 100:
+        rating = "Eingeschränkt bewertbar"
+        icon = "⚪"
+        border = "#8b949e"
+        explanation = (
+            f"Für die Kaufchance sind derzeit nur "
+            f"{coverage} % der vorgesehenen Daten verfügbar."
+        )
+
+    elif buy_score >= 68:
         rating = "Kaufen"
         icon = "🟢"
         border = "#2EAD7B"
@@ -456,7 +532,7 @@ def render_opportunity_section(
         font-weight:700;
         margin-top:10px;
     ">
-        {buy_score} / 100
+        {buy_score} / {available_maximum}
     </div>
 
     <div style="

@@ -7,7 +7,25 @@ def render_investment_decision(data: dict) -> None:
     buy_score = data["Kaufchance"]
     quality_score = data["Unternehmensqualität"]
 
-    if buy_score >= 68 and quality_score >= 70:
+    analyst_upside = data.get("Analystenpotenzial")
+    forward_pe = data.get("Forward KGV")
+
+    opportunity_data_complete = (
+        analyst_upside is not None
+        and forward_pe is not None
+    )
+
+    if not opportunity_data_complete:
+        title = "Eingeschränkt bewertbar"
+        icon = "⚪"
+        background = "#F3F4F6"
+        border = "#8b949e"
+        text = (
+            "Für ein belastbares Investment-Urteil fehlen derzeit "
+            "wesentliche Daten zur Kaufchance."
+        )
+
+    elif buy_score >= 68 and quality_score >= 70:
         title = "Kaufen"
         icon = "🟢"
         background = "#EAF7F2"

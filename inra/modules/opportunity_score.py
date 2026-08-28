@@ -8,7 +8,7 @@ def calculate_opportunity_breakdown(data: dict) -> list:
     analyst_upside = data.get("Analystenpotenzial")
     forward_pe = data.get("Forward KGV")
 
-    analyst_points = 0
+    analyst_points = None
 
     if analyst_upside is not None:
         if analyst_upside >= 20:
@@ -31,7 +31,7 @@ def calculate_opportunity_breakdown(data: dict) -> list:
         }
     )
 
-    valuation_points = 0
+    valuation_points = None
 
     if forward_pe is not None:
         if forward_pe <= 0:
@@ -64,6 +64,7 @@ def calculate_opportunity_score(data: dict) -> int:
     score = sum(
         item["Punkte"]
         for item in breakdown
+        if item["Punkte"] is not None
     )
 
     score += calculate_chart_score(data)
