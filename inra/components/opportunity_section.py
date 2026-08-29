@@ -13,6 +13,8 @@ from typing import Optional
 
 import streamlit as st
 
+from utils.market_data import save_manual_override
+
 from utils.fundamental_interpreter import (
     interpret_momentum,
     interpret_rsi,
@@ -89,6 +91,14 @@ def _render_opportunity_breakdown(
     )
 
     chart_breakdown = calculate_chart_breakdown(data)
+
+    analyst_target_missing = (
+        data.get("Analystenziel") is None
+    )
+
+    forward_pe_missing = (
+        data.get("Forward KGV") is None
+    )
 
     values = {
         "Analystenpotenzial": _format_value(
@@ -273,6 +283,123 @@ def _render_opportunity_breakdown(
                     f"{metadata.get('Quelle', 'Quelle unbekannt')} · "
                     f"Stand {_format_date_de(metadata.get('Stand'))}"
                 )
+
+            if (
+                criterion == "Analystenpotenzial"
+                and analyst_target_missing
+            ):
+                with st.expander(
+                    "Analystenziel manuell ergänzen"
+                ):
+                    manual_analyst_target = st.number_input(
+                        "Analystenziel",
+                        min_value=0.0,
+                        step=0.1,
+                        key="manual_analyst_target",
+                    )
+
+                    manual_analyst_currency = st.text_input(
+                        "Währung des Analystenziels",
+                        value=data.get("Währung") or "",
+                        key="manual_analyst_currency",
+                    )
+
+                    manual_analyst_source = st.text_input(
+                        "Quelle",
+                        key="manual_analyst_source",
+                    )
+
+                    manual_analyst_date = st.date_input(
+                        "Stand",
+                        key="manual_analyst_date",
+                    )
+
+                    if st.button(
+                        "Analystenziel speichern",
+                        key="save_manual_analyst_target",
+                    ):
+                        if (
+                            manual_analyst_target <= 0
+                            or not manual_analyst_source.strip()
+                            or (
+                                manual_analyst_currency.strip().upper()
+                                != str(
+                                    data.get("Währung") or ""
+                                ).upper()
+                            )
+                        ):
+                            if (
+                                manual_analyst_currency.strip().upper()
+                                != str(
+                                    data.get("Währung") or ""
+                                ).upper()
+                            ):
+                                st.error(
+                                    "Die Währung des Analystenziels muss "
+                                    "mit der InRA-Währung übereinstimmen."
+                                )
+                            else:
+                                st.error(
+                                    "Bitte Wert und Quelle "
+                                    "vollständig angeben."
+                                )
+                        else:
+                            save_manual_override(
+                                ticker=data["Ticker"],
+                                field="Analystenziel",
+                                value=manual_analyst_target,
+                                date=manual_analyst_date.isoformat(),
+                                source=manual_analyst_source.strip(),
+                            )
+
+                            st.rerun()
+
+            if (
+                criterion == "Forward KGV"
+                and forward_pe_missing
+            ):
+                with st.expander(
+                    "Forward KGV manuell ergänzen"
+                ):
+                    manual_forward_pe = st.number_input(
+                        "Forward KGV",
+                        min_value=0.0,
+                        step=0.1,
+                        key="manual_forward_pe",
+                    )
+
+                    manual_forward_pe_source = st.text_input(
+                        "Quelle",
+                        key="manual_forward_pe_source",
+                    )
+
+                    manual_forward_pe_date = st.date_input(
+                        "Stand",
+                        key="manual_forward_pe_date",
+                    )
+
+                    if st.button(
+                        "Forward KGV speichern",
+                        key="save_manual_forward_pe",
+                    ):
+                        if (
+                            manual_forward_pe <= 0
+                            or not manual_forward_pe_source.strip()
+                        ):
+                            st.error(
+                                "Bitte Wert und Quelle "
+                                "vollständig angeben."
+                            )
+                        else:
+                            save_manual_override(
+                                ticker=data["Ticker"],
+                                field="Forward KGV",
+                                value=manual_forward_pe,
+                                date=manual_forward_pe_date.isoformat(),
+                                source=manual_forward_pe_source.strip(),
+                            )
+
+                            st.rerun()
 
             st.caption(
                 explanations.get(criterion, "")

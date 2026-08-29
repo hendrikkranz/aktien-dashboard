@@ -69,6 +69,44 @@ def _get_manual_override_metadata(
         "Quelle": row.get("Quelle"),
     }
 
+def save_manual_override(
+    ticker: str,
+    field: str,
+    value: float,
+    date: str,
+    source: str,
+) -> None:
+    overrides = _load_manual_overrides()
+
+    new_row = pd.DataFrame(
+        [
+            {
+                "Ticker": ticker,
+                "Feld": field,
+                "Wert": value,
+                "Stand": date,
+                "Quelle": source,
+            }
+        ]
+    )
+
+    overrides = overrides[
+        ~(
+            (overrides["Ticker"] == ticker)
+            & (overrides["Feld"] == field)
+        )
+    ]
+
+    overrides = pd.concat(
+        [overrides, new_row],
+        ignore_index=True,
+    )
+
+    overrides.to_csv(
+        MANUAL_OVERRIDES_PATH,
+        index=False,
+    )
+
 def _calculate_period_return(
     close_prices: pd.Series,
     trading_days: int,
@@ -421,7 +459,6 @@ def load_company_snapshot(ticker: str) -> dict:
             )
 
     forward_pe = info.get("forwardPE")
-
     forward_pe_manual = False
     forward_pe_metadata = {}
 
