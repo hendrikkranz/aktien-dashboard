@@ -1,3 +1,14 @@
+from datetime import datetime
+
+def _format_date_de(value: str) -> str:
+    try:
+        return datetime.strptime(
+            value,
+            "%Y-%m-%d",
+        ).strftime("%d.%m.%Y")
+    except (TypeError, ValueError):
+        return value or "unbekannt"
+
 from typing import Optional
 
 import streamlit as st
@@ -232,6 +243,36 @@ def _render_opportunity_breakdown(
                 f"Aktueller Wert: "
                 f"{values.get(criterion, 'Keine Daten')}"
             )
+
+            if (
+                criterion == "Analystenpotenzial"
+                and data.get("Analystenziel manuell")
+            ):
+                metadata = data.get(
+                    "Analystenziel Metadaten",
+                    {},
+                )
+
+                st.caption(
+                    f"Manuelle Ergänzung des Analystenziels · "
+                    f"{metadata.get('Quelle', 'Quelle unbekannt')} · "
+                    f"Stand {_format_date_de(metadata.get('Stand'))}"
+                )
+
+            elif (
+                criterion == "Forward KGV"
+                and data.get("Forward KGV manuell")
+            ):
+                metadata = data.get(
+                    "Forward KGV Metadaten",
+                    {},
+                )
+
+                st.caption(
+                    f"Manuelle Ergänzung · "
+                    f"{metadata.get('Quelle', 'Quelle unbekannt')} · "
+                    f"Stand {_format_date_de(metadata.get('Stand'))}"
+                )
 
             st.caption(
                 explanations.get(criterion, "")

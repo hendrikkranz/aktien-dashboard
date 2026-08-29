@@ -48,6 +48,27 @@ def _get_manual_override(
 
     return float(value)
 
+def _get_manual_override_metadata(
+    ticker: str,
+    field: str,
+) -> dict:
+    overrides = _load_manual_overrides()
+
+    match = overrides[
+        (overrides["Ticker"] == ticker)
+        & (overrides["Feld"] == field)
+    ]
+
+    if match.empty:
+        return {}
+
+    row = match.iloc[0]
+
+    return {
+        "Stand": row.get("Stand"),
+        "Quelle": row.get("Quelle"),
+    }
+
 def _calculate_period_return(
     close_prices: pd.Series,
     trading_days: int,
@@ -384,6 +405,7 @@ def load_company_snapshot(ticker: str) -> dict:
     analyst_target = info.get("targetMeanPrice")
 
     analyst_target_manual = False
+    analyst_target_metadata = {}
 
     if analyst_target is None or pd.isna(analyst_target):
         analyst_target = _get_manual_override(
@@ -391,12 +413,17 @@ def load_company_snapshot(ticker: str) -> dict:
             "Analystenziel",
         )
 
-    if analyst_target is not None:
-        analyst_target_manual = True
+        if analyst_target is not None:
+            analyst_target_manual = True
+            analyst_target_metadata = _get_manual_override_metadata(
+                ticker,
+                "Analystenziel",
+            )
 
     forward_pe = info.get("forwardPE")
 
     forward_pe_manual = False
+    forward_pe_metadata = {}
 
     if forward_pe is None or pd.isna(forward_pe):
         forward_pe = _get_manual_override(
@@ -406,6 +433,11 @@ def load_company_snapshot(ticker: str) -> dict:
 
         if forward_pe is not None:
             forward_pe_manual = True
+
+        forward_pe_metadata = _get_manual_override_metadata(
+            ticker,
+            "Forward KGV",
+        )
 
     analyst_upside = None
 
@@ -559,7 +591,11 @@ def load_company_snapshot(ticker: str) -> dict:
         "Dividenden jährlich": annual_dividends,
         "KGV": info.get("trailingPE"),
         "Forward KGV": forward_pe,
+        "Forward KGV manuell": forward_pe_manual,
+        "Forward KGV Metadaten": forward_pe_metadata,
         "Analystenziel": analyst_target,
+        "Analystenziel manuell": analyst_target_manual,
+        "Analystenziel Metadaten": analyst_target_metadata,
         "Analystenpotenzial": analyst_upside,
         "52W Hoch": week_52_high,
         "Abstand 52W Hoch": distance_to_52w_high,
