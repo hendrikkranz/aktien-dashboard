@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional
 
 import pandas as pd
@@ -15,6 +16,37 @@ from modules.trend_structure import (
     analyze_trend_structure,
     calculate_long_term_trend_score,
 )
+
+MANUAL_OVERRIDES_PATH = Path(__file__).resolve().parents[1] / "data" / "manual_overrides.csv"
+
+def _load_manual_overrides() -> pd.DataFrame:
+    if not MANUAL_OVERRIDES_PATH.exists():
+        return pd.DataFrame(
+            columns=["Ticker", "Feld", "Wert", "Stand", "Quelle"]
+        )
+
+    return pd.read_csv(MANUAL_OVERRIDES_PATH)
+
+def _get_manual_override(
+    ticker: str,
+    field: str,
+) -> Optional[float]:
+    overrides = _load_manual_overrides()
+
+    match = overrides[
+        (overrides["Ticker"] == ticker)
+        & (overrides["Feld"] == field)
+    ]
+
+    if match.empty:
+        return None
+
+    value = match.iloc[0]["Wert"]
+
+    if pd.isna(value):
+        return None
+
+    return float(value)
 
 def _calculate_period_return(
     close_prices: pd.Series,
@@ -344,11 +376,36 @@ def load_company_snapshot(ticker: str) -> dict:
             dividend_yield_points = 1
         else:
             dividend_yield_points = 0
+
     current_price = (
         info.get("currentPrice")
         or info.get("regularMarketPrice")
-    )
+        )
     analyst_target = info.get("targetMeanPrice")
+
+    analyst_target_manual = False
+
+    if analyst_target is None or pd.isna(analyst_target):
+        analyst_target = _get_manual_override(
+            ticker,
+            "Analystenziel",
+        )
+
+    if analyst_target is not None:
+        analyst_target_manual = True
+
+    forward_pe = info.get("forwardPE")
+
+    forward_pe_manual = False
+
+    if forward_pe is None or pd.isna(forward_pe):
+        forward_pe = _get_manual_override(
+            ticker,
+            "Forward KGV",
+        )
+
+        if forward_pe is not None:
+            forward_pe_manual = True
 
     analyst_upside = None
 
@@ -501,7 +558,7 @@ def load_company_snapshot(ticker: str) -> dict:
         "Dividendenkontinuität Punkte": dividend_continuity_points,
         "Dividenden jährlich": annual_dividends,
         "KGV": info.get("trailingPE"),
-        "Forward KGV": info.get("forwardPE"),
+        "Forward KGV": forward_pe,
         "Analystenziel": analyst_target,
         "Analystenpotenzial": analyst_upside,
         "52W Hoch": week_52_high,

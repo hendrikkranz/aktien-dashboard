@@ -11,6 +11,8 @@ def calculate_opportunity_breakdown(data: dict) -> list:
     analyst_points = None
 
     if analyst_upside is not None:
+        analyst_points = 0
+
         if analyst_upside >= 20:
             analyst_points = OPPORTUNITY_WEIGHTS[
                 "analystenpotenzial"

@@ -76,6 +76,13 @@ def find_ticker_with_yahoo(
         for quote in quotes:
             symbol = quote.get("symbol")
             quote_type = quote.get("quoteType")
+            short_name = str(
+                quote.get("shortname") or ""
+            ).lower()
+            long_name = str(
+                quote.get("longname") or ""
+            ).lower()
+            query = search_text.strip().lower()
 
             if (
                 symbol
@@ -84,6 +91,10 @@ def find_ticker_with_yahoo(
                     "EQUITY",
                     "ETF",
                     "MUTUALFUND",
+                )
+                and (
+                    query in short_name
+                    or query in long_name
                 )
             ):
                 return str(symbol)
