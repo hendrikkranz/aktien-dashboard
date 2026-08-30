@@ -63,7 +63,10 @@ if "analyse_ticker" in st.session_state:
         "analyse_ticker"
     )
 elif "analyse_input" not in st.session_state:
-    st.session_state["analyse_input"] = "MSFT"
+    st.session_state["analyse_input"] = st.query_params.get(
+        "ticker",
+        "MSFT",
+    )
 
 search_text = st.text_input(
     "Aktie oder Ticker",
@@ -106,6 +109,7 @@ if ticker:
 
     st.session_state["last_analyzed_ticker"] = data["Ticker"]
     st.session_state["last_analyzed_name"] = data["Name"]
+    st.query_params["ticker"] = data["Ticker"]
 
     st.title(data["Name"])
 
