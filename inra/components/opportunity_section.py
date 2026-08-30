@@ -132,10 +132,11 @@ def _render_opportunity_breakdown(
             "ab 10 % eine reduzierte Punktzahl."
         ),
         "Forward KGV": (
-            "Bis 20 werden 20 Punkte vergeben. "
+            "Bis 20 werden 30 Punkte vergeben. "
             "Bis 22 gibt es 17 Punkte, "
-            "bis 25 noch 14 Punkte "
-            "und bis 30 noch 8 Punkte."
+            "bis 25 noch 14 Punkte, "
+            "bis 30 noch 8 Punkte "
+            "und über 30 keine Punkte."
         ),
         "Abstand 52W-Hoch": (
             "Je näher der Kurs am 52-Wochen-Hoch liegt, "

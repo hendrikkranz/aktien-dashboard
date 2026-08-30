@@ -48,6 +48,8 @@ def calculate_opportunity_breakdown(data: dict) -> list:
             valuation_points = 14
         elif forward_pe <= 30:
             valuation_points = 8
+        else:
+            valuation_points = 0
 
     breakdown.append(
         {
