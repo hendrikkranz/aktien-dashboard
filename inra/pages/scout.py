@@ -588,8 +588,8 @@ else:
 
     fig.update_layout(
         height=550,
-        xaxis_range=[40, 92],
-        yaxis_range=[22, 72],
+        xaxis_range=[10, 105],
+        yaxis_range=[20, 100],
         showlegend=False,
     )
 
@@ -696,9 +696,13 @@ else:
         ["Kaufchance", "Qualität"]
     ]
 
+    industry_heatmap_colors = industry_heatmap.copy()
+    industry_heatmap_colors["Kaufchance"] = (
+        industry_heatmap_colors["Kaufchance"] / 70 * 100
+    )
+
     industry_heatmap_fig = px.imshow(
-        industry_heatmap,
-        text_auto=".0f",
+        industry_heatmap_colors,
         aspect="auto",
         color_continuous_scale="RdYlGn",
         zmin=0,
@@ -708,6 +712,11 @@ else:
             "y": "Branche",
             "color": "Score",
         },
+    )
+
+    industry_heatmap_fig.update_traces(
+        text=industry_heatmap.values,
+        texttemplate="%{text:.0f}",
     )
 
     industry_heatmap_fig.update_layout(
@@ -767,9 +776,13 @@ else:
         ["Kaufchance", "Qualität"]
     ]
 
+    country_heatmap_colors = country_heatmap.copy()
+    country_heatmap_colors["Kaufchance"] = (
+        country_heatmap_colors["Kaufchance"] / 70 * 100
+    )
+
     country_heatmap_fig = px.imshow(
-        country_heatmap,
-        text_auto=".0f",
+        country_heatmap_colors,
         aspect="auto",
         color_continuous_scale="RdYlGn",
         zmin=0,
@@ -779,6 +792,11 @@ else:
             "y": "Land",
             "color": "Score",
         },
+    )
+
+    country_heatmap_fig.update_traces(
+        text=country_heatmap.values,
+        texttemplate="%{text:.0f}",
     )
 
     country_heatmap_fig.update_layout(
