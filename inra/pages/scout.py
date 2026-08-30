@@ -1,4 +1,5 @@
 import csv
+from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
@@ -6,8 +7,11 @@ import plotly.express as px
 
 from utils.data_loader import (
     load_benchmark_cache,
+    get_benchmark_cache_timestamp,
     load_universe,
 )
+
+from scripts.update_benchmark import update_benchmark
 
 
 FAVORITES_PATH = (
@@ -69,6 +73,21 @@ if "favorite_tickers" not in st.session_state:
 
 universe = load_universe()
 benchmark_cache = load_benchmark_cache()
+
+cache_timestamp = get_benchmark_cache_timestamp()
+
+if cache_timestamp is not None:
+    cache_date = datetime.fromtimestamp(
+        cache_timestamp
+    ).strftime("%d.%m.%Y %H:%M")
+
+    st.caption(
+        f"Scout-Datenstand: {cache_date}"
+    )
+    
+    if st.button("Scout-Daten aktualisieren"):
+        update_benchmark()
+        st.rerun()
 
 if not benchmark_cache.empty:
     universe = universe.merge(

@@ -9,6 +9,12 @@ UNIVERSE_PATH = Path("inra/data/universe.csv")
 
 BENCHMARK_CACHE_PATH = Path("inra/data/benchmark_cache.csv")
 
+def get_benchmark_cache_timestamp():
+    if not BENCHMARK_CACHE_PATH.exists():
+        return None
+
+    return BENCHMARK_CACHE_PATH.stat().st_mtime
+
 def load_universe() -> pd.DataFrame:
     return pd.read_csv(UNIVERSE_PATH)
 
