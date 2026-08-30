@@ -414,6 +414,7 @@ def load_company_snapshot(ticker: str) -> dict:
             payout_ratio_points = 0
     five_year_avg_dividend_yield = info.get("fiveYearAvgDividendYield")
     dividend_rate = info.get("dividendRate")
+    dividend_yield_points = None
 
     if (
         dividend_yield is None

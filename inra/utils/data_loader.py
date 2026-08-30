@@ -79,31 +79,48 @@ def find_ticker_with_yahoo(
 
         quotes = search_result.quotes or []
 
+        query = search_text.strip().lower()
+
         for quote in quotes:
             symbol = quote.get("symbol")
             quote_type = quote.get("quoteType")
-            short_name = str(
-                quote.get("shortname") or ""
-            ).lower()
-            long_name = str(
-                quote.get("longname") or ""
-            ).lower()
-            query = search_text.strip().lower()
+            sector = quote.get("sector")
+            industry = quote.get("industry")
 
             if (
                 symbol
-                and quote_type
-                in (
-                    "EQUITY",
-                    "ETF",
-                    "MUTUALFUND",
-                )
+                and quote_type == "EQUITY"
                 and (
-                    query in short_name
-                    or query in long_name
+                    sector is not None
+                    or industry is not None
                 )
             ):
                 return str(symbol)
+
+        for preferred_type in (
+            "EQUITY",
+            "ETF",
+            "MUTUALFUND",
+        ):
+            for quote in quotes:
+                symbol = quote.get("symbol")
+                quote_type = quote.get("quoteType")
+                short_name = str(
+                    quote.get("shortname") or ""
+                ).lower()
+                long_name = str(
+                    quote.get("longname") or ""
+                ).lower()
+
+                if (
+                    symbol
+                    and quote_type == preferred_type
+                    and (
+                        query in short_name
+                        or query in long_name
+                    )
+                ):
+                    return str(symbol)
 
     except Exception:
         return None

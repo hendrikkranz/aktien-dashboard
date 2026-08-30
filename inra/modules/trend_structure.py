@@ -174,7 +174,13 @@ def analyze_trend_structure(
             "status": "Nicht bewertbar",
             "direction": None,
             "position": None,
+            "normalized_position": None,
             "confidence": "Niedrig",
+            "confidence_raw": None,
+            "r_squared": None,
+            "lower_tests": None,
+            "upper_tests": None,
+            "midline_tests": None,
         }
 
     regression = _calculate_regression(prices)

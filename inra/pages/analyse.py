@@ -88,7 +88,21 @@ if search_text:
             )
 
 if ticker:
-    data = load_company_snapshot(ticker)    
+    data = load_company_snapshot(ticker)
+
+    if (
+        data.get("Kurs") is None
+        and data.get("Marktkapitalisierung") is None
+        and data.get("Land") is None
+        and data.get("Sektor") is None
+        and data.get("Branche") is None
+    ):
+        st.warning(
+            "Für diese Eingabe konnten keine belastbaren "
+            "Börsendaten gefunden werden. Bitte Ticker oder "
+            "ISIN prüfen."
+        )
+        st.stop()
 
     st.session_state["last_analyzed_ticker"] = data["Ticker"]
     st.session_state["last_analyzed_name"] = data["Name"]
