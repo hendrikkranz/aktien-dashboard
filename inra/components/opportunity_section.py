@@ -11,6 +11,21 @@ def _format_date_de(value: str) -> str:
 
 from typing import Optional
 
+def _is_manual_data_stale(
+    value: str,
+    max_age_days: int = 90,
+) -> bool:
+    try:
+        data_date = datetime.strptime(
+            value,
+            "%Y-%m-%d",
+        )
+    except (TypeError, ValueError):
+        return False
+
+    age_days = (datetime.now() - data_date).days
+    return age_days > max_age_days
+
 import streamlit as st
 
 from utils.market_data import save_manual_override
@@ -270,6 +285,13 @@ def _render_opportunity_breakdown(
                     f"Stand {_format_date_de(metadata.get('Stand'))}"
                 )
 
+                if _is_manual_data_stale(
+                    metadata.get("Stand")
+                ):
+                    st.warning(
+                        "⚠️ Datenstand älter als 90 Tage."
+                    )
+
             elif (
                 criterion == "Forward KGV"
                 and data.get("Forward KGV manuell")
@@ -284,6 +306,13 @@ def _render_opportunity_breakdown(
                     f"{metadata.get('Quelle', 'Quelle unbekannt')} · "
                     f"Stand {_format_date_de(metadata.get('Stand'))}"
                 )
+
+                if _is_manual_data_stale(
+                    metadata.get("Stand")
+                ):
+                    st.warning(
+                        "⚠️ Datenstand älter als 90 Tage."
+                    )
 
             if (
                 criterion == "Analystenpotenzial"
