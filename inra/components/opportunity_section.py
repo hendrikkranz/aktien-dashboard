@@ -460,9 +460,14 @@ def _render_opportunity_breakdown(
                     icon = "🔴"
                     label = "Sehr hoch"
 
-                st.markdown(
-                    f"{icon} **{label} · {points} Punkte**"
-                )
+                if points == 0:
+                    st.markdown(
+                        f"{icon} **{label} · kein Punktabzug**"
+                    )
+                else:
+                    st.markdown(
+                        f"{icon} **{label} · {points} Punkte**"
+                    )
                 st.caption(
                     "Bewertung aus RSI, Abstand zum 52W-Hoch "
                     "und Momentum 3M / 6M / 12M."
