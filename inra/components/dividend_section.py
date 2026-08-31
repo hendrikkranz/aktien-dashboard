@@ -9,7 +9,11 @@ def render_dividend_section(data: dict) -> None:
         value = "Keine Daten"
     else:
         value = f"{dividend:.1f} %"
-
+    high_yield_icon = (
+        " 💰"
+        if dividend is not None and dividend >= 3.0
+        else ""
+    )
     if points is None:
         points = 0
         rating = "Keine Daten"
@@ -104,7 +108,7 @@ def render_dividend_section(data: dict) -> None:
         font-weight:600;
         margin-top:5px;
     ">
-        {icon} {rating}
+        {icon} {rating}{high_yield_icon}
     </div>
 
     <div style="
