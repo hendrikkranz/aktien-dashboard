@@ -304,6 +304,16 @@ def load_company_snapshot(ticker: str) -> dict:
             .to_dict()
         )
 
+    if annual_dividends:
+        first_dividend_year = min(annual_dividends)
+        current_year = pd.Timestamp.now().year
+
+        for year in range(
+            first_dividend_year,
+            current_year,
+        ):
+            annual_dividends.setdefault(year, 0.0)
+
     dividend_growth_3y = None
 
     completed_years = sorted(
@@ -346,41 +356,45 @@ def load_company_snapshot(ticker: str) -> dict:
     if len(completed_years) >= 3:
         recent_years = completed_years[-5:]
 
-        cuts = []
-
-        for previous_year, current_year in zip(
-            recent_years,
-            recent_years[1:],
-        ):
-            previous_dividend = annual_dividends[
-                previous_year
-            ]
-            current_dividend = annual_dividends[
-                current_year
-            ]
-
-            if current_dividend < previous_dividend:
-                cuts.append(current_year)
+        recent_cut_years = completed_years[-3:]
 
         dividend_cut_last_3y = any(
-            year in completed_years[-3:]
-            for year in cuts
+            annual_dividends[year] <= 0
+            or (
+                year - 1 in annual_dividends
+                and annual_dividends[year]
+                < annual_dividends[year - 1]
+            )
+            for year in recent_cut_years
         )
 
-        if not cuts:
-            dividend_continuity_years = len(
-                recent_years
-            )
-        else:
-            last_cut_year = max(cuts)
+        dividend_continuity_years = 0
 
-            dividend_continuity_years = len(
-                [
-                    year
-                    for year in recent_years
-                    if year > last_cut_year
+        if annual_dividends[recent_years[-1]] > 0:
+            dividend_continuity_years = 1
+
+            for previous_year, current_year in reversed(
+                list(
+                    zip(
+                        recent_years,
+                        recent_years[1:],
+                    )
+                )
+            ):
+                previous_dividend = annual_dividends[
+                    previous_year
                 ]
-            )
+                current_dividend = annual_dividends[
+                    current_year
+                ]
+
+                if (
+                    previous_dividend <= 0
+                    or current_dividend < previous_dividend
+                ):
+                    break
+
+                dividend_continuity_years += 1
 
     dividend_continuity_points = None
 
