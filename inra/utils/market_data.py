@@ -489,44 +489,70 @@ def load_company_snapshot(ticker: str) -> dict:
     debt_to_equity = info.get("debtToEquity")
     revenue_growth = info.get("revenueGrowth")
     earnings_growth = info.get("earningsGrowth")
+    operating_cashflow = info.get("operatingCashflow")
+    total_cash = info.get("totalCash")
+    total_debt = info.get("totalDebt")
+
     capital_allocation_points = None
 
+    cash_to_debt_ratio = None
+
     if (
-        payout_ratio is not None
-        and revenue_growth is not None
-        and earnings_growth is not None
+        total_cash is not None
+        and total_debt is not None
+        and total_debt > 0
     ):
-        payout_percent = payout_ratio * 100
-        revenue_growth_percent = revenue_growth * 100
-        earnings_growth_percent = earnings_growth * 100
+        cash_to_debt_ratio = total_cash / total_debt
 
-        if (
-            payout_percent <= 25
-            and (
-                revenue_growth_percent >= 10
-                or earnings_growth_percent >= 10
-            )
-        ):
-            capital_allocation_points = 3
+    weak_debt_to_equity = (
+        debt_to_equity is not None
+        and debt_to_equity >= 100
+    )
 
-        elif (
-            25 < payout_percent <= 70
-            and (
-                revenue_growth_percent > 0
-                or earnings_growth_percent > 0
-            )
-        ):
-            capital_allocation_points = 3
+    critical_debt_to_equity = (
+        debt_to_equity is not None
+        and debt_to_equity > 200
+    )
 
-        elif (
-            payout_percent > 70
-            and revenue_growth_percent < 5
-            and earnings_growth_percent < 5
-        ):
-            capital_allocation_points = 3
+    weak_cash_to_debt = (
+        cash_to_debt_ratio is not None
+        and cash_to_debt_ratio < 0.20
+    )
+
+    critical_cash_to_debt = (
+        cash_to_debt_ratio is not None
+        and cash_to_debt_ratio < 0.10
+    )
+
+    if operating_cashflow is not None:
+
+        if operating_cashflow > 0:
+
+            if (
+                critical_debt_to_equity
+                or critical_cash_to_debt
+            ):
+                capital_allocation_points = 1
+
+            elif (
+                weak_debt_to_equity
+                or weak_cash_to_debt
+            ):
+                capital_allocation_points = 2
+
+            else:
+                capital_allocation_points = 3
 
         else:
-            capital_allocation_points = 2
+
+            if (
+                weak_debt_to_equity
+                or weak_cash_to_debt
+            ):
+                capital_allocation_points = 0
+
+            else:
+                capital_allocation_points = 1
 
     dividend_components = [
         (dividend_yield_points, 5),
