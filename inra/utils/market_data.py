@@ -557,6 +557,18 @@ def load_company_snapshot(ticker: str) -> dict:
             * 15
         )
 
+    dividend_strategy_score_raw = dividend_strategy_score
+
+    if (
+        dividend_strategy_score is not None
+        and dividend_yield is not None
+        and dividend_yield < 1.5
+    ):
+        dividend_strategy_score = min(
+            dividend_strategy_score,
+            9,
+        )
+
     market_cap = info.get("marketCap")
 
     week_52_high = info.get("fiftyTwoWeekHigh")
@@ -643,6 +655,7 @@ def load_company_snapshot(ticker: str) -> dict:
         "Umsatzwachstum": revenue_growth,
         "Gewinnwachstum": earnings_growth,
         "Kapitalallokation Punkte": capital_allocation_points,
+        "Dividendenstrategie Score vor Begrenzung": dividend_strategy_score_raw,
         "Dividendenstrategie Score": dividend_strategy_score,
         "Marktkapitalisierung": market_cap,
         "Momentum 3M": momentum["Momentum 3M"],

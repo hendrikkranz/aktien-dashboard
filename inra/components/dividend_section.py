@@ -30,7 +30,7 @@ def render_dividend_section(data: dict) -> None:
             "Kontinuität und Kapitalallokation."
         )
 
-    elif points >= 9:
+    elif points >= 10:
         rating = "Stark"
         icon = "🟢"
         border = "#2ea043"
@@ -203,6 +203,23 @@ def render_dividend_section(data: dict) -> None:
             f"**Kapitalallokation:** "
             f"{allocation_score}"
         )
+
+        if dividend is not None and dividend < 1.5:
+            raw_points = data.get(
+                "Dividendenstrategie Score vor Begrenzung"
+            )
+
+            if raw_points is not None and raw_points > 9:
+                reduction = raw_points - points
+
+                st.info(
+                    f"**Finale Anpassung:**  \n"
+                    f"Berechneter Score: **{raw_points} / 15**  \n"
+                    f"Begrenzung wegen Dividendenrendite "
+                    f"unter 1,5 %: **−{reduction} "
+                    f"{'Punkt' if reduction == 1 else 'Punkte'}**  \n"
+                    f"Finaler Score: **{points} / 15**"
+                )
 
         st.caption(
             "Fehlende Teilkriterien werden nicht mit 0 Punkten "
