@@ -196,26 +196,47 @@ def interpret_debt_equity(
     if value is None:
         return None
 
-    if value <= 40:
+    if value <= 20:
         return _result(
             "excellent",
             5,
             "strength",
-            "eine sehr solide Bilanz",
+            "eine sehr geringe Verschuldung",
         )
-    if value <= 100:
+    if value <= 40:
         return _result(
             "good",
             4,
             "strength",
-            "eine solide Bilanz",
+            "eine niedrige Verschuldung",
+        )
+    if value <= 70:
+        return _result(
+            "solid",
+            3,
+            "neutral",
+            "eine solide Verschuldung",
+        )
+    if value <= 100:
+        return _result(
+            "neutral",
+            3,
+            "neutral",
+            "eine moderate Verschuldung",
+        )
+    if value <= 150:
+        return _result(
+            "weak",
+            2,
+            "warning",
+            "eine erhöhte Verschuldung",
         )
     if value <= 200:
         return _result(
             "weak",
             2,
             "warning",
-            "eine erhöhte Verschuldung",
+            "eine deutlich erhöhte Verschuldung",
         )
 
     return _result(
@@ -225,6 +246,97 @@ def interpret_debt_equity(
         "eine hohe Verschuldung",
     )
 
+
+def interpret_cash_to_debt(
+    value: Optional[float],
+) -> Optional[dict]:
+    if value is None:
+        return None
+
+    if value >= 1.0:
+        return _result(
+            "excellent",
+            5,
+            "strength",
+            "eine sehr hohe Liquiditätsdeckung der Verschuldung",
+        )
+    if value >= 0.6:
+        return _result(
+            "good",
+            4,
+            "strength",
+            "eine gute Liquiditätsdeckung der Verschuldung",
+        )
+    if value >= 0.4:
+        return _result(
+            "solid",
+            3,
+            "neutral",
+            "eine solide Liquiditätsdeckung der Verschuldung",
+        )
+    if value >= 0.2:
+        return _result(
+            "weak",
+            2,
+            "warning",
+            "eine eher niedrige Liquiditätsdeckung der Verschuldung",
+        )
+
+    return _result(
+        "poor",
+        1,
+        "warning",
+        "eine sehr niedrige Liquiditätsdeckung der Verschuldung",
+    )
+
+def interpret_ocf_to_debt(
+    value: Optional[float],
+) -> Optional[dict]:
+    if value is None:
+        return None
+
+    if value >= 1.0:
+        return _result(
+            "excellent",
+            5,
+            "strength",
+            "eine sehr starke operative Schuldentragfähigkeit",
+        )
+    if value >= 0.6:
+        return _result(
+            "good",
+            4,
+            "strength",
+            "eine gute operative Schuldentragfähigkeit",
+        )
+    if value >= 0.3:
+        return _result(
+            "solid",
+            3,
+            "neutral",
+            "eine solide operative Schuldentragfähigkeit",
+        )
+    if value >= 0.15:
+        return _result(
+            "weak",
+            2,
+            "warning",
+            "eine eher schwache operative Schuldentragfähigkeit",
+        )
+    if value > 0:
+        return _result(
+            "poor",
+            1,
+            "warning",
+            "eine sehr schwache operative Schuldentragfähigkeit",
+        )
+
+    return _result(
+        "poor",
+        1,
+        "warning",
+        "keine positive operative Schuldentragfähigkeit",
+    )
 
 def interpret_dividend_yield(
     value: Optional[float],

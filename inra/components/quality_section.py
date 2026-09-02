@@ -5,6 +5,8 @@ import streamlit as st
 
 from utils.fundamental_interpreter import (
     interpret_debt_equity,
+    interpret_cash_to_debt,
+    interpret_ocf_to_debt,
     interpret_net_margin,
     interpret_operating_margin,
     interpret_revenue_growth,
@@ -276,6 +278,20 @@ def render_quality_section(data: dict) -> None:
     revenue_growth_scored = data.get("Umsatzwachstum Jahresabschluss")
     earnings_growth_scored = data.get("Gewinnwachstum Jahresabschluss")
     debt = data.get("Verschuldungsgrad")
+    total_cash = data.get("Gesamtliquidität")
+    total_debt = data.get("Gesamtverschuldung")
+    operating_cashflow = data.get("Operativer Cashflow")
+    cash_to_debt_ratio = (
+        total_cash / total_debt
+        if total_cash is not None and total_debt not in (None, 0)
+        else None
+    )
+
+    ocf_to_debt_ratio = (
+        operating_cashflow / total_debt
+        if operating_cashflow is not None and total_debt not in (None, 0)
+        else None
+    )
 
     with st.expander(
          f"Warum {quality_score} von 100 Punkten?"
@@ -394,6 +410,28 @@ def render_quality_section(data: dict) -> None:
                 "Die Einordnung erfolgt derzeit nach "
                 "allgemeinen Schwellen und noch nicht "
                 "relativ zur Branche."
+            ),
+        )
+
+        _render_metric_row(
+            "Cash / Debt",
+            f"{cash_to_debt_ratio:.2f}" if cash_to_debt_ratio is not None else "–",
+            interpret_cash_to_debt(cash_to_debt_ratio),
+            (
+                "Verhältnis von liquiden Mitteln zur Gesamtverschuldung. "
+                "Je höher der Wert, desto größer der finanzielle Puffer "
+                "gegenüber den bestehenden Schulden."
+            ),
+        )
+
+        _render_metric_row(
+            "Operativer Cashflow / Debt",
+            f"{ocf_to_debt_ratio:.2f}" if ocf_to_debt_ratio is not None else "–",
+            interpret_ocf_to_debt(ocf_to_debt_ratio),
+            (
+                "Verhältnis des operativen Cashflows zur Gesamtverschuldung. "
+                "Zeigt, wie stark die Verschuldung durch die laufende "
+                "operative Mittelgenerierung getragen wird."
             ),
         )
 

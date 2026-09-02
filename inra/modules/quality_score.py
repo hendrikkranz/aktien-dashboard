@@ -227,31 +227,78 @@ def calculate_growth_score(
 
 def calculate_balance_score(
     debt_ratio: Optional[float],
+    cash_to_debt_ratio: Optional[float],
+    ocf_to_debt_ratio: Optional[float],
     max_points: int,
 ) -> int:
-    if debt_ratio is None:
+    if (
+        debt_ratio is None
+        and cash_to_debt_ratio is None
+        and ocf_to_debt_ratio is None
+    ):
         return 0
 
-    if debt_ratio <= 20:
-        ratio = 1.0
-    elif debt_ratio <= 40:
-        ratio = 0.90
-    elif debt_ratio <= 70:
-        ratio = 0.80
-    elif debt_ratio <= 100:
-        ratio = 0.70
-    elif debt_ratio <= 150:
-        ratio = 0.60
-    elif debt_ratio <= 200:
-        ratio = 0.50
-    elif debt_ratio <= 250:
-        ratio = 0.35
-    elif debt_ratio <= 300:
-        ratio = 0.20
-    else:
-        ratio = 0.0
+    weighted_scores = []
 
-    return round(max_points * ratio)
+    if debt_ratio is not None:
+        if debt_ratio <= 20:
+            debt_score = 1.00
+        elif debt_ratio <= 40:
+            debt_score = 0.90
+        elif debt_ratio <= 70:
+            debt_score = 0.80
+        elif debt_ratio <= 100:
+            debt_score = 0.65
+        elif debt_ratio <= 150:
+            debt_score = 0.45
+        elif debt_ratio <= 200:
+            debt_score = 0.25
+        else:
+            debt_score = 0.00
+
+        weighted_scores.append((debt_score, 0.50))
+
+    if cash_to_debt_ratio is not None:
+        if cash_to_debt_ratio >= 1.0:
+            cash_score = 1.00
+        elif cash_to_debt_ratio >= 0.6:
+            cash_score = 0.80
+        elif cash_to_debt_ratio >= 0.4:
+            cash_score = 0.60
+        elif cash_to_debt_ratio >= 0.2:
+            cash_score = 0.40
+        else:
+            cash_score = 0.20
+
+        weighted_scores.append((cash_score, 0.25))
+
+    if ocf_to_debt_ratio is not None:
+        if ocf_to_debt_ratio >= 1.0:
+            ocf_score = 1.00
+        elif ocf_to_debt_ratio >= 0.6:
+            ocf_score = 0.80
+        elif ocf_to_debt_ratio >= 0.3:
+            ocf_score = 0.60
+        elif ocf_to_debt_ratio >= 0.15:
+            ocf_score = 0.40
+        elif ocf_to_debt_ratio > 0:
+            ocf_score = 0.20
+        else:
+            ocf_score = 0.00
+
+        weighted_scores.append((ocf_score, 0.25))
+
+    available_weight = sum(weight for _, weight in weighted_scores)
+
+    if available_weight == 0:
+        return 0
+
+    normalized_score = (
+        sum(score * weight for score, weight in weighted_scores)
+        / available_weight
+    )
+
+    return round(max_points * normalized_score)
 
 
 def calculate_dividend_score(
@@ -304,8 +351,20 @@ def calculate_quality_breakdown(data: dict) -> dict:
         ),
         "Bilanz": calculate_balance_score(
             data.get("Verschuldungsgrad"),
+            (
+                data.get("Gesamtliquidität") / data.get("Gesamtverschuldung")
+                if data.get("Gesamtliquidität") is not None
+                and data.get("Gesamtverschuldung") not in (None, 0)
+                else None
+            ),
+            (
+                data.get("Operativer Cashflow") / data.get("Gesamtverschuldung")
+                if data.get("Operativer Cashflow") is not None
+                and data.get("Gesamtverschuldung") not in (None, 0)
+                else None
+            ),
             balance_weight,
-        ),
+            ),
     }
 
 
