@@ -6,13 +6,19 @@ def _result(
     score: int,
     category: str,
     text: str,
+    label: Optional[str] = None,
 ) -> dict:
-    return {
+    result = {
         "level": level,
         "score": score,
         "category": category,
         "text": text,
     }
+
+    if label is not None:
+        result["label"] = label
+
+    return result
 
 
 def interpret_roe(value: Optional[float]) -> Optional[dict]:
@@ -98,6 +104,48 @@ def interpret_net_margin(
         "eine schwache Nettomarge",
     )
 
+def interpret_operating_margin(
+    value: Optional[float],
+) -> Optional[dict]:
+    if value is None:
+        return None
+
+    if value >= 30:
+        return _result(
+            "excellent",
+            5,
+            "strength",
+            "eine außergewöhnlich hohe operative Marge",
+        )
+    if value >= 20:
+        return _result(
+            "good",
+            4,
+            "strength",
+            "eine starke operative Marge",
+        )
+    if value >= 10:
+        return _result(
+            "solid",
+            3,
+            "neutral",
+            "eine solide operative Marge",
+        )
+    if value >= 5:
+        return _result(
+            "weak",
+            2,
+            "warning",
+            "eine eher niedrige operative Marge",
+        )
+
+    return _result(
+        "poor",
+        1,
+        "warning",
+        "eine schwache operative Marge",
+    )
+
 
 def interpret_revenue_growth(
     value: Optional[float],
@@ -114,9 +162,9 @@ def interpret_revenue_growth(
         )
     if value >= 6:
         return _result(
-            "good",
-            4,
-            "strength",
+            "solid",
+            3,
+            "neutral",
             "ein solides Umsatzwachstum",
         )
     if value >= 0:

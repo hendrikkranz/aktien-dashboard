@@ -6,6 +6,7 @@ import streamlit as st
 from utils.fundamental_interpreter import (
     interpret_debt_equity,
     interpret_net_margin,
+    interpret_operating_margin,
     interpret_revenue_growth,
     interpret_roe,
 )
@@ -64,7 +65,7 @@ def _interpret_earnings_growth(
             "label": "Sehr stark",
         }
 
-    if value >= 8:
+    if value >= 10:
         return {
             "level": "good",
             "label": "Stark",
@@ -73,7 +74,7 @@ def _interpret_earnings_growth(
     if value >= 0:
         return {
             "level": "solid",
-            "label": "Positiv",
+            "label": "Solide",
         }
 
     if value >= -10:
@@ -269,8 +270,11 @@ def render_quality_section(data: dict) -> None:
 
     roe = data.get("Eigenkapitalrendite")
     margin = data.get("Nettomarge")
+    operating_margin = data.get("Operative Marge")
     revenue_growth = data.get("Umsatzwachstum")
     earnings_growth = data.get("Gewinnwachstum")
+    revenue_growth_scored = data.get("Umsatzwachstum Jahresabschluss")
+    earnings_growth_scored = data.get("Gewinnwachstum Jahresabschluss")
     debt = data.get("Verschuldungsgrad")
 
     with st.expander(
@@ -305,6 +309,21 @@ def render_quality_section(data: dict) -> None:
             ),
         )
 
+        _render_metric_row(
+            "Operative Marge",
+            _format_percentage(operating_margin),
+            interpret_operating_margin(
+                operating_margin
+            ),
+            (
+                "Anteil des Umsatzes, der aus dem operativen "
+                "Kerngeschäft als operativer Gewinn verbleibt. "
+                "Die Kennzahl ist meist weniger durch Zinsen, "
+                "Steuern oder Sondereffekte verzerrt als die "
+                "Nettomarge."
+            ),
+        )
+
         st.divider()
 
         _render_section_header(
@@ -315,9 +334,9 @@ def render_quality_section(data: dict) -> None:
 
         _render_metric_row(
             "Umsatzwachstum",
-            _format_percentage(revenue_growth),
+            _format_percentage(revenue_growth_scored),
             interpret_revenue_growth(
-                revenue_growth
+                revenue_growth_scored
             ),
             (
                 "Aktuell gemeldetes Umsatzwachstum. "
@@ -329,9 +348,9 @@ def render_quality_section(data: dict) -> None:
 
         _render_metric_row(
             "Gewinnwachstum",
-            _format_percentage(earnings_growth),
+            _format_percentage(earnings_growth_scored),
             _interpret_earnings_growth(
-                earnings_growth
+                earnings_growth_scored
             ),
             (
                 "Aktuell gemeldetes Gewinnwachstum. "
@@ -340,10 +359,22 @@ def render_quality_section(data: dict) -> None:
             ),
         )
 
+        if (
+            data.get("Extremer Umsatzsprung")
+            or data.get("Gewinn Vorzeichenwechsel")
+        ):
+            st.warning(
+                "Außergewöhnliche Wachstumshistorie erkannt. "
+                "Starke Veränderungen können reales strukturelles Wachstum "
+                "abbilden oder durch Sondereffekte wie Akquisitionen, "
+                "Bilanzierung oder Restrukturierungen beeinflusst sein. "
+                "Eine zusätzliche fachliche Einordnung ist sinnvoll."
+            )
+
         st.caption(
-            "Der Wachstumsscore ist noch V0.1. "
-            "Später fließen mehrere Kennzahlen und "
-            "mehrjährige Trends ein."
+            "Growth V2 bewertet Umsatz- und Gewinnentwicklung "
+            "auf Basis der verfügbaren Jahresabschluss- und "
+            "Mehrjahresdaten."
         )
 
         st.divider()

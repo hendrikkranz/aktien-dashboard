@@ -46,29 +46,69 @@ def calculate_margin_ratio(
 
     return 0.0
 
+def calculate_operating_margin_ratio(
+    operating_margin: Optional[float],
+) -> Optional[float]:
+    if operating_margin is None:
+        return None
+
+    if operating_margin >= 35:
+        return 1.0
+    if operating_margin >= 25:
+        return 0.90
+    if operating_margin >= 15:
+        return 0.75
+    if operating_margin >= 10:
+        return 0.60
+    if operating_margin >= 5:
+        return 0.45
+    if operating_margin >= 0:
+        return 0.25
+
+    return 0.0
+
 
 def calculate_profitability_score(
     roe: Optional[float],
     net_margin: Optional[float],
+    operating_margin: Optional[float],
     max_points: int,
 ) -> int:
+    weighted_ratios = [
+        (calculate_roe_ratio(roe), 0.40),
+        (calculate_margin_ratio(net_margin), 0.30),
+        (
+            calculate_operating_margin_ratio(
+                operating_margin
+            ),
+            0.30,
+        ),
+    ]
+
     available_ratios = [
-        ratio
-        for ratio in (
-            calculate_roe_ratio(roe),
-            calculate_margin_ratio(net_margin),
-        )
+        (ratio, weight)
+        for ratio, weight in weighted_ratios
         if ratio is not None
     ]
 
     if not available_ratios:
         return 0
 
-    average_ratio = sum(available_ratios) / len(
-        available_ratios
+    weighted_score = sum(
+        ratio * weight
+        for ratio, weight in available_ratios
     )
 
-    return round(max_points * average_ratio)
+    available_weight = sum(
+        weight
+        for _, weight in available_ratios
+    )
+
+    normalized_ratio = (
+        weighted_score / available_weight
+    )
+
+    return round(max_points * normalized_ratio)
 
 
 def calculate_revenue_growth_ratio(
@@ -97,17 +137,28 @@ def calculate_revenue_growth_ratio(
     return 0.0
 
 
-def calculate_earnings_modifier(
+def calculate_earnings_growth_ratio(
     earnings_growth: Optional[float],
-    max_points: int,
-) -> int:
+) -> Optional[float]:
     if earnings_growth is None:
-        return 0
+        return None
 
     if earnings_growth >= 25:
-        return round(max_points * 0.10)
+        return 1.0
+    if earnings_growth >= 15:
+        return 0.85
     if earnings_growth >= 10:
-        return round(max_points * 0.07)
+        return 0.75
+    if earnings_growth >= 5:
+        return 0.60
+    if earnings_growth >= 0:
+        return 0.45
+    if earnings_growth >= -5:
+        return 0.25
+    if earnings_growth >= -15:
+        return 0.10
+
+    return 0.0
     if earnings_growth >= 3:
         return round(max_points * 0.04)
     if earnings_growth >= -10:
@@ -121,8 +172,33 @@ def calculate_earnings_modifier(
 def calculate_growth_score(
     revenue_growth: Optional[float],
     earnings_growth: Optional[float],
+    revenue_growth_median: Optional[float],
+    income_growth_median: Optional[float],
+    growth_history_reliable: Optional[bool],
     max_points: int,
+    positive_revenue_years: Optional[int] = None,
+    revenue_growth_annual: Optional[float] = None,
+    earnings_growth_annual: Optional[float] = None,
+    positive_income_years: Optional[int] = None,
+    extreme_revenue_jump: Optional[bool] = None,
+    income_sign_change: Optional[bool] = None,
 ) -> int:
+    if revenue_growth_annual is not None:
+        revenue_growth = revenue_growth_annual
+    if earnings_growth_annual is not None:
+        earnings_growth = earnings_growth_annual
+    if revenue_growth_median is not None:
+        if positive_revenue_years is None:
+            revenue_growth = revenue_growth_median
+        elif positive_revenue_years >= 2:
+            revenue_growth = revenue_growth_median
+
+    if income_growth_median is not None:
+        if positive_income_years is None:
+            earnings_growth = income_growth_median
+        elif positive_income_years >= 2:
+            earnings_growth = income_growth_median
+    
     revenue_ratio = calculate_revenue_growth_ratio(
         revenue_growth
     )
@@ -132,12 +208,19 @@ def calculate_growth_score(
 
     base_score = round(max_points * revenue_ratio)
 
-    earnings_modifier = calculate_earnings_modifier(
-        earnings_growth,
-        max_points,
+    earnings_ratio = calculate_earnings_growth_ratio(
+        earnings_growth
     )
 
-    final_score = base_score + earnings_modifier
+    if earnings_ratio is None:
+        return base_score
+
+    final_score = round(
+        max_points * (
+            revenue_ratio * 0.60
+            + earnings_ratio * 0.40
+        )
+    )
 
     return max(0, min(final_score, max_points))
 
@@ -202,12 +285,22 @@ def calculate_quality_breakdown(data: dict) -> dict:
         "Profitabilität": calculate_profitability_score(
             data.get("Eigenkapitalrendite"),
             data.get("Nettomarge"),
+            data.get("Operative Marge"),
             profit_weight,
         ),
         "Wachstum": calculate_growth_score(
             data.get("Umsatzwachstum"),
             data.get("Gewinnwachstum"),
+            data.get("Umsatzwachstum Median 3J"),
+            data.get("Gewinnwachstum Median 3J"),
+            data.get("Wachstumshistorie belastbar"),
             growth_weight,
+            data.get("Positive Umsatzjahre"),
+            data.get("Umsatzwachstum Jahresabschluss"),
+            data.get("Gewinnwachstum Jahresabschluss"),
+            data.get("Positive Gewinnjahre"),
+            data.get("Extremer Umsatzsprung"),
+            data.get("Gewinn Vorzeichenwechsel"),
         ),
         "Bilanz": calculate_balance_score(
             data.get("Verschuldungsgrad"),

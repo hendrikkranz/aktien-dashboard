@@ -500,9 +500,113 @@ def load_company_snapshot(ticker: str) -> dict:
 
     return_on_equity = info.get("returnOnEquity")
     profit_margin = info.get("profitMargins")
+    operating_margin = info.get("operatingMargins")
     debt_to_equity = info.get("debtToEquity")
     revenue_growth = info.get("revenueGrowth")
     earnings_growth = info.get("earningsGrowth")
+    income_stmt = ticker_obj.income_stmt
+
+    revenue_history = pd.Series(dtype=float)
+    income_history = pd.Series(dtype=float)
+
+    if (
+        income_stmt is not None
+        and not income_stmt.empty
+    ):
+        if "Total Revenue" in income_stmt.index:
+            revenue_history = (
+                income_stmt.loc["Total Revenue"]
+                .dropna()
+                .sort_index()
+            )
+
+        if "Net Income" in income_stmt.index:
+            income_history = (
+                income_stmt.loc["Net Income"]
+                .dropna()
+                .sort_index()
+            )
+
+    revenue_growth_history = pd.Series(dtype=float)
+    income_growth_history = pd.Series(dtype=float)
+
+    if len(revenue_history) >= 2:
+        revenue_growth_history = (
+            revenue_history
+            .pct_change()
+            .dropna()
+            * 100
+        )
+
+    if len(income_history) >= 2:
+        income_growth_history = (
+            income_history
+            .pct_change()
+            .dropna()
+            * 100
+        )
+
+    revenue_growth_annual = None
+
+    if not revenue_growth_history.empty:
+        revenue_growth_annual = (
+            revenue_growth_history.iloc[-1]
+        )
+
+    earnings_growth_annual = None
+
+    if not income_growth_history.empty:
+        earnings_growth_annual = (
+            income_growth_history.iloc[-1]
+        )
+
+    revenue_growth_median = None
+    income_growth_median = None
+
+    if not revenue_growth_history.empty:
+        revenue_growth_median = (
+            revenue_growth_history.median()
+        )
+
+    if not income_growth_history.empty:
+        income_growth_median = (
+            income_growth_history.median()
+        )
+
+    extreme_revenue_jump = False
+    income_sign_change = False
+
+    if not revenue_growth_history.empty:
+        extreme_revenue_jump = (
+            (revenue_growth_history >= 60).any()
+            or (revenue_growth_history <= -35).any()
+        )
+
+    if not income_history.empty:
+        income_sign_change = (
+            (income_history > 0).any()
+            and (income_history <= 0).any()
+        )
+
+    growth_history_reliable = not (
+        extreme_revenue_jump
+        or income_sign_change
+    )
+
+    positive_revenue_years = None
+
+    if not revenue_growth_history.empty:
+        positive_revenue_years = int(
+            (revenue_growth_history > 0).sum()
+        )
+
+    positive_income_years = None
+
+    if not income_growth_history.empty:
+        positive_income_years = int(
+            (income_growth_history > 0).sum()
+        )
+
     operating_cashflow = info.get("operatingCashflow")
     total_cash = info.get("totalCash")
     total_debt = info.get("totalDebt")
@@ -630,6 +734,9 @@ def load_company_snapshot(ticker: str) -> dict:
     if profit_margin is not None:
         profit_margin *= 100
 
+    if operating_margin is not None:
+        operating_margin *= 100
+
     if revenue_growth is not None:
         revenue_growth *= 100
 
@@ -691,9 +798,19 @@ def load_company_snapshot(ticker: str) -> dict:
         "Abstand 52W Hoch": distance_to_52w_high,
         "Eigenkapitalrendite": return_on_equity,
         "Nettomarge": profit_margin,
+        "Operative Marge": operating_margin,
         "Verschuldungsgrad": debt_to_equity,
         "Umsatzwachstum": revenue_growth,
+        "Umsatzwachstum Jahresabschluss": revenue_growth_annual,
         "Gewinnwachstum": earnings_growth,
+        "Gewinnwachstum Jahresabschluss": earnings_growth_annual,
+        "Umsatzwachstum Median 3J": revenue_growth_median,
+        "Gewinnwachstum Median 3J": income_growth_median,
+        "Extremer Umsatzsprung": extreme_revenue_jump,
+        "Gewinn Vorzeichenwechsel": income_sign_change,
+        "Wachstumshistorie belastbar": growth_history_reliable,
+        "Positive Umsatzjahre": positive_revenue_years,
+        "Positive Gewinnjahre": positive_income_years,
         "Kapitalallokation Punkte": capital_allocation_points,
         "Dividendenstrategie Score vor Begrenzung": dividend_strategy_score_raw,
         "Dividendenstrategie Score": dividend_strategy_score,
