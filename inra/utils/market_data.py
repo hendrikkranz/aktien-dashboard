@@ -568,12 +568,16 @@ def load_company_snapshot(ticker: str) -> dict:
 
     if not revenue_growth_history.empty:
         revenue_growth_median = (
-            revenue_growth_history.median()
+            revenue_growth_history
+            .tail(3)
+            .median()
         )
 
     if not income_growth_history.empty:
         income_growth_median = (
-            income_growth_history.median()
+            income_growth_history
+            .tail(3)
+            .median()
         )
 
     extreme_revenue_jump = False
@@ -600,14 +604,14 @@ def load_company_snapshot(ticker: str) -> dict:
 
     if not revenue_growth_history.empty:
         positive_revenue_years = int(
-            (revenue_growth_history > 0).sum()
+            (revenue_growth_history.tail(3) > 0).sum()
         )
 
     positive_income_years = None
 
     if not income_growth_history.empty:
         positive_income_years = int(
-            (income_growth_history > 0).sum()
+            (income_growth_history.tail(3) > 0).sum()
         )
 
     operating_cashflow = info.get("operatingCashflow")
