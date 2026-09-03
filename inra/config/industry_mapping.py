@@ -52,6 +52,7 @@ def get_industry_model(sector: str, industry: str = "") -> str:
 BASE_DIR = Path(__file__).resolve().parents[1]
 
 BENCHMARK_PATH = BASE_DIR / "data" / "damodaran_benchmarks_mgnroc.csv"
+ROE_BENCHMARK_PATH = BASE_DIR / "data" / "damodaran_benchmarks_roe.csv"
 
 
 def get_industry_benchmark(damodaran_industry: str) -> dict:
@@ -71,6 +72,20 @@ def get_industry_benchmark(damodaran_industry: str) -> dict:
 
 MAPPING_PATH = BASE_DIR / "data" / "industry_mapping.csv"
 
+def get_industry_roe_benchmark(damodaran_industry: str) -> dict:
+    if not ROE_BENCHMARK_PATH.exists():
+        return {}
+
+    df = pd.read_csv(ROE_BENCHMARK_PATH)
+
+    row = df.loc[
+        df["Damodaran_Branche"] == damodaran_industry
+    ]
+
+    if row.empty:
+        return {}
+
+    return row.iloc[0].to_dict()
 
 def get_benchmark_for_yahoo_industry(
     sector: str,
@@ -95,3 +110,42 @@ def get_benchmark_for_yahoo_industry(
         return {}
 
     return get_industry_benchmark(damodaran_industry)
+
+def get_roe_benchmark_for_yahoo_industry(
+    sector: str,
+    industry: str,
+) -> dict:
+    if not MAPPING_PATH.exists():
+        return {}
+
+    mapping = pd.read_csv(MAPPING_PATH)
+
+    row = mapping.loc[
+        (mapping["Yahoo_Sektor"] == sector)
+        & (mapping["Yahoo_Branche"] == industry)
+    ]
+
+    if row.empty:
+        return {}
+
+    damodaran_industry = row.iloc[0]["Damodaran_Branche"]
+
+    if pd.isna(damodaran_industry):
+        return {}
+
+    return get_industry_roe_benchmark(damodaran_industry)
+
+def get_quality_benchmarks_for_yahoo_industry(
+    sector: str,
+    industry: str,
+) -> dict:
+    return {
+        "mgnroc": get_benchmark_for_yahoo_industry(
+            sector,
+            industry,
+        ),
+        "roe": get_roe_benchmark_for_yahoo_industry(
+            sector,
+            industry,
+        ),
+    }

@@ -6,3 +6,4 @@ data/favorites.csv
 # Externe Damodaran-Rohdateien
 data/damodaran_industries.xls
 data/damodaran_mgnroc.xls
+data/damodaran_roe.xls
