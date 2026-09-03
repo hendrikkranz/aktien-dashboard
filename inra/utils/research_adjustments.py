@@ -16,6 +16,29 @@ def load_research_adjustments() -> pd.DataFrame:
 
     return pd.read_csv(RESEARCH_ADJUSTMENTS_PATH)
 
+def detect_research_candidates(snapshot: dict) -> list:
+    candidates = []
+
+    if snapshot.get("Extremer Umsatzsprung"):
+        candidates.append(
+            {
+                "Bereich": "Wachstum",
+                "Kennzahl": "Umsatzwachstum",
+                "Grund": "Extremer Umsatzsprung erkannt",
+            }
+        )
+
+    if snapshot.get("Gewinn Vorzeichenwechsel"):
+        candidates.append(
+            {
+                "Bereich": "Wachstum",
+                "Kennzahl": "Gewinnwachstum",
+                "Grund": "Vorzeichenwechsel beim Nettogewinn erkannt",
+            }
+        )
+
+    return candidates
+
 def apply_research_adjustments(
     snapshot: dict,
     ticker: str,
@@ -24,6 +47,12 @@ def apply_research_adjustments(
     Wendet fachliche Research-Bereinigungen auf einen
     vollständig aufgebauten Unternehmens-Snapshot an.
     """
+    
+    candidates = detect_research_candidates(snapshot)
+
+    snapshot["Research Kandidaten"] = candidates
+    snapshot["Research erforderlich"] = bool(candidates)
+    
     research_df = load_research_adjustments()
 
     if research_df.empty:
@@ -40,7 +69,7 @@ def apply_research_adjustments(
 
         if (
             original_field
-            and replacement_value is not None
+            and pd.notna(replacement_value)
         ):
             adjustment["Originalwert"] = snapshot.get(
                 original_field
@@ -49,6 +78,24 @@ def apply_research_adjustments(
             adjustment["Angewendet"] = True
         else:
             adjustment["Angewendet"] = False
+
+    resolved_metrics = {
+        adjustment.get("Kennzahl")
+        for adjustment in adjustments
+        if (
+            adjustment.get("Angewendet")
+            or adjustment.get("Status") == "Research-geprüft"
+        )
+    }
+
+    open_candidates = [
+        candidate
+        for candidate in candidates
+        if candidate.get("Kennzahl") not in resolved_metrics
+    ]
+
+    snapshot["Research Kandidaten offen"] = open_candidates
+    snapshot["Research erforderlich"] = bool(open_candidates)
 
     snapshot["Research Bereinigung aktiv"] = bool(
         adjustments
