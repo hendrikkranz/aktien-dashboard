@@ -12,6 +12,9 @@ from modules.quality_score import (
     calculate_quality_breakdown,
     calculate_quality_score,
 )
+from utils.research_adjustments import (
+    apply_research_adjustments,
+)
 from modules.trend_structure import (
     analyze_trend_structure,
     calculate_long_term_trend_score,
@@ -836,6 +839,11 @@ def load_company_snapshot(ticker: str) -> dict:
         "CM Signal Weekly": momentum["CM Signal Weekly"],
         "CM Histogram Weekly": momentum["CM Histogram Weekly"],        
     }
+
+    snapshot = apply_research_adjustments(
+        snapshot,
+        ticker,
+    )
 
     snapshot["Kaufchance"] = calculate_opportunity_score(
         snapshot

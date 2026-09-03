@@ -376,8 +376,11 @@ def render_quality_section(data: dict) -> None:
         )
 
         if (
-            data.get("Extremer Umsatzsprung")
-            or data.get("Gewinn Vorzeichenwechsel")
+            (
+                data.get("Extremer Umsatzsprung")
+                or data.get("Gewinn Vorzeichenwechsel")
+            )
+            and not data.get("Research Bereinigung aktiv")
         ):
             st.warning(
                 "Außergewöhnliche Wachstumshistorie erkannt. "
@@ -386,6 +389,41 @@ def render_quality_section(data: dict) -> None:
                 "Bilanzierung oder Restrukturierungen beeinflusst sein. "
                 "Eine zusätzliche fachliche Einordnung ist sinnvoll."
             )
+
+        if data.get("Research Bereinigung aktiv"):
+            for adjustment in data.get("Research Bereinigungen", []):
+                original_value = adjustment.get("Originalwert")
+                replacement_value = adjustment.get("Ersatzwert")
+
+                value_text = ""
+
+                if (
+                    original_value is not None
+                    and replacement_value is not None
+                ):
+                    value_text = (
+                        f" Originalwert: {original_value:.1f} %. "
+                        f"Research-Wert: {replacement_value:.1f} %."
+                    )
+
+                source = adjustment.get("Quelle")
+                date = adjustment.get("Stand")
+
+                st.info(
+                    f"Research-Hinweis: "
+                    f"{adjustment.get('Kennzahl')} · "
+                    f"{adjustment.get('Status')}."
+                    f"{value_text} "
+                    f"{adjustment.get('Begründung')}"
+                )
+
+                if source:
+                    source_text = f"Quelle: {source}"
+
+                    if date:
+                        source_text += f" ({date})"
+
+                    st.caption(source_text)
 
         st.caption(
             "Growth V2 bewertet Umsatz- und Gewinnentwicklung "
