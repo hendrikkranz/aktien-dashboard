@@ -1,0 +1,8 @@
+# Lokale InRA-Daten
+data/benchmark_cache.csv
+data/manual_overrides.csv
+data/favorites.csv
+
+# Externe Damodaran-Rohdateien
+data/damodaran_industries.xls
+data/damodaran_mgnroc.xls

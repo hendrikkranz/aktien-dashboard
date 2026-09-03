@@ -1,0 +1,146 @@
+Yahoo_Sektor,Yahoo_Sektor_Key,Yahoo_Branche,Yahoo_Branche_Key,Damodaran_Branche,InRA_Modellgruppe
+Technology,technology,Semiconductors,semiconductors,Semiconductor,technology
+Technology,technology,Software - Infrastructure,software-infrastructure,Software (System & Application),technology
+Technology,technology,Consumer Electronics,consumer-electronics,Electronics (Consumer & Office),technology
+Technology,technology,Software - Application,software-application,Software (System & Application),technology
+Technology,technology,Computer Hardware,computer-hardware,Computers/Peripherals,technology
+Technology,technology,Semiconductor Equipment & Materials,semiconductor-equipment-materials,Semiconductor Equip,technology
+Technology,technology,Communication Equipment,communication-equipment,Telecom. Equipment,technology
+Technology,technology,Information Technology Services,information-technology-services,Computer Services,technology
+Technology,technology,Electronic Components,electronic-components,Electronics (General),technology
+Technology,technology,Scientific & Technical Instruments,scientific-technical-instruments,Electronics (General),technology
+Technology,technology,Solar,solar,Green & Renewable Energy,technology
+Technology,technology,Electronics & Computer Distribution,electronics-computer-distribution,Retail (Distributors),technology
+Financial Services,financial-services,Banks - Diversified,banks-diversified,Bank (Money Center),banking
+Financial Services,financial-services,Credit Services,credit-services,Financial Svcs. (Non-bank & Insurance),financial_services
+Financial Services,financial-services,Asset Management,asset-management,Investments & Asset Management,financial_services
+Financial Services,financial-services,Capital Markets,capital-markets,Brokerage & Investment Banking,financial_services
+Financial Services,financial-services,Insurance - Diversified,insurance-diversified,Insurance (General),insurance
+Financial Services,financial-services,Banks - Regional,banks-regional,Banks (Regional),banking
+Financial Services,financial-services,Insurance - Property & Casualty,insurance-property-casualty,Insurance (Prop/Cas.),insurance
+Financial Services,financial-services,Financial Data & Stock Exchanges,financial-data-stock-exchanges,Financial Svcs. (Non-bank & Insurance),financial_services
+Financial Services,financial-services,Insurance Brokers,insurance-brokers,Insurance (General),insurance
+Financial Services,financial-services,Insurance - Life,insurance-life,Insurance (Life),insurance
+Financial Services,financial-services,Insurance - Specialty,insurance-specialty,Insurance (General),insurance
+Financial Services,financial-services,Mortgage Finance,mortgage-finance,Financial Svcs. (Non-bank & Insurance),financial_services
+Financial Services,financial-services,Insurance - Reinsurance,insurance-reinsurance,Reinsurance,insurance
+Financial Services,financial-services,Financial Conglomerates,financial-conglomerates,Diversified,financial_services
+Financial Services,financial-services,Shell Companies,shell-companies,Diversified,financial_services
+Real Estate,real-estate,REIT - Specialty,reit-specialty,R.E.I.T.,real_estate
+Real Estate,real-estate,REIT - Industrial,reit-industrial,R.E.I.T.,real_estate
+Real Estate,real-estate,REIT - Healthcare Facilities,reit-healthcare-facilities,R.E.I.T.,real_estate
+Real Estate,real-estate,REIT - Retail,reit-retail,Retail (REITs),real_estate
+Real Estate,real-estate,REIT - Residential,reit-residential,R.E.I.T.,real_estate
+Real Estate,real-estate,Real Estate Services,real-estate-services,Real Estate (Operations & Services),real_estate
+Real Estate,real-estate,REIT - Mortgage,reit-mortgage,R.E.I.T.,real_estate
+Real Estate,real-estate,REIT - Office,reit-office,R.E.I.T.,real_estate
+Real Estate,real-estate,REIT - Diversified,reit-diversified,R.E.I.T.,real_estate
+Real Estate,real-estate,REIT - Hotel & Motel,reit-hotel-motel,R.E.I.T.,real_estate
+Real Estate,real-estate,Real Estate - Development,real-estate-development,Real Estate (Development),real_estate
+Real Estate,real-estate,Real Estate - Diversified,real-estate-diversified,Real Estate (General/Diversified),real_estate
+Utilities,utilities,Utilities - Regulated Electric,utilities-regulated-electric,Utility (General),utilities
+Utilities,utilities,Utilities - Independent Power Producers,utilities-independent-power-producers,Power,utilities
+Utilities,utilities,Utilities - Diversified,utilities-diversified,Utility (General),utilities
+Utilities,utilities,Utilities - Regulated Gas,utilities-regulated-gas,Utility (General),utilities
+Utilities,utilities,Utilities - Renewable,utilities-renewable,Green & Renewable Energy,utilities
+Utilities,utilities,Utilities - Regulated Water,utilities-regulated-water,Utility (Water),utilities
+Industrials,industrials,Aerospace & Defense,aerospace-defense,Aerospace/Defense,standard
+Industrials,industrials,Specialty Industrial Machinery,specialty-industrial-machinery,Machinery,standard
+Industrials,industrials,Farm & Heavy Construction Machinery,farm-heavy-construction-machinery,Machinery,standard
+Industrials,industrials,Railroads,railroads,Transportation (Railroads),standard
+Industrials,industrials,Engineering & Construction,engineering-construction,Engineering/Construction,standard
+Industrials,industrials,Building Products & Equipment,building-products-equipment,Construction Supplies,standard
+Industrials,industrials,Electrical Equipment & Parts,electrical-equipment-parts,Electrical Equipment,standard
+Industrials,industrials,Specialty Business Services,specialty-business-services,Business & Consumer Services,standard
+Industrials,industrials,Integrated Freight & Logistics,integrated-freight-logistics,Transportation,standard
+Industrials,industrials,Industrial Distribution,industrial-distribution,Retail (Distributors),standard
+Industrials,industrials,Waste Management,waste-management,Environmental & Waste Services,standard
+Industrials,industrials,Conglomerates,conglomerates,Diversified,standard
+Industrials,industrials,Rental & Leasing Services,rental-leasing-services,Business & Consumer Services,standard
+Industrials,industrials,Airlines,airlines,Air Transport,standard
+Industrials,industrials,Trucking,trucking,Trucking,standard
+Industrials,industrials,Metal Fabrication,metal-fabrication,Machinery,standard
+Industrials,industrials,Tools & Accessories,tools-accessories,Machinery,standard
+Industrials,industrials,Consulting Services,consulting-services,Business & Consumer Services,standard
+Industrials,industrials,Security & Protection Services,security-protection-services,Business & Consumer Services,standard
+Industrials,industrials,Marine Shipping,marine-shipping,Shipbuilding & Marine,standard
+Industrials,industrials,Pollution & Treatment Controls,pollution-treatment-controls,Environmental & Waste Services,standard
+Industrials,industrials,Staffing & Employment Services,staffing-employment-services,Business & Consumer Services,standard
+Industrials,industrials,Airports & Air Services,airports-air-services,Air Transport,standard
+Industrials,industrials,Business Equipment & Supplies,business-equipment-supplies,Office Equipment & Services,standard
+Industrials,industrials,Infrastructure Operations,infrastructure-operations,Transportation,standard
+Healthcare,healthcare,Drug Manufacturers - General,drug-manufacturers-general,Drugs (Pharmaceutical),standard
+Healthcare,healthcare,Biotechnology,biotechnology,Drugs (Biotechnology),standard
+Healthcare,healthcare,Diagnostics & Research,diagnostics-research,Healthcare Support Services,standard
+Healthcare,healthcare,Medical Devices,medical-devices,Healthcare Products,standard
+Healthcare,healthcare,Healthcare Plans,healthcare-plans,Healthcare Support Services,standard
+Healthcare,healthcare,Medical Instruments & Supplies,medical-instruments-supplies,Healthcare Products,standard
+Healthcare,healthcare,Medical Distribution,medical-distribution,Healthcare Support Services,standard
+Healthcare,healthcare,Medical Care Facilities,medical-care-facilities,Hospitals/Healthcare Facilities,standard
+Healthcare,healthcare,Drug Manufacturers - Specialty & Generic,drug-manufacturers-specialty-generic,Drugs (Pharmaceutical),standard
+Healthcare,healthcare,Health Information Services,health-information-services,Heathcare Information and Technology,standard
+Healthcare,healthcare,Pharmaceutical Retailers,pharmaceutical-retailers,Healthcare Support Services,standard
+Consumer Cyclical,consumer-cyclical,Internet Retail,internet-retail,Retail (General),standard
+Consumer Cyclical,consumer-cyclical,Auto Manufacturers,auto-manufacturers,Auto & Truck,standard
+Consumer Cyclical,consumer-cyclical,Restaurants,restaurants,Restaurant/Dining,standard
+Consumer Cyclical,consumer-cyclical,Travel Services,travel-services,Recreation,standard
+Consumer Cyclical,consumer-cyclical,Home Improvement Retail,home-improvement-retail,Retail (Building Supply),standard
+Consumer Cyclical,consumer-cyclical,Apparel Retail,apparel-retail,Retail (Special Lines),standard
+Consumer Cyclical,consumer-cyclical,Auto Parts,auto-parts,Auto Parts,standard
+Consumer Cyclical,consumer-cyclical,Lodging,lodging,Hotel/Gaming,standard
+Consumer Cyclical,consumer-cyclical,Auto & Truck Dealerships,auto-truck-dealerships,Retail (Automotive),standard
+Consumer Cyclical,consumer-cyclical,Specialty Retail,specialty-retail,Retail (Special Lines),standard
+Consumer Cyclical,consumer-cyclical,Packaging & Containers,packaging-containers,Packaging & Container,standard
+Consumer Cyclical,consumer-cyclical,Residential Construction,residential-construction,Homebuilding,standard
+Consumer Cyclical,consumer-cyclical,Footwear & Accessories,footwear-accessories,Shoe,standard
+Consumer Cyclical,consumer-cyclical,Resorts & Casinos,resorts-casinos,Hotel/Gaming,standard
+Consumer Cyclical,consumer-cyclical,Leisure,leisure,Recreation,standard
+Consumer Cyclical,consumer-cyclical,"Furnishings, Fixtures & Appliances",furnishings-fixtures-appliances,Furn/Home Furnishings,standard
+Consumer Cyclical,consumer-cyclical,Apparel Manufacturing,apparel-manufacturing,Apparel,standard
+Consumer Cyclical,consumer-cyclical,Gambling,gambling,Hotel/Gaming,standard
+Consumer Cyclical,consumer-cyclical,Personal Services,personal-services,Business & Consumer Services,standard
+Consumer Cyclical,consumer-cyclical,Luxury Goods,luxury-goods,Apparel,standard
+Consumer Cyclical,consumer-cyclical,Recreational Vehicles,recreational-vehicles,Recreation,standard
+Consumer Cyclical,consumer-cyclical,Department Stores,department-stores,Retail (General),standard
+Consumer Cyclical,consumer-cyclical,Textile Manufacturing,textile-manufacturing,Apparel,standard
+Consumer Defensive,consumer-defensive,Discount Stores,discount-stores,Retail (General),standard
+Consumer Defensive,consumer-defensive,Beverages - Non-Alcoholic,beverages-non-alcoholic,Beverage (Soft),standard
+Consumer Defensive,consumer-defensive,Household & Personal Products,household-personal-products,Household Products,standard
+Consumer Defensive,consumer-defensive,Tobacco,tobacco,Tobacco,standard
+Consumer Defensive,consumer-defensive,Packaged Foods,packaged-foods,Food Processing,standard
+Consumer Defensive,consumer-defensive,Confectioners,confectioners,Food Processing,standard
+Consumer Defensive,consumer-defensive,Farm Products,farm-products,Farming/Agriculture,standard
+Consumer Defensive,consumer-defensive,Food Distribution,food-distribution,Food Wholesalers,standard
+Consumer Defensive,consumer-defensive,Grocery Stores,grocery-stores,Retail (Grocery and Food),standard
+Consumer Defensive,consumer-defensive,Education & Training Services,education-training-services,Education,standard
+Consumer Defensive,consumer-defensive,Beverages - Brewers,beverages-brewers,Beverage (Alcoholic),standard
+Consumer Defensive,consumer-defensive,Beverages - Wineries & Distilleries,beverages-wineries-distilleries,Beverage (Alcoholic),standard
+Communication Services,communication-services,Internet Content & Information,internet-content-information,Software (Internet),standard
+Communication Services,communication-services,Telecom Services,telecom-services,Telecom. Services,standard
+Communication Services,communication-services,Entertainment,entertainment,Entertainment,standard
+Communication Services,communication-services,Advertising Agencies,advertising-agencies,Advertising,standard
+Communication Services,communication-services,Electronic Gaming & Multimedia,electronic-gaming-multimedia,Software (Entertainment),standard
+Communication Services,communication-services,Publishing,publishing,Publishing & Newspapers,standard
+Communication Services,communication-services,Broadcasting,broadcasting,Broadcasting,standard
+Basic Materials,basic-materials,Gold,gold,Precious Metals,standard
+Basic Materials,basic-materials,Specialty Chemicals,specialty-chemicals,Chemical (Specialty),standard
+Basic Materials,basic-materials,Copper,copper,Metals & Mining,standard
+Basic Materials,basic-materials,Building Materials,building-materials,Building Materials,standard
+Basic Materials,basic-materials,Steel,steel,Steel,standard
+Basic Materials,basic-materials,Agricultural Inputs,agricultural-inputs,Chemical (Basic),standard
+Basic Materials,basic-materials,Other Industrial Metals & Mining,other-industrial-metals-mining,Metals & Mining,standard
+Basic Materials,basic-materials,Chemicals,chemicals,Chemical (Diversified),standard
+Basic Materials,basic-materials,Other Precious Metals & Mining,other-precious-metals-mining,Precious Metals,standard
+Basic Materials,basic-materials,Silver,silver,Precious Metals,standard
+Basic Materials,basic-materials,Aluminum,aluminum,Metals & Mining,standard
+Basic Materials,basic-materials,Lumber & Wood Production,lumber-wood-production,Paper/Forest Products,standard
+Basic Materials,basic-materials,Coking Coal,coking-coal,Coal & Related Energy,standard
+Basic Materials,basic-materials,Paper & Paper Products,paper-paper-products,Paper/Forest Products,standard
+Energy,energy,Oil & Gas Integrated,oil-gas-integrated,Oil/Gas (Integrated),standard
+Energy,energy,Oil & Gas Midstream,oil-gas-midstream,Oil/Gas Distribution,standard
+Energy,energy,Oil & Gas E&P,oil-gas-e-p,Oil/Gas (Production and Exploration),standard
+Energy,energy,Oil & Gas Refining & Marketing,oil-gas-refining-marketing,Oil/Gas (Integrated),standard
+Energy,energy,Oil & Gas Equipment & Services,oil-gas-equipment-services,Oilfield Svcs/Equip.,standard
+Energy,energy,Uranium,uranium,Metals & Mining,standard
+Energy,energy,Oil & Gas Drilling,oil-gas-drilling,Oilfield Svcs/Equip.,standard
+Energy,energy,Thermal Coal,thermal-coal,Coal & Related Energy,standard

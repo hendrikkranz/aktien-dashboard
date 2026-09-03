@@ -1,0 +1,146 @@
+Yahoo_Sektor,Yahoo_Sektor_Key,Yahoo_Branche,Yahoo_Branche_Key
+Technology,technology,Semiconductors,semiconductors
+Technology,technology,Software - Infrastructure,software-infrastructure
+Technology,technology,Consumer Electronics,consumer-electronics
+Technology,technology,Software - Application,software-application
+Technology,technology,Computer Hardware,computer-hardware
+Technology,technology,Semiconductor Equipment & Materials,semiconductor-equipment-materials
+Technology,technology,Communication Equipment,communication-equipment
+Technology,technology,Information Technology Services,information-technology-services
+Technology,technology,Electronic Components,electronic-components
+Technology,technology,Scientific & Technical Instruments,scientific-technical-instruments
+Technology,technology,Solar,solar
+Technology,technology,Electronics & Computer Distribution,electronics-computer-distribution
+Financial Services,financial-services,Banks - Diversified,banks-diversified
+Financial Services,financial-services,Credit Services,credit-services
+Financial Services,financial-services,Asset Management,asset-management
+Financial Services,financial-services,Capital Markets,capital-markets
+Financial Services,financial-services,Insurance - Diversified,insurance-diversified
+Financial Services,financial-services,Banks - Regional,banks-regional
+Financial Services,financial-services,Insurance - Property & Casualty,insurance-property-casualty
+Financial Services,financial-services,Financial Data & Stock Exchanges,financial-data-stock-exchanges
+Financial Services,financial-services,Insurance Brokers,insurance-brokers
+Financial Services,financial-services,Insurance - Life,insurance-life
+Financial Services,financial-services,Insurance - Specialty,insurance-specialty
+Financial Services,financial-services,Mortgage Finance,mortgage-finance
+Financial Services,financial-services,Insurance - Reinsurance,insurance-reinsurance
+Financial Services,financial-services,Financial Conglomerates,financial-conglomerates
+Financial Services,financial-services,Shell Companies,shell-companies
+Real Estate,real-estate,REIT - Specialty,reit-specialty
+Real Estate,real-estate,REIT - Industrial,reit-industrial
+Real Estate,real-estate,REIT - Healthcare Facilities,reit-healthcare-facilities
+Real Estate,real-estate,REIT - Retail,reit-retail
+Real Estate,real-estate,REIT - Residential,reit-residential
+Real Estate,real-estate,Real Estate Services,real-estate-services
+Real Estate,real-estate,REIT - Mortgage,reit-mortgage
+Real Estate,real-estate,REIT - Office,reit-office
+Real Estate,real-estate,REIT - Diversified,reit-diversified
+Real Estate,real-estate,REIT - Hotel & Motel,reit-hotel-motel
+Real Estate,real-estate,Real Estate - Development,real-estate-development
+Real Estate,real-estate,Real Estate - Diversified,real-estate-diversified
+Utilities,utilities,Utilities - Regulated Electric,utilities-regulated-electric
+Utilities,utilities,Utilities - Independent Power Producers,utilities-independent-power-producers
+Utilities,utilities,Utilities - Diversified,utilities-diversified
+Utilities,utilities,Utilities - Regulated Gas,utilities-regulated-gas
+Utilities,utilities,Utilities - Renewable,utilities-renewable
+Utilities,utilities,Utilities - Regulated Water,utilities-regulated-water
+Industrials,industrials,Aerospace & Defense,aerospace-defense
+Industrials,industrials,Specialty Industrial Machinery,specialty-industrial-machinery
+Industrials,industrials,Farm & Heavy Construction Machinery,farm-heavy-construction-machinery
+Industrials,industrials,Railroads,railroads
+Industrials,industrials,Engineering & Construction,engineering-construction
+Industrials,industrials,Building Products & Equipment,building-products-equipment
+Industrials,industrials,Electrical Equipment & Parts,electrical-equipment-parts
+Industrials,industrials,Specialty Business Services,specialty-business-services
+Industrials,industrials,Integrated Freight & Logistics,integrated-freight-logistics
+Industrials,industrials,Industrial Distribution,industrial-distribution
+Industrials,industrials,Waste Management,waste-management
+Industrials,industrials,Conglomerates,conglomerates
+Industrials,industrials,Rental & Leasing Services,rental-leasing-services
+Industrials,industrials,Airlines,airlines
+Industrials,industrials,Trucking,trucking
+Industrials,industrials,Metal Fabrication,metal-fabrication
+Industrials,industrials,Tools & Accessories,tools-accessories
+Industrials,industrials,Consulting Services,consulting-services
+Industrials,industrials,Security & Protection Services,security-protection-services
+Industrials,industrials,Marine Shipping,marine-shipping
+Industrials,industrials,Pollution & Treatment Controls,pollution-treatment-controls
+Industrials,industrials,Staffing & Employment Services,staffing-employment-services
+Industrials,industrials,Airports & Air Services,airports-air-services
+Industrials,industrials,Business Equipment & Supplies,business-equipment-supplies
+Industrials,industrials,Infrastructure Operations,infrastructure-operations
+Healthcare,healthcare,Drug Manufacturers - General,drug-manufacturers-general
+Healthcare,healthcare,Biotechnology,biotechnology
+Healthcare,healthcare,Diagnostics & Research,diagnostics-research
+Healthcare,healthcare,Medical Devices,medical-devices
+Healthcare,healthcare,Healthcare Plans,healthcare-plans
+Healthcare,healthcare,Medical Instruments & Supplies,medical-instruments-supplies
+Healthcare,healthcare,Medical Distribution,medical-distribution
+Healthcare,healthcare,Medical Care Facilities,medical-care-facilities
+Healthcare,healthcare,Drug Manufacturers - Specialty & Generic,drug-manufacturers-specialty-generic
+Healthcare,healthcare,Health Information Services,health-information-services
+Healthcare,healthcare,Pharmaceutical Retailers,pharmaceutical-retailers
+Consumer Cyclical,consumer-cyclical,Internet Retail,internet-retail
+Consumer Cyclical,consumer-cyclical,Auto Manufacturers,auto-manufacturers
+Consumer Cyclical,consumer-cyclical,Restaurants,restaurants
+Consumer Cyclical,consumer-cyclical,Travel Services,travel-services
+Consumer Cyclical,consumer-cyclical,Home Improvement Retail,home-improvement-retail
+Consumer Cyclical,consumer-cyclical,Apparel Retail,apparel-retail
+Consumer Cyclical,consumer-cyclical,Auto Parts,auto-parts
+Consumer Cyclical,consumer-cyclical,Lodging,lodging
+Consumer Cyclical,consumer-cyclical,Auto & Truck Dealerships,auto-truck-dealerships
+Consumer Cyclical,consumer-cyclical,Specialty Retail,specialty-retail
+Consumer Cyclical,consumer-cyclical,Packaging & Containers,packaging-containers
+Consumer Cyclical,consumer-cyclical,Residential Construction,residential-construction
+Consumer Cyclical,consumer-cyclical,Footwear & Accessories,footwear-accessories
+Consumer Cyclical,consumer-cyclical,Resorts & Casinos,resorts-casinos
+Consumer Cyclical,consumer-cyclical,Leisure,leisure
+Consumer Cyclical,consumer-cyclical,"Furnishings, Fixtures & Appliances",furnishings-fixtures-appliances
+Consumer Cyclical,consumer-cyclical,Apparel Manufacturing,apparel-manufacturing
+Consumer Cyclical,consumer-cyclical,Gambling,gambling
+Consumer Cyclical,consumer-cyclical,Personal Services,personal-services
+Consumer Cyclical,consumer-cyclical,Luxury Goods,luxury-goods
+Consumer Cyclical,consumer-cyclical,Recreational Vehicles,recreational-vehicles
+Consumer Cyclical,consumer-cyclical,Department Stores,department-stores
+Consumer Cyclical,consumer-cyclical,Textile Manufacturing,textile-manufacturing
+Consumer Defensive,consumer-defensive,Discount Stores,discount-stores
+Consumer Defensive,consumer-defensive,Beverages - Non-Alcoholic,beverages-non-alcoholic
+Consumer Defensive,consumer-defensive,Household & Personal Products,household-personal-products
+Consumer Defensive,consumer-defensive,Tobacco,tobacco
+Consumer Defensive,consumer-defensive,Packaged Foods,packaged-foods
+Consumer Defensive,consumer-defensive,Confectioners,confectioners
+Consumer Defensive,consumer-defensive,Farm Products,farm-products
+Consumer Defensive,consumer-defensive,Food Distribution,food-distribution
+Consumer Defensive,consumer-defensive,Grocery Stores,grocery-stores
+Consumer Defensive,consumer-defensive,Education & Training Services,education-training-services
+Consumer Defensive,consumer-defensive,Beverages - Brewers,beverages-brewers
+Consumer Defensive,consumer-defensive,Beverages - Wineries & Distilleries,beverages-wineries-distilleries
+Communication Services,communication-services,Internet Content & Information,internet-content-information
+Communication Services,communication-services,Telecom Services,telecom-services
+Communication Services,communication-services,Entertainment,entertainment
+Communication Services,communication-services,Advertising Agencies,advertising-agencies
+Communication Services,communication-services,Electronic Gaming & Multimedia,electronic-gaming-multimedia
+Communication Services,communication-services,Publishing,publishing
+Communication Services,communication-services,Broadcasting,broadcasting
+Basic Materials,basic-materials,Gold,gold
+Basic Materials,basic-materials,Specialty Chemicals,specialty-chemicals
+Basic Materials,basic-materials,Copper,copper
+Basic Materials,basic-materials,Building Materials,building-materials
+Basic Materials,basic-materials,Steel,steel
+Basic Materials,basic-materials,Agricultural Inputs,agricultural-inputs
+Basic Materials,basic-materials,Other Industrial Metals & Mining,other-industrial-metals-mining
+Basic Materials,basic-materials,Chemicals,chemicals
+Basic Materials,basic-materials,Other Precious Metals & Mining,other-precious-metals-mining
+Basic Materials,basic-materials,Silver,silver
+Basic Materials,basic-materials,Aluminum,aluminum
+Basic Materials,basic-materials,Lumber & Wood Production,lumber-wood-production
+Basic Materials,basic-materials,Coking Coal,coking-coal
+Basic Materials,basic-materials,Paper & Paper Products,paper-paper-products
+Energy,energy,Oil & Gas Integrated,oil-gas-integrated
+Energy,energy,Oil & Gas Midstream,oil-gas-midstream
+Energy,energy,Oil & Gas E&P,oil-gas-e-p
+Energy,energy,Oil & Gas Refining & Marketing,oil-gas-refining-marketing
+Energy,energy,Oil & Gas Equipment & Services,oil-gas-equipment-services
+Energy,energy,Uranium,uranium
+Energy,energy,Oil & Gas Drilling,oil-gas-drilling
+Energy,energy,Thermal Coal,thermal-coal
