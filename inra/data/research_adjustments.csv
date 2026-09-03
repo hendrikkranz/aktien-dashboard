@@ -1,3 +1,4 @@
 Ticker,Bereich,Kennzahl,Status,Originalfeld,Ersatzwert,Quelle,Stand,Begründung
 BRK-B,Wachstum,Gewinnwachstum,Research-bereinigt,Gewinnwachstum Jahresabschluss,-6.2,Berkshire Hathaway 2025 Annual Report,2025,"Der ausgewiesene Nettogewinn kann durch Bewertungseffekte des Investmentportfolios stark verzerrt sein."
 BRK-B,Wachstum,Umsatzwachstum,Research-geprüft,Umsatzwachstum Jahresabschluss,,Berkshire Hathaway Annual Reports,2023-2025,"Der historische Umsatzsprung ist wesentlich durch die erstmalige Vollkonsolidierung von Pilot Travel Centers ab 2023 beeinflusst. Es wird kein Ersatzwert verwendet."
+VNA.DE,Wachstum,Gewinnwachstum,Research-bereinigt,Gewinnwachstum Jahresabschluss,5.3,Vonovia 2025 Annual Report,2025,"Das IFRS-Konzernergebnis wird stark durch Fair-Value-Bewertungen des Immobilienbestands beeinflusst. Als operativ aussagekräftigere Gewinnentwicklung wird das Wachstum des bereinigten den Anteilseignern zurechenbaren Ergebnisses verwendet."
