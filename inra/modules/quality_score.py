@@ -56,13 +56,13 @@ def calculate_roe_base_points(
     return 0.0
 
 
-def calculate_profitability_score(
+def calculate_profitability_breakdown(
     return_on_capital: Optional[float],
     roe: Optional[float],
     sector: Optional[str],
     industry: Optional[str],
-    max_points: int,
-) -> int:
+    max_points: int = 40,
+) -> dict:
     benchmarks = get_quality_benchmarks_for_yahoo_industry(
         sector,
         industry,
@@ -83,6 +83,7 @@ def calculate_profitability_score(
     roc_score = calculate_roc_base_points(
         return_on_capital
     )
+    roc_correction = 0.0
 
     if (
         roc_score is not None
@@ -93,17 +94,18 @@ def calculate_profitability_score(
         benchmark_percent = roc_benchmark * 100
         relative = return_on_capital / benchmark_percent
 
-        correction = max(
+        roc_correction = max(
             -5.0,
             min(5.0, (relative - 1.0) * 5.0),
         )
 
         roc_score = max(
             0.0,
-            min(25.0, roc_score + correction),
+            min(25.0, roc_score + roc_correction),
         )
 
     roe_score = calculate_roe_base_points(roe)
+    roe_correction = 0.0
 
     if (
         roe_score is not None
@@ -114,14 +116,14 @@ def calculate_profitability_score(
         benchmark_percent = roe_benchmark * 100
         relative = roe / benchmark_percent
 
-        correction = max(
+        roe_correction = max(
             -3.0,
             min(3.0, (relative - 1.0) * 3.0),
         )
 
         roe_score = max(
             0.0,
-            min(15.0, roe_score + correction),
+            min(15.0, roe_score + roe_correction),
         )
 
     available_scores = []
@@ -132,24 +134,60 @@ def calculate_profitability_score(
     if roe_score is not None:
         available_scores.append((roe_score, 15.0))
 
-    if not available_scores:
-        return 0
+    if available_scores:
+        achieved = sum(
+            score
+            for score, _ in available_scores
+        )
 
-    achieved = sum(
-        score
-        for score, _ in available_scores
+        available_max = sum(
+            maximum
+            for _, maximum in available_scores
+        )
+
+        normalized_score = (
+            achieved / available_max
+        ) * max_points
+    else:
+        normalized_score = 0.0
+
+    return {
+        "score": round(normalized_score),
+        "roc_score": roc_score,
+        "roc_max": 25.0,
+        "roc_benchmark": (
+            roc_benchmark * 100
+            if roc_benchmark is not None
+            else None
+        ),
+        "roc_correction": roc_correction,
+        "roe_score": roe_score,
+        "roe_max": 15.0,
+        "roe_benchmark": (
+            roe_benchmark * 100
+            if roe_benchmark is not None
+            else None
+        ),
+        "roe_correction": roe_correction,
+    }
+
+
+def calculate_profitability_score(
+    return_on_capital: Optional[float],
+    roe: Optional[float],
+    sector: Optional[str],
+    industry: Optional[str],
+    max_points: int,
+) -> int:
+    breakdown = calculate_profitability_breakdown(
+        return_on_capital,
+        roe,
+        sector,
+        industry,
+        max_points,
     )
 
-    available_max = sum(
-        maximum
-        for _, maximum in available_scores
-    )
-
-    normalized_score = (
-        achieved / available_max
-    ) * max_points
-
-    return round(normalized_score)
+    return breakdown["score"]
 
 
 def calculate_revenue_growth_ratio(

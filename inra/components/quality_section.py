@@ -13,6 +13,7 @@ from utils.fundamental_interpreter import (
     interpret_roe,
 )
 from utils.investment_summary import create_investment_summary
+from modules.quality_score import calculate_profitability_breakdown
 
 
 def _quality_rating(score: int) -> tuple:
@@ -92,9 +93,9 @@ def _interpret_earnings_growth(
 
 
 def _rating_icon(
-    result: Optional[dict],
+    result,
 ) -> str:
-    if result is None:
+    if result is None or isinstance(result, str):
         return "⚪"
 
     level = result.get("level")
@@ -105,14 +106,20 @@ def _rating_icon(
     if level == "solid":
         return "🟡"
 
+    if level == "neutral":
+        return "⚪"
+
     return "🔴"
 
 
 def _rating_label(
-    result: Optional[dict],
+    result,
 ) -> str:
     if result is None:
         return "Keine Einordnung"
+
+    if isinstance(result, str):
+        return result
 
     if result.get("label"):
         return str(result["label"])
@@ -269,6 +276,12 @@ def render_quality_section(data: dict) -> None:
     st.html(card)
 
     breakdown = data["Quality Breakdown"]
+    profitability_breakdown = calculate_profitability_breakdown(
+        data.get("Kapitalrendite"),
+        data.get("Eigenkapitalrendite"),
+        data.get("Sektor"),
+        data.get("Branche"),
+    )
 
     roe = data.get("Eigenkapitalrendite")
     margin = data.get("Nettomarge")
@@ -302,14 +315,45 @@ def render_quality_section(data: dict) -> None:
             40,
         )
 
+        return_on_capital = data.get("Kapitalrendite")
+
+        _render_metric_row(
+            "Kapitalrendite (ROC)",
+            _format_percentage(return_on_capital),
+            {
+                "level": "neutral",
+                "label": (
+                    f"{profitability_breakdown['roc_score']:.0f} / "
+                    f"{profitability_breakdown['roc_max']:.0f}"
+                ),
+            },
+            (
+                "Misst die Rendite auf das im operativen Geschäft "
+                "eingesetzte Kapital. Sie ist die wichtigste "
+                "Profitabilitätskennzahl im Quality Score und "
+                "fließt mit bis zu 25 von 40 Punkten ein. "
+                "Bewertet werden sowohl das absolute Niveau als "
+                "auch der Vergleich mit der Branche."
+            ),
+        )
+
         _render_metric_row(
             "ROE",
             _format_percentage(roe),
-            interpret_roe(roe),
+            {
+                "level": "neutral",
+                "label": (
+                    f"{profitability_breakdown['roe_score']:.0f} / "
+                    f"{profitability_breakdown['roe_max']:.0f}"
+                ),
+            },
             (
                 "Eigenkapitalrendite: Zeigt, wie viel Gewinn "
                 "mit dem eingesetzten Eigenkapital erzielt wird. "
-                "Sehr hohe Werte können durch Verschuldung oder "
+                "Sie fließt mit bis zu 15 von 40 Punkten ein. "
+                "Auch hier werden absolutes Niveau und "
+                "Branchenvergleich berücksichtigt. Sehr hohe "
+                "Werte können durch Verschuldung oder "
                 "Aktienrückkäufe verzerrt sein."
             ),
         )
@@ -317,30 +361,28 @@ def render_quality_section(data: dict) -> None:
         _render_metric_row(
             "Nettomarge",
             _format_percentage(margin),
-            interpret_net_margin(margin),
+            "Diagnosekennzahl",
             (
                 "Anteil des Umsatzes, der nach sämtlichen "
-                "Kosten als Gewinn verbleibt. Die Einordnung "
-                "ist stark branchenabhängig."
+                "Kosten als Gewinn verbleibt. Die Kennzahl "
+                "liefert zusätzlichen Kontext, fließt aber "
+                "nicht mehr separat in den Profitabilitätsscore ein."
             ),
         )
 
         _render_metric_row(
             "Operative Marge",
             _format_percentage(operating_margin),
-            interpret_operating_margin(
-                operating_margin
-            ),
+            "Diagnosekennzahl",
             (
                 "Anteil des Umsatzes, der aus dem operativen "
                 "Kerngeschäft als operativer Gewinn verbleibt. "
-                "Die Kennzahl ist meist weniger durch Zinsen, "
-                "Steuern oder Sondereffekte verzerrt als die "
-                "Nettomarge."
+                "Sie wird zur Einordnung angezeigt, erhält aber "
+                "keine eigenen Punkte, da die operative "
+                "Ertragskraft bereits in der Kapitalrendite "
+                "enthalten ist."
             ),
         )
-
-        st.divider()
 
         _render_section_header(
             "📈 Wachstum",
