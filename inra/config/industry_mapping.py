@@ -13,6 +13,7 @@ INDUSTRY_MODEL_TECHNOLOGY = "technology"
 INDUSTRY_MODEL_INSURANCE = "insurance"
 INDUSTRY_MODEL_BANKING = "banking"
 INDUSTRY_MODEL_FINANCIAL_SERVICES = "financial_services"
+INDUSTRY_MODEL_DIVERSIFIED_HOLDING = "diversified_holding"
 INDUSTRY_MODEL_REAL_ESTATE = "real_estate"
 INDUSTRY_MODEL_UTILITIES = "utilities"
 
@@ -22,12 +23,25 @@ INDUSTRY_MODELS = {
     INDUSTRY_MODEL_INSURANCE,
     INDUSTRY_MODEL_BANKING,
     INDUSTRY_MODEL_FINANCIAL_SERVICES,
+    INDUSTRY_MODEL_DIVERSIFIED_HOLDING,
     INDUSTRY_MODEL_REAL_ESTATE,
     INDUSTRY_MODEL_UTILITIES,
 }
 
+COMPANY_MODEL_OVERRIDES = {
+    "BRK-B": INDUSTRY_MODEL_DIVERSIFIED_HOLDING,
+}
 
-def get_industry_model(sector: str, industry: str = "") -> str:
+def get_industry_model(
+    sector: str,
+    industry: str = "",
+    ticker: str = "",
+) -> str:
+    normalized_ticker = ticker.upper().strip()
+
+    if normalized_ticker in COMPANY_MODEL_OVERRIDES:
+        return COMPANY_MODEL_OVERRIDES[normalized_ticker]
+
     if sector == "Technology":
         return INDUSTRY_MODEL_TECHNOLOGY
 

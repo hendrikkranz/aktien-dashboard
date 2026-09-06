@@ -508,6 +508,7 @@ def load_company_snapshot(ticker: str) -> dict:
     revenue_growth = info.get("revenueGrowth")
     earnings_growth = info.get("earningsGrowth")
     income_stmt = ticker_obj.income_stmt
+    balance_sheet = ticker_obj.balance_sheet
 
     revenue_history = pd.Series(dtype=float)
     income_history = pd.Series(dtype=float)
@@ -618,7 +619,94 @@ def load_company_snapshot(ticker: str) -> dict:
     total_cash = info.get("totalCash")
     total_debt = info.get("totalDebt")
 
-    capital_allocation_points = None
+    return_on_capital = None
+
+    if (
+        income_stmt is not None
+        and not income_stmt.empty
+        and balance_sheet is not None
+        and not balance_sheet.empty
+    ):
+        operating_income = None
+        pretax_income = None
+        tax_provision = None
+        tax_rate_for_calcs = None
+
+        if "Operating Income" in income_stmt.index:
+            operating_income = income_stmt.loc["Operating Income"].iloc[0]
+
+        if "Pretax Income" in income_stmt.index:
+            pretax_income = income_stmt.loc["Pretax Income"].iloc[0]
+
+        if "Tax Provision" in income_stmt.index:
+            tax_provision = income_stmt.loc["Tax Provision"].iloc[0]
+
+        if "Tax Rate For Calcs" in income_stmt.index:
+            tax_rate_for_calcs = income_stmt.loc["Tax Rate For Calcs"].iloc[0]
+
+        tax_rate = None
+
+        if (
+            tax_provision is not None
+            and not pd.isna(tax_provision)
+            and pretax_income is not None
+            and not pd.isna(pretax_income)
+            and pretax_income != 0
+        ):
+            tax_rate = tax_provision / pretax_income
+        elif (
+            tax_rate_for_calcs is not None
+            and not pd.isna(tax_rate_for_calcs)
+        ):
+            tax_rate = tax_rate_for_calcs
+
+        if tax_rate is not None:
+            tax_rate = max(0.0, min(float(tax_rate), 1.0))
+
+        required_balance_rows = [
+            "Total Debt",
+            "Stockholders Equity",
+            "Cash Cash Equivalents And Short Term Investments",
+        ]
+
+        if (
+            operating_income is not None
+            and not pd.isna(operating_income)
+            and tax_rate is not None
+            and balance_sheet.shape[1] >= 2
+            and all(
+                row in balance_sheet.index
+                for row in required_balance_rows
+            )
+        ):
+            invested_capital_values = []
+
+            for column_position in [0, 1]:
+                debt = balance_sheet.loc["Total Debt"].iloc[column_position]
+                equity = balance_sheet.loc["Stockholders Equity"].iloc[column_position]
+                cash = balance_sheet.loc[
+                    "Cash Cash Equivalents And Short Term Investments"
+                ].iloc[column_position]
+
+                if any(pd.isna(value) for value in [debt, equity, cash]):
+                    invested_capital_values = []
+                    break
+
+                invested_capital_values.append(
+                    float(debt) + float(equity) - float(cash)
+                )
+
+            if len(invested_capital_values) == 2:
+                average_invested_capital = sum(invested_capital_values) / 2
+
+                if average_invested_capital > 0:
+                    nopat = float(operating_income) * (1 - tax_rate)
+
+                    return_on_capital = (
+                        nopat / average_invested_capital
+                    ) * 100
+
+        capital_allocation_points = None
 
     cash_to_debt_ratio = None
 
@@ -804,6 +892,7 @@ def load_company_snapshot(ticker: str) -> dict:
         "52W Hoch": week_52_high,
         "Abstand 52W Hoch": distance_to_52w_high,
         "Eigenkapitalrendite": return_on_equity,
+        "Kapitalrendite": return_on_capital,
         "Nettomarge": profit_margin,
         "Operative Marge": operating_margin,
         "Verschuldungsgrad": debt_to_equity,

@@ -2,113 +2,154 @@ from typing import Optional
 
 from config.scoring import QUALITY_WEIGHTS
 
+from config.industry_mapping import (
+    get_industry_model,
+    get_quality_benchmarks_for_yahoo_industry,
+    get_roe_benchmark_for_yahoo_industry,
+)
 
-def calculate_roe_ratio(
+def calculate_roc_base_points(
+    return_on_capital: Optional[float],
+) -> Optional[float]:
+    if return_on_capital is None:
+        return None
+
+    if return_on_capital >= 30:
+        return 25.0
+    if return_on_capital >= 20:
+        return 22.5
+    if return_on_capital >= 15:
+        return 20.0
+    if return_on_capital >= 10:
+        return 16.25
+    if return_on_capital >= 5:
+        return 11.25
+    if return_on_capital >= 0:
+        return 6.25
+
+    return 0.0
+
+
+def calculate_roe_base_points(
     roe: Optional[float],
 ) -> Optional[float]:
     if roe is None:
         return None
 
-    if roe >= 35:
-        return 1.0
     if roe >= 30:
-        return 0.90
+        return 15.0
+    if roe >= 25:
+        return 13.5
     if roe >= 20:
-        return 0.80
+        return 12.0
     if roe >= 15:
-        return 0.65
+        return 10.5
     if roe >= 10:
-        return 0.50
+        return 8.0
+    if roe >= 7.5:
+        return 6.0
     if roe >= 5:
-        return 0.30
-
-    return 0.0
-
-
-def calculate_margin_ratio(
-    net_margin: Optional[float],
-) -> Optional[float]:
-    if net_margin is None:
-        return None
-
-    if net_margin >= 35:
-        return 1.0
-    if net_margin >= 25:
-        return 0.90
-    if net_margin >= 15:
-        return 0.75
-    if net_margin >= 10:
-        return 0.60
-    if net_margin >= 5:
-        return 0.45
-    if net_margin >= 0:
-        return 0.25
-
-    return 0.0
-
-def calculate_operating_margin_ratio(
-    operating_margin: Optional[float],
-) -> Optional[float]:
-    if operating_margin is None:
-        return None
-
-    if operating_margin >= 35:
-        return 1.0
-    if operating_margin >= 25:
-        return 0.90
-    if operating_margin >= 15:
-        return 0.75
-    if operating_margin >= 10:
-        return 0.60
-    if operating_margin >= 5:
-        return 0.45
-    if operating_margin >= 0:
-        return 0.25
+        return 4.0
+    if roe >= 0:
+        return 2.0
 
     return 0.0
 
 
 def calculate_profitability_score(
+    return_on_capital: Optional[float],
     roe: Optional[float],
-    net_margin: Optional[float],
-    operating_margin: Optional[float],
+    sector: Optional[str],
+    industry: Optional[str],
     max_points: int,
 ) -> int:
-    weighted_ratios = [
-        (calculate_roe_ratio(roe), 0.40),
-        (calculate_margin_ratio(net_margin), 0.30),
-        (
-            calculate_operating_margin_ratio(
-                operating_margin
-            ),
-            0.30,
-        ),
-    ]
+    benchmarks = get_quality_benchmarks_for_yahoo_industry(
+        sector,
+        industry,
+    )
 
-    available_ratios = [
-        (ratio, weight)
-        for ratio, weight in weighted_ratios
-        if ratio is not None
-    ]
+    roc_benchmark = (
+        benchmarks
+        .get("mgnroc", {})
+        .get("Return_on_Capital")
+    )
 
-    if not available_ratios:
+    roe_benchmark = (
+        benchmarks
+        .get("roe", {})
+        .get("ROE_Unadjusted")
+    )
+
+    roc_score = calculate_roc_base_points(
+        return_on_capital
+    )
+
+    if (
+        roc_score is not None
+        and return_on_capital is not None
+        and roc_benchmark is not None
+        and roc_benchmark > 0
+    ):
+        benchmark_percent = roc_benchmark * 100
+        relative = return_on_capital / benchmark_percent
+
+        correction = max(
+            -5.0,
+            min(5.0, (relative - 1.0) * 5.0),
+        )
+
+        roc_score = max(
+            0.0,
+            min(25.0, roc_score + correction),
+        )
+
+    roe_score = calculate_roe_base_points(roe)
+
+    if (
+        roe_score is not None
+        and roe is not None
+        and roe_benchmark is not None
+        and roe_benchmark > 0
+    ):
+        benchmark_percent = roe_benchmark * 100
+        relative = roe / benchmark_percent
+
+        correction = max(
+            -3.0,
+            min(3.0, (relative - 1.0) * 3.0),
+        )
+
+        roe_score = max(
+            0.0,
+            min(15.0, roe_score + correction),
+        )
+
+    available_scores = []
+
+    if roc_score is not None:
+        available_scores.append((roc_score, 25.0))
+
+    if roe_score is not None:
+        available_scores.append((roe_score, 15.0))
+
+    if not available_scores:
         return 0
 
-    weighted_score = sum(
-        ratio * weight
-        for ratio, weight in available_ratios
+    achieved = sum(
+        score
+        for score, _ in available_scores
     )
 
-    available_weight = sum(
-        weight
-        for _, weight in available_ratios
+    available_max = sum(
+        maximum
+        for _, maximum in available_scores
     )
 
-    normalized_ratio = (
-        weighted_score / available_weight
-    )
+    normalized_score = (
+        achieved / available_max
+    ) * max_points
 
-    return round(max_points * normalized_ratio)
+    return round(normalized_score)
 
 
 def calculate_revenue_growth_ratio(
@@ -330,9 +371,10 @@ def calculate_quality_breakdown(data: dict) -> dict:
 
     return {
         "Profitabilität": calculate_profitability_score(
+            data.get("Kapitalrendite"),
             data.get("Eigenkapitalrendite"),
-            data.get("Nettomarge"),
-            data.get("Operative Marge"),
+            data.get("Sektor"),
+            data.get("Branche"),
             profit_weight,
         ),
         "Wachstum": calculate_growth_score(
