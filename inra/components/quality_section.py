@@ -4,10 +4,11 @@ from typing import Optional
 import streamlit as st
 
 from utils.fundamental_interpreter import (
-    interpret_debt_equity,
     interpret_cash_to_debt,
-    interpret_ocf_to_debt,
+    interpret_interest_coverage,
+    interpret_net_debt_to_ebitda,
     interpret_net_margin,
+    interpret_ocf_to_debt,
     interpret_operating_margin,
     interpret_roe,
 )
@@ -28,7 +29,13 @@ def _quality_rating(score: int) -> tuple:
     return "Schwach", "🔴", "#D9534F"
 
 
-def _score_icon(score: int, maximum: int) -> str:
+def _score_icon(
+    score: Optional[int],
+    maximum: int,
+) -> str:
+    if score is None:
+        return "⚪"
+
     ratio = score / maximum if maximum else 0
 
     if ratio >= 0.8:
@@ -107,14 +114,20 @@ def _rating_label(
 
 def _render_section_header(
     title: str,
-    score: int,
+    score: Optional[int],
     maximum: int,
 ) -> None:
     icon = _score_icon(score, maximum)
 
+    score_text = (
+        f"{score} / {maximum}"
+        if score is not None
+        else "Nicht bewertbar"
+    )
+
     st.markdown(
         f"##### {icon} {title}"
-        f"<span style='float:right'>{score} / {maximum}</span>",
+        f"<span style='float:right'>{score_text}</span>",
         unsafe_allow_html=True,
     )
 
@@ -279,6 +292,16 @@ def render_quality_section(data: dict) -> None:
     total_cash = data.get("Gesamtliquidität")
     total_debt = data.get("Gesamtverschuldung")
     operating_cashflow = data.get("Operativer Cashflow")
+    ebitda = data.get("EBITDA")
+    interest_coverage = data.get("Zinsdeckung")
+
+    net_debt_to_ebitda = (
+        (total_debt - total_cash) / ebitda
+        if total_debt is not None
+        and total_cash is not None
+        and ebitda not in (None, 0)
+        else None
+    )
     cash_to_debt_ratio = (
         total_cash / total_debt
         if total_cash is not None and total_debt not in (None, 0)
@@ -505,47 +528,118 @@ def render_quality_section(data: dict) -> None:
             25,
         )
 
-        _render_metric_row(
-            "Debt / Equity",
-            _format_number(debt),
-            interpret_debt_equity(debt),
-            (
-                "Verhältnis von Schulden zu Eigenkapital. "
-                "Die Einordnung erfolgt derzeit nach "
-                "allgemeinen Schwellen und noch nicht "
-                "relativ zur Branche."
-            ),
-        )
+        if breakdown["Bilanz"] is None:
+            st.caption(
+                "Für dieses Geschäftsmodell sind die standardisierten "
+                "Verschuldungskennzahlen strukturell nicht sinnvoll "
+                "vergleichbar. Die Bilanz wird deshalb derzeit nicht "
+                "quantitativ bewertet."
+            )
 
-        _render_metric_row(
-            "Cash / Debt",
-            f"{cash_to_debt_ratio:.2f}" if cash_to_debt_ratio is not None else "–",
-            interpret_cash_to_debt(cash_to_debt_ratio),
-            (
-                "Verhältnis von liquiden Mitteln zur Gesamtverschuldung. "
-                "Je höher der Wert, desto größer der finanzielle Puffer "
-                "gegenüber den bestehenden Schulden."
-            ),
-        )
+        else:
+            _render_metric_row(
+                "Net Debt / EBITDA",
+                (
+                    f"{net_debt_to_ebitda:.2f}"
+                    if net_debt_to_ebitda is not None
+                    else "–"
+                ),
+                interpret_net_debt_to_ebitda(net_debt_to_ebitda),
+                (
+                    "Verhältnis der Nettoverschuldung zum EBITDA. "
+                    "Die Kennzahl zeigt, wie hoch die Verschuldung "
+                    "im Verhältnis zur operativen Ertragskraft ist."
+                ),
+            )
 
-        _render_metric_row(
-            "Operativer Cashflow / Debt",
-            f"{ocf_to_debt_ratio:.2f}" if ocf_to_debt_ratio is not None else "–",
-            interpret_ocf_to_debt(ocf_to_debt_ratio),
-            (
-                "Verhältnis des operativen Cashflows zur Gesamtverschuldung. "
-                "Zeigt, wie stark die Verschuldung durch die laufende "
-                "operative Mittelgenerierung getragen wird."
-            ),
-        )
+            _render_metric_row(
+                "Zinsdeckung",
+                (
+                    f"{interest_coverage:.2f}"
+                    if interest_coverage is not None
+                    else "–"
+                ),
+                interpret_interest_coverage(interest_coverage),
+                (
+                    "Verhältnis von EBIT zu Zinsaufwand. "
+                    "Je höher der Wert, desto komfortabler kann das "
+                    "Unternehmen seine Zinskosten aus dem operativen "
+                    "Ergebnis decken."
+                ),
+            )
 
-        st.caption(
-            "Kapitalintensive Geschäftsmodelle benötigen "
-            "später einen stärkeren Branchenkontext."
-        )
+            _render_metric_row(
+                "Operativer Cashflow / Debt",
+                (
+                    f"{ocf_to_debt_ratio:.2f}"
+                    if ocf_to_debt_ratio is not None
+                    else "–"
+                ),
+                interpret_ocf_to_debt(ocf_to_debt_ratio),
+                (
+                    "Verhältnis des operativen Cashflows zur "
+                    "Gesamtverschuldung. Zeigt, wie stark die "
+                    "Verschuldung durch die laufende operative "
+                    "Mittelgenerierung getragen wird."
+                ),
+            )
+
+            _render_metric_row(
+                "Cash / Debt",
+                (
+                    f"{cash_to_debt_ratio:.2f}"
+                    if cash_to_debt_ratio is not None
+                    else "–"
+                ),
+                interpret_cash_to_debt(cash_to_debt_ratio),
+                (
+                    "Verhältnis von liquiden Mitteln zur "
+                    "Gesamtverschuldung. Je höher der Wert, desto "
+                    "größer der finanzielle Puffer gegenüber den "
+                    "bestehenden Schulden."
+                ),
+            )
+
+            if data.get("Branche") == "Auto Manufacturers":
+                st.caption(
+                    "Bei Autoherstellern wird die Zinsdeckung stärker "
+                    "gewichtet, da die ausgewiesene Verschuldung durch "
+                    "Finanzierungstöchter strukturell verzerrt sein kann."
+                )
+            else:
+                st.caption(
+                    "Bilanz V2 bewertet Nettoverschuldung, Zinsdeckung, "
+                    "operative Schuldentragfähigkeit und Liquidität."
+                )
 
         st.divider()
+
+        available_scores = [
+            score
+            for score in breakdown.values()
+            if score is not None
+        ]
+
+        available_maxima = [
+            maximum
+            for score, maximum in (
+                (breakdown["Profitabilität"], 40),
+                (breakdown["Wachstum"], 35),
+                (breakdown["Bilanz"], 25),
+            )
+            if score is not None
+        ]
+
+        achieved_points = sum(available_scores)
+        available_points = sum(available_maxima)
 
         st.markdown(
             f"**Gesamt: {quality_score} von 100 Punkten**"
         )
+
+        if available_points < 100:
+            st.caption(
+                f"{achieved_points} von {available_points} verfügbaren Punkten "
+                f"· auf 100 normiert "
+                f"({achieved_points} / {available_points} × 100 = {quality_score})"
+            )

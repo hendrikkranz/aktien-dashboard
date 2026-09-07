@@ -650,6 +650,7 @@ def load_company_snapshot(ticker: str) -> dict:
     operating_cashflow = info.get("operatingCashflow")
     total_cash = info.get("totalCash")
     total_debt = info.get("totalDebt")
+    ebitda = info.get("ebitda")
     stockholders_equity = None
 
     if (
@@ -663,6 +664,8 @@ def load_company_snapshot(ticker: str) -> dict:
             stockholders_equity = float(equity_value)
 
     return_on_capital = None
+    ebit = None
+    interest_expense = None
 
     if (
         income_stmt is not None
@@ -678,6 +681,12 @@ def load_company_snapshot(ticker: str) -> dict:
         if "Operating Income" in income_stmt.index:
             operating_income = income_stmt.loc["Operating Income"].iloc[0]
 
+        if "EBIT" in income_stmt.index:
+            ebit = income_stmt.loc["EBIT"].iloc[0]
+
+        if "Interest Expense" in income_stmt.index:
+            interest_expense = income_stmt.loc["Interest Expense"].iloc[0]
+
         if "Pretax Income" in income_stmt.index:
             pretax_income = income_stmt.loc["Pretax Income"].iloc[0]
 
@@ -686,6 +695,16 @@ def load_company_snapshot(ticker: str) -> dict:
 
         if "Tax Rate For Calcs" in income_stmt.index:
             tax_rate_for_calcs = income_stmt.loc["Tax Rate For Calcs"].iloc[0]
+
+        interest_coverage = None
+
+        if (
+            ebit is not None
+            and interest_expense not in (None, 0)
+            and pd.notna(ebit)
+            and pd.notna(interest_expense)
+        ):
+            interest_coverage = ebit / abs(interest_expense)
 
         tax_rate = None
 
@@ -969,7 +988,9 @@ def load_company_snapshot(ticker: str) -> dict:
         "Operativer Cashflow": operating_cashflow,
         "Gesamtliquidität": total_cash,
         "Gesamtverschuldung": total_debt,
+        "EBITDA": ebitda,
         "Eigenkapital": stockholders_equity,
+        "Zinsdeckung": interest_coverage,
         "Umsatzwachstum": revenue_growth,
         "Umsatzwachstum Jahresabschluss": revenue_growth_annual,
         "Umsatzwachstum manuell": revenue_growth_manual,

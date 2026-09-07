@@ -439,51 +439,76 @@ def calculate_growth_score(
 
 
 def calculate_balance_score(
-    debt_ratio: Optional[float],
-    cash_to_debt_ratio: Optional[float],
-    ocf_to_debt_ratio: Optional[float],
+    total_debt: Optional[float],
+    total_cash: Optional[float],
+    operating_cashflow: Optional[float],
+    ebitda: Optional[float],
+    interest_coverage: Optional[float],
     max_points: int,
+    industry: Optional[str] = None,
 ) -> int:
-    if (
-        debt_ratio is None
-        and cash_to_debt_ratio is None
-        and ocf_to_debt_ratio is None
-    ):
-        return 0
+    net_debt_to_ebitda = (
+        (total_debt - total_cash) / ebitda
+        if total_debt is not None
+        and total_cash is not None
+        and ebitda not in (None, 0)
+        else None
+    )
+
+    cash_to_debt_ratio = (
+        total_cash / total_debt
+        if total_cash is not None
+        and total_debt not in (None, 0)
+        else None
+    )
+
+    ocf_to_debt_ratio = (
+        operating_cashflow / total_debt
+        if operating_cashflow is not None
+        and total_debt not in (None, 0)
+        else None
+    )
+
+    is_auto_manufacturer = industry == "Auto Manufacturers"
+
+    net_debt_weight = 0.15 if is_auto_manufacturer else 0.40
+    coverage_weight = 0.55 if is_auto_manufacturer else 0.30
+    ocf_weight = 0.15 if is_auto_manufacturer else 0.20
+    cash_weight = 0.15 if is_auto_manufacturer else 0.10
 
     weighted_scores = []
 
-    if debt_ratio is not None:
-        if debt_ratio <= 20:
-            debt_score = 1.00
-        elif debt_ratio <= 40:
-            debt_score = 0.90
-        elif debt_ratio <= 70:
-            debt_score = 0.80
-        elif debt_ratio <= 100:
-            debt_score = 0.65
-        elif debt_ratio <= 150:
-            debt_score = 0.45
-        elif debt_ratio <= 200:
-            debt_score = 0.25
+    if net_debt_to_ebitda is not None:
+        if net_debt_to_ebitda <= 0:
+            net_debt_score = 1.00
+        elif net_debt_to_ebitda <= 1:
+            net_debt_score = 0.90
+        elif net_debt_to_ebitda <= 2:
+            net_debt_score = 0.75
+        elif net_debt_to_ebitda <= 3:
+            net_debt_score = 0.55
+        elif net_debt_to_ebitda <= 4:
+            net_debt_score = 0.30
         else:
-            debt_score = 0.00
+            net_debt_score = 0.00
 
-        weighted_scores.append((debt_score, 0.50))
+        weighted_scores.append((net_debt_score, net_debt_weight))
 
-    if cash_to_debt_ratio is not None:
-        if cash_to_debt_ratio >= 1.0:
-            cash_score = 1.00
-        elif cash_to_debt_ratio >= 0.6:
-            cash_score = 0.80
-        elif cash_to_debt_ratio >= 0.4:
-            cash_score = 0.60
-        elif cash_to_debt_ratio >= 0.2:
-            cash_score = 0.40
+    if interest_coverage is not None:
+        if interest_coverage >= 10:
+            coverage_score = 1.00
+        elif interest_coverage >= 6:
+            coverage_score = 0.85
+        elif interest_coverage >= 4:
+            coverage_score = 0.65
+        elif interest_coverage >= 2.5:
+            coverage_score = 0.40
+        elif interest_coverage >= 1.5:
+            coverage_score = 0.20
         else:
-            cash_score = 0.20
+            coverage_score = 0.00
 
-        weighted_scores.append((cash_score, 0.25))
+        weighted_scores.append((coverage_score, coverage_weight))
 
     if ocf_to_debt_ratio is not None:
         if ocf_to_debt_ratio >= 1.0:
@@ -499,7 +524,21 @@ def calculate_balance_score(
         else:
             ocf_score = 0.00
 
-        weighted_scores.append((ocf_score, 0.25))
+        weighted_scores.append((ocf_score, ocf_weight))
+
+    if cash_to_debt_ratio is not None:
+        if cash_to_debt_ratio >= 1.0:
+            cash_score = 1.00
+        elif cash_to_debt_ratio >= 0.6:
+            cash_score = 0.80
+        elif cash_to_debt_ratio >= 0.4:
+            cash_score = 0.60
+        elif cash_to_debt_ratio >= 0.2:
+            cash_score = 0.40
+        else:
+            cash_score = 0.20
+
+        weighted_scores.append((cash_score, cash_weight))
 
     available_weight = sum(weight for _, weight in weighted_scores)
 
@@ -541,6 +580,30 @@ def calculate_quality_breakdown(data: dict) -> dict:
     growth_weight = QUALITY_WEIGHTS["wachstum"]
     balance_weight = QUALITY_WEIGHTS["bilanz"]
 
+    industry_model = get_industry_model(
+        data.get("Sektor", ""),
+        data.get("Branche", ""),
+        data.get("Ticker", ""),
+    )
+
+    balance_score = None
+
+    if industry_model not in {
+        "banking",
+        "insurance",
+        "financial_services",
+        "diversified_holding",
+    }:
+        balance_score = calculate_balance_score(
+            data.get("Gesamtverschuldung"),
+            data.get("Gesamtliquidität"),
+            data.get("Operativer Cashflow"),
+            data.get("EBITDA"),
+            data.get("Zinsdeckung"),
+            balance_weight,
+            data.get("Branche"),
+        )
+
     return {
         "Profitabilität": calculate_profitability_score(
             data.get("Kapitalrendite"),
@@ -566,26 +629,34 @@ def calculate_quality_breakdown(data: dict) -> dict:
             data.get("Extremer Umsatzsprung"),
             data.get("Gewinn Vorzeichenwechsel"),
         ),
-        "Bilanz": calculate_balance_score(
-            data.get("Verschuldungsgrad"),
-            (
-                data.get("Gesamtliquidität") / data.get("Gesamtverschuldung")
-                if data.get("Gesamtliquidität") is not None
-                and data.get("Gesamtverschuldung") not in (None, 0)
-                else None
-            ),
-            (
-                data.get("Operativer Cashflow") / data.get("Gesamtverschuldung")
-                if data.get("Operativer Cashflow") is not None
-                and data.get("Gesamtverschuldung") not in (None, 0)
-                else None
-            ),
-            balance_weight,
-            ),
+        "Bilanz": balance_score,
     }
 
 
 def calculate_quality_score(data: dict) -> int:
     breakdown = calculate_quality_breakdown(data)
 
-    return min(sum(breakdown.values()), 100)
+    score_weights = {
+        "Profitabilität": QUALITY_WEIGHTS["profitabilitaet"],
+        "Wachstum": QUALITY_WEIGHTS["wachstum"],
+        "Bilanz": QUALITY_WEIGHTS["bilanz"],
+    }
+
+    available_score = 0
+    available_max = 0
+
+    for category, score in breakdown.items():
+        if score is None:
+            continue
+
+        available_score += score
+        available_max += score_weights[category]
+
+    if available_max == 0:
+        return 0
+
+    normalized_score = (
+        available_score / available_max
+    ) * 100
+
+    return min(round(normalized_score), 100)

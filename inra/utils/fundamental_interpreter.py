@@ -246,6 +246,104 @@ def interpret_debt_equity(
         "eine hohe Verschuldung",
     )
 
+def interpret_net_debt_to_ebitda(
+    value: Optional[float],
+) -> Optional[dict]:
+    if value is None:
+        return None
+
+    if value <= 0:
+        return _result(
+            "excellent",
+            5,
+            "strength",
+            "eine Nettoliquiditätsposition",
+        )
+    if value <= 1:
+        return _result(
+            "good",
+            4,
+            "strength",
+            "eine sehr niedrige Nettoverschuldung relativ zum EBITDA",
+        )
+    if value <= 2:
+        return _result(
+            "solid",
+            3,
+            "neutral",
+            "eine solide Nettoverschuldung relativ zum EBITDA",
+        )
+    if value <= 3:
+        return _result(
+            "weak",
+            2,
+            "warning",
+            "eine erhöhte Nettoverschuldung relativ zum EBITDA",
+        )
+    if value <= 4:
+        return _result(
+            "poor",
+            1,
+            "warning",
+            "eine hohe Nettoverschuldung relativ zum EBITDA",
+        )
+
+    return _result(
+        "poor",
+        1,
+        "warning",
+        "eine sehr hohe Nettoverschuldung relativ zum EBITDA",
+    )
+
+
+def interpret_interest_coverage(
+    value: Optional[float],
+) -> Optional[dict]:
+    if value is None:
+        return None
+
+    if value >= 10:
+        return _result(
+            "excellent",
+            5,
+            "strength",
+            "eine sehr hohe Zinsdeckung",
+        )
+    if value >= 6:
+        return _result(
+            "good",
+            4,
+            "strength",
+            "eine hohe Zinsdeckung",
+        )
+    if value >= 4:
+        return _result(
+            "solid",
+            3,
+            "neutral",
+            "eine solide Zinsdeckung",
+        )
+    if value >= 2.5:
+        return _result(
+            "weak",
+            2,
+            "warning",
+            "eine eher niedrige Zinsdeckung",
+        )
+    if value >= 1.5:
+        return _result(
+            "poor",
+            1,
+            "warning",
+            "eine schwache Zinsdeckung",
+        )
+
+    return _result(
+        "poor",
+        1,
+        "warning",
+        "eine kritische Zinsdeckung",
+    )
 
 def interpret_cash_to_debt(
     value: Optional[float],
