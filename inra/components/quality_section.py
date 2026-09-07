@@ -247,6 +247,10 @@ def render_quality_section(data: dict) -> None:
         data.get("Eigenkapitalrendite"),
         data.get("Sektor"),
         data.get("Branche"),
+        40,
+        data.get("Nettomarge"),
+        data.get("Operative Marge"),
+        data.get("Eigenkapital"),
     )
 
     growth_breakdown = calculate_growth_breakdown(
@@ -304,8 +308,15 @@ def render_quality_section(data: dict) -> None:
             {
                 "level": "neutral",
                 "label": (
-                    f"{profitability_breakdown['roc_score']:.0f} / "
-                    f"{profitability_breakdown['roc_max']:.0f}"
+                    (
+                        f"{profitability_breakdown['roc_score']:.0f} / "
+                        f"{profitability_breakdown['roc_max']:.0f}"
+                    )
+                    if (
+                        profitability_breakdown["roc_score"] is not None
+                        and profitability_breakdown["roc_max"] is not None
+                    )
+                    else "Nicht bewertbar"
                 ),
             },
             (
@@ -320,12 +331,27 @@ def render_quality_section(data: dict) -> None:
 
         _render_metric_row(
             "ROE",
-            _format_percentage(roe),
+            (
+                _format_percentage(roe)
+                if not profitability_breakdown["margin_fallback_used"]
+                else "Ersatzbewertung Margen"
+            ),
             {
                 "level": "neutral",
                 "label": (
-                    f"{profitability_breakdown['roe_score']:.0f} / "
-                    f"{profitability_breakdown['roe_max']:.0f}"
+                    (
+                        f"{profitability_breakdown['roe_score']:.0f} / "
+                        f"{profitability_breakdown['roe_max']:.0f}"
+                    )
+                    if (
+                        profitability_breakdown["roe_score"] is not None
+                        and profitability_breakdown["roe_max"] is not None
+                    )
+                    else (
+                        f"{profitability_breakdown['margin_fallback_score']:.0f} / 15"
+                        if profitability_breakdown["margin_fallback_used"]
+                        else "Nicht bewertbar"
+                    )
                 ),
             },
             (

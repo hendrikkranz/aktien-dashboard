@@ -650,6 +650,17 @@ def load_company_snapshot(ticker: str) -> dict:
     operating_cashflow = info.get("operatingCashflow")
     total_cash = info.get("totalCash")
     total_debt = info.get("totalDebt")
+    stockholders_equity = None
+
+    if (
+        balance_sheet is not None
+        and not balance_sheet.empty
+        and "Stockholders Equity" in balance_sheet.index
+    ):
+        equity_value = balance_sheet.loc["Stockholders Equity"].iloc[0]
+
+        if not pd.isna(equity_value):
+            stockholders_equity = float(equity_value)
 
     return_on_capital = None
 
@@ -730,6 +741,33 @@ def load_company_snapshot(ticker: str) -> dict:
 
             if len(invested_capital_values) == 2:
                 average_invested_capital = sum(invested_capital_values) / 2
+
+                if average_invested_capital <= 0:
+                    if (
+                        "Invested Capital" in balance_sheet.index
+                        and balance_sheet.shape[1] >= 2
+                    ):
+                        yahoo_invested_capital_values = [
+                            balance_sheet.loc["Invested Capital"].iloc[0],
+                            balance_sheet.loc["Invested Capital"].iloc[1],
+                        ]
+
+                        if not any(
+                            pd.isna(value)
+                            for value in yahoo_invested_capital_values
+                        ):
+                            yahoo_average_invested_capital = (
+                                sum(
+                                    float(value)
+                                    for value in yahoo_invested_capital_values
+                                )
+                                / 2
+                            )
+
+                            if yahoo_average_invested_capital > 0:
+                                average_invested_capital = (
+                                    yahoo_average_invested_capital
+                                )
 
                 if average_invested_capital > 0:
                     nopat = float(operating_income) * (1 - tax_rate)
@@ -931,6 +969,7 @@ def load_company_snapshot(ticker: str) -> dict:
         "Operativer Cashflow": operating_cashflow,
         "Gesamtliquidität": total_cash,
         "Gesamtverschuldung": total_debt,
+        "Eigenkapital": stockholders_equity,
         "Umsatzwachstum": revenue_growth,
         "Umsatzwachstum Jahresabschluss": revenue_growth_annual,
         "Umsatzwachstum manuell": revenue_growth_manual,

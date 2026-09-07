@@ -55,6 +55,42 @@ def calculate_roe_base_points(
 
     return 0.0
 
+def calculate_margin_fallback_points(
+    net_margin: Optional[float],
+    operating_margin: Optional[float],
+) -> Optional[float]:
+    scores = []
+
+    if net_margin is not None:
+        if net_margin >= 25:
+            scores.append(5)
+        elif net_margin >= 15:
+            scores.append(4)
+        elif net_margin >= 8:
+            scores.append(3)
+        elif net_margin >= 3:
+            scores.append(2)
+        else:
+            scores.append(1)
+
+    if operating_margin is not None:
+        if operating_margin >= 30:
+            scores.append(5)
+        elif operating_margin >= 20:
+            scores.append(4)
+        elif operating_margin >= 10:
+            scores.append(3)
+        elif operating_margin >= 5:
+            scores.append(2)
+        else:
+            scores.append(1)
+
+    if not scores:
+        return None
+
+    average_score = sum(scores) / len(scores)
+
+    return (average_score / 5) * 10
 
 def calculate_profitability_breakdown(
     return_on_capital: Optional[float],
@@ -62,6 +98,9 @@ def calculate_profitability_breakdown(
     sector: Optional[str],
     industry: Optional[str],
     max_points: int = 40,
+    net_margin: Optional[float] = None,
+    operating_margin: Optional[float] = None,
+    stockholders_equity: Optional[float] = None,
 ) -> dict:
     benchmarks = get_quality_benchmarks_for_yahoo_industry(
         sector,
@@ -106,6 +145,17 @@ def calculate_profitability_breakdown(
 
     roe_score = calculate_roe_base_points(roe)
     roe_correction = 0.0
+    margin_fallback_score = None
+
+    if (
+        roe_score is None
+        and stockholders_equity is not None
+        and stockholders_equity <= 0
+    ):
+        margin_fallback_score = calculate_margin_fallback_points(
+            net_margin,
+            operating_margin,
+        )
 
     if (
         roe_score is not None
@@ -133,6 +183,9 @@ def calculate_profitability_breakdown(
 
     if roe_score is not None:
         available_scores.append((roe_score, 15.0))
+
+    elif margin_fallback_score is not None:
+        available_scores.append((margin_fallback_score, 15.0))
 
     if available_scores:
         achieved = sum(
@@ -163,6 +216,8 @@ def calculate_profitability_breakdown(
         "roc_correction": roc_correction,
         "roe_score": roe_score,
         "roe_max": 15.0,
+        "margin_fallback_score": margin_fallback_score,
+        "margin_fallback_used": margin_fallback_score is not None,
         "roe_benchmark": (
             roe_benchmark * 100
             if roe_benchmark is not None
@@ -178,6 +233,9 @@ def calculate_profitability_score(
     sector: Optional[str],
     industry: Optional[str],
     max_points: int,
+    net_margin: Optional[float] = None,
+    operating_margin: Optional[float] = None,
+    stockholders_equity: Optional[float] = None,
 ) -> int:
     breakdown = calculate_profitability_breakdown(
         return_on_capital,
@@ -185,6 +243,9 @@ def calculate_profitability_score(
         sector,
         industry,
         max_points,
+        net_margin,
+        operating_margin,
+        stockholders_equity,
     )
 
     return breakdown["score"]
@@ -487,6 +548,9 @@ def calculate_quality_breakdown(data: dict) -> dict:
             data.get("Sektor"),
             data.get("Branche"),
             profit_weight,
+            data.get("Nettomarge"),
+            data.get("Operative Marge"),
+            data.get("Eigenkapital"),
         ),
         "Wachstum": calculate_growth_score(
             data.get("Umsatzwachstum"),
