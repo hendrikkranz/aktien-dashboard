@@ -564,6 +564,38 @@ def load_company_snapshot(ticker: str) -> dict:
             income_growth_history.iloc[-1]
         )
 
+    revenue_growth_manual = False
+    revenue_growth_metadata = {}
+
+    if revenue_growth_annual is None:
+        revenue_growth_annual = _get_manual_override(
+            ticker,
+            "Umsatzwachstum Jahresabschluss",
+        )
+
+        if revenue_growth_annual is not None:
+            revenue_growth_manual = True
+            revenue_growth_metadata = _get_manual_override_metadata(
+                ticker,
+                "Umsatzwachstum Jahresabschluss",
+            )
+
+    earnings_growth_manual = False
+    earnings_growth_metadata = {}
+
+    if earnings_growth_annual is None:
+        earnings_growth_annual = _get_manual_override(
+            ticker,
+            "Gewinnwachstum Jahresabschluss",
+        )
+
+        if earnings_growth_annual is not None:
+            earnings_growth_manual = True
+            earnings_growth_metadata = _get_manual_override_metadata(
+                ticker,
+                "Gewinnwachstum Jahresabschluss",
+            )
+
     revenue_growth_median = None
     income_growth_median = None
 
@@ -901,8 +933,12 @@ def load_company_snapshot(ticker: str) -> dict:
         "Gesamtverschuldung": total_debt,
         "Umsatzwachstum": revenue_growth,
         "Umsatzwachstum Jahresabschluss": revenue_growth_annual,
+        "Umsatzwachstum manuell": revenue_growth_manual,
+        "Umsatzwachstum Metadaten": revenue_growth_metadata,
         "Gewinnwachstum": earnings_growth,
         "Gewinnwachstum Jahresabschluss": earnings_growth_annual,
+        "Gewinnwachstum manuell": earnings_growth_manual,
+        "Gewinnwachstum Metadaten": earnings_growth_metadata,
         "Umsatzwachstum Median 3J": revenue_growth_median,
         "Gewinnwachstum Median 3J": income_growth_median,
         "Extremer Umsatzsprung": extreme_revenue_jump,

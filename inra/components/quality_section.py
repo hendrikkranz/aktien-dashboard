@@ -9,11 +9,13 @@ from utils.fundamental_interpreter import (
     interpret_ocf_to_debt,
     interpret_net_margin,
     interpret_operating_margin,
-    interpret_revenue_growth,
     interpret_roe,
 )
 from utils.investment_summary import create_investment_summary
-from modules.quality_score import calculate_profitability_breakdown
+from modules.quality_score import (
+    calculate_growth_breakdown,
+    calculate_profitability_breakdown,
+)
 
 
 def _quality_rating(score: int) -> tuple:
@@ -54,42 +56,6 @@ def _format_number(
         return "–"
 
     return f"{value:.1f}"
-
-
-def _interpret_earnings_growth(
-    value: Optional[float],
-) -> Optional[dict]:
-    if value is None:
-        return None
-
-    if value >= 20:
-        return {
-            "level": "excellent",
-            "label": "Sehr stark",
-        }
-
-    if value >= 10:
-        return {
-            "level": "good",
-            "label": "Stark",
-        }
-
-    if value >= 0:
-        return {
-            "level": "solid",
-            "label": "Solide",
-        }
-
-    if value >= -10:
-        return {
-            "level": "weak",
-            "label": "Schwach",
-        }
-
-    return {
-        "level": "poor",
-        "label": "Sehr schwach",
-    }
 
 
 def _rating_icon(
@@ -283,6 +249,21 @@ def render_quality_section(data: dict) -> None:
         data.get("Branche"),
     )
 
+    growth_breakdown = calculate_growth_breakdown(
+        data.get("Umsatzwachstum"),
+        data.get("Gewinnwachstum"),
+        data.get("Umsatzwachstum Median 3J"),
+        data.get("Gewinnwachstum Median 3J"),
+        data.get("Wachstumshistorie belastbar"),
+        35,
+        data.get("Positive Umsatzjahre"),
+        data.get("Umsatzwachstum Jahresabschluss"),
+        data.get("Gewinnwachstum Jahresabschluss"),
+        data.get("Positive Gewinnjahre"),
+        data.get("Extremer Umsatzsprung"),
+        data.get("Gewinn Vorzeichenwechsel"),
+    )
+
     roe = data.get("Eigenkapitalrendite")
     margin = data.get("Nettomarge")
     operating_margin = data.get("Operative Marge")
@@ -392,28 +373,45 @@ def render_quality_section(data: dict) -> None:
 
         _render_metric_row(
             "Umsatzwachstum",
-            _format_percentage(revenue_growth_scored),
-            interpret_revenue_growth(
-                revenue_growth_scored
+            _format_percentage(
+                growth_breakdown["revenue_growth"]
             ),
+            {
+                "level": "neutral",
+                "label": (
+                    f"{growth_breakdown['revenue_points']:.0f} / "
+                    f"{growth_breakdown['revenue_max']:.0f}"
+                )
+                if growth_breakdown["revenue_points"] is not None
+                else "Nicht bewertbar",
+            },
             (
-                "Aktuell gemeldetes Umsatzwachstum. "
-                "Eine einzelne Kennzahl kann durch "
-                "Basiseffekte oder zyklische Schwankungen "
-                "verzerrt sein."
+                "Bewertet wird die geglättete Umsatzentwicklung. "
+                "Wenn eine belastbare 3-Jahres-Historie vorliegt, "
+                "kann der Median statt des letzten Einzeljahres "
+                "verwendet werden."
             ),
         )
 
         _render_metric_row(
             "Gewinnwachstum",
-            _format_percentage(earnings_growth_scored),
-            _interpret_earnings_growth(
-                earnings_growth_scored
+            _format_percentage(
+                growth_breakdown["earnings_growth"]
             ),
+            {
+                "level": "neutral",
+                "label": (
+                    f"{growth_breakdown['earnings_points']:.0f} / "
+                    f"{growth_breakdown['earnings_max']:.0f}"
+                )
+                if growth_breakdown["earnings_points"] is not None
+                else "Nicht bewertbar",
+            },
             (
-                "Aktuell gemeldetes Gewinnwachstum. "
-                "Diese Kennzahl kann deutlich stärker "
-                "schwanken als das Umsatzwachstum."
+                "Bewertet wird die geglättete Gewinnentwicklung. "
+                "Wenn eine belastbare 3-Jahres-Historie vorliegt, "
+                "kann der Median statt des letzten Einzeljahres "
+                "verwendet werden."
             ),
         )
 

@@ -197,23 +197,23 @@ def calculate_revenue_growth_ratio(
         return None
 
     if revenue_growth >= 25:
-        return 0.95
+        return 1.00
     if revenue_growth >= 15:
-        return 0.82
+        return 0.85
     if revenue_growth >= 10:
         return 0.72
     if revenue_growth >= 6:
-        return 0.62
+        return 0.60
     if revenue_growth >= 3:
-        return 0.53
-    if revenue_growth >= 0:
         return 0.45
-    if revenue_growth >= -3:
+    if revenue_growth >= 0:
         return 0.30
-    if revenue_growth >= -8:
+    if revenue_growth >= -3:
         return 0.15
+    if revenue_growth >= -8:
+        return 0.05
 
-    return 0.0
+    return 0.00
 
 
 def calculate_earnings_growth_ratio(
@@ -223,29 +223,126 @@ def calculate_earnings_growth_ratio(
         return None
 
     if earnings_growth >= 25:
-        return 1.0
+        return 1.00
     if earnings_growth >= 15:
         return 0.85
     if earnings_growth >= 10:
-        return 0.75
+        return 0.72
     if earnings_growth >= 5:
-        return 0.60
+        return 0.58
     if earnings_growth >= 0:
-        return 0.45
+        return 0.35
     if earnings_growth >= -5:
-        return 0.25
+        return 0.18
     if earnings_growth >= -15:
-        return 0.10
+        return 0.05
 
-    return 0.0
-    if earnings_growth >= 3:
-        return round(max_points * 0.04)
-    if earnings_growth >= -10:
-        return 0
-    if earnings_growth >= -25:
-        return -round(max_points * 0.04)
+    return 0.00
 
-    return -round(max_points * 0.07)
+
+def calculate_growth_breakdown(
+    revenue_growth: Optional[float],
+    earnings_growth: Optional[float],
+    revenue_growth_median: Optional[float],
+    income_growth_median: Optional[float],
+    growth_history_reliable: Optional[bool],
+    max_points: int = 35,
+    positive_revenue_years: Optional[int] = None,
+    revenue_growth_annual: Optional[float] = None,
+    earnings_growth_annual: Optional[float] = None,
+    positive_income_years: Optional[int] = None,
+    extreme_revenue_jump: Optional[bool] = None,
+    income_sign_change: Optional[bool] = None,
+) -> dict:
+    if revenue_growth_annual is not None:
+        revenue_growth = revenue_growth_annual
+
+    if earnings_growth_annual is not None:
+        earnings_growth = earnings_growth_annual
+
+    if revenue_growth_median is not None:
+        if positive_revenue_years is None:
+            revenue_growth = revenue_growth_median
+        elif positive_revenue_years >= 2:
+            revenue_growth = revenue_growth_median
+
+    if income_growth_median is not None:
+        if positive_income_years is None:
+            earnings_growth = income_growth_median
+        elif positive_income_years >= 2:
+            earnings_growth = income_growth_median
+
+    revenue_ratio = calculate_revenue_growth_ratio(
+        revenue_growth
+    )
+
+    earnings_ratio = calculate_earnings_growth_ratio(
+        earnings_growth
+    )
+
+    weighted_scores = []
+
+    if revenue_ratio is not None:
+        weighted_scores.append((revenue_ratio, 0.60))
+
+    if earnings_ratio is not None:
+        weighted_scores.append((earnings_ratio, 0.40))
+
+    available_weight = sum(
+        weight
+        for _, weight in weighted_scores
+    )
+
+    if available_weight == 0:
+        final_score = 0
+    else:
+        normalized_score = (
+            sum(
+                score * weight
+                for score, weight in weighted_scores
+            )
+            / available_weight
+        )
+
+        final_score = round(
+            max_points * normalized_score
+        )
+
+    revenue_max = (
+        max_points * 0.60 / available_weight
+        if revenue_ratio is not None and available_weight > 0
+        else None
+    )
+
+    earnings_max = (
+        max_points * 0.40 / available_weight
+        if earnings_ratio is not None and available_weight > 0
+        else None
+    )
+
+    revenue_points = (
+        revenue_ratio * revenue_max
+        if revenue_ratio is not None and revenue_max is not None
+        else None
+    )
+
+    earnings_points = (
+        earnings_ratio * earnings_max
+        if earnings_ratio is not None and earnings_max is not None
+        else None
+    )
+
+    return {
+        "score": max(0, min(final_score, max_points)),
+        "revenue_growth": revenue_growth,
+        "revenue_ratio": revenue_ratio,
+        "revenue_points": revenue_points,
+        "revenue_max": revenue_max,
+        "earnings_growth": earnings_growth,
+        "earnings_ratio": earnings_ratio,
+        "earnings_points": earnings_points,
+        "earnings_max": earnings_max,
+    }
 
 
 def calculate_growth_score(
@@ -262,46 +359,22 @@ def calculate_growth_score(
     extreme_revenue_jump: Optional[bool] = None,
     income_sign_change: Optional[bool] = None,
 ) -> int:
-    if revenue_growth_annual is not None:
-        revenue_growth = revenue_growth_annual
-    if earnings_growth_annual is not None:
-        earnings_growth = earnings_growth_annual
-    if revenue_growth_median is not None:
-        if positive_revenue_years is None:
-            revenue_growth = revenue_growth_median
-        elif positive_revenue_years >= 2:
-            revenue_growth = revenue_growth_median
-
-    if income_growth_median is not None:
-        if positive_income_years is None:
-            earnings_growth = income_growth_median
-        elif positive_income_years >= 2:
-            earnings_growth = income_growth_median
-    
-    revenue_ratio = calculate_revenue_growth_ratio(
-        revenue_growth
+    breakdown = calculate_growth_breakdown(
+        revenue_growth,
+        earnings_growth,
+        revenue_growth_median,
+        income_growth_median,
+        growth_history_reliable,
+        max_points,
+        positive_revenue_years,
+        revenue_growth_annual,
+        earnings_growth_annual,
+        positive_income_years,
+        extreme_revenue_jump,
+        income_sign_change,
     )
 
-    if revenue_ratio is None:
-        return 0
-
-    base_score = round(max_points * revenue_ratio)
-
-    earnings_ratio = calculate_earnings_growth_ratio(
-        earnings_growth
-    )
-
-    if earnings_ratio is None:
-        return base_score
-
-    final_score = round(
-        max_points * (
-            revenue_ratio * 0.60
-            + earnings_ratio * 0.40
-        )
-    )
-
-    return max(0, min(final_score, max_points))
+    return breakdown["score"]
 
 
 def calculate_balance_score(
