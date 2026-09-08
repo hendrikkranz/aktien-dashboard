@@ -3,6 +3,13 @@ from typing import Optional
 
 import streamlit as st
 
+from utils.qualitative_research import (
+    research_qualitative_quality_with_gemini,
+)
+from utils.qualitative_quality import (
+    save_qualitative_quality_research,
+)
+
 from utils.fundamental_interpreter import (
     interpret_cash_to_debt,
     interpret_interest_coverage,
@@ -20,13 +27,19 @@ from modules.quality_score import (
 
 
 def _quality_rating(score: int) -> tuple:
-    if score >= 80:
-        return "Sehr hoch", "🟢", "#2EAD7B"
+    if score >= 85:
+        return "Sehr hohe Qualität", "🟢", "#1F8F5F"
 
-    if score >= 60:
+    if score >= 70:
+        return "Hohe Qualität", "🟢", "#2EAD7B"
+
+    if score >= 55:
         return "Solide", "🟡", "#D9A514"
 
-    return "Schwach", "🔴", "#D9534F"
+    if score >= 40:
+        return "Schwach", "🟠", "#E67E22"
+
+    return "Sehr schwach", "🔴", "#D9534F"
 
 
 def _score_icon(
@@ -200,6 +213,10 @@ def render_quality_section(data: dict) -> None:
         quality_score
     )
 
+    basis_quality = data.get("Basis Quality")
+    quantitative_quality = data.get("Quantitative Quality")
+    qualitative_quality = data.get("Qualitative Quality")
+
     summary = html.escape(
         create_investment_summary(data)
     )
@@ -317,6 +334,276 @@ def render_quality_section(data: dict) -> None:
     with st.expander(
          f"Warum {quality_score} von 100 Punkten?"
     ):
+
+        if (
+            basis_quality is not None
+            and quantitative_quality is not None
+            and qualitative_quality is not None
+        ):
+            st.caption(
+                f"Gesamtbewertung: "
+                f"40 % von {qualitative_quality} (Qualitativ) + "
+                f"60 % von {quantitative_quality} (Kennzahlen) "
+                f"= {basis_quality} / 100"
+            )
+
+        qualitative_details = data.get(
+            "Qualitative Quality Details",
+            {},
+        )
+
+        qualitative_score = qualitative_details.get("score")
+        qualitative_status = qualitative_details.get("status")
+        evaluable_factors = qualitative_details.get(
+            "evaluable_factors",
+            0,
+        )
+        total_factors = qualitative_details.get(
+            "total_factors",
+            5,
+        )
+
+        st.markdown("#### 🧭 1. Qualitative Unternehmensanalyse (40%)")
+
+        analysis_dates = [
+            details.get("date")
+            for details in data.get(
+                "Qualitative Quality Factor Details",
+                {},
+            ).values()
+            if details.get("date")
+        ]
+
+        if analysis_dates:
+            latest_analysis_date = max(analysis_dates)
+
+            date_parts = str(latest_analysis_date).split("-")
+            if len(date_parts) == 3:
+                latest_analysis_date = (
+                    f"{date_parts[2]}.{date_parts[1]}.{date_parts[0]}"
+                )
+
+            st.caption(
+                f"Letzte qualitative Analyse: {latest_analysis_date}"
+            )
+
+        if st.button(
+            "🔄 Qualitative Analyse aktualisieren (API-Kosten: ca. 1–2 Ct.)",
+            key=f"qualitative_research_{data.get('Ticker')}",
+        ):
+            with st.spinner(
+                "Qualitative Unternehmensanalyse wird recherchiert ..."
+            ):
+                research_result = (
+                    research_qualitative_quality_with_gemini(
+                        api_key=st.secrets["GEMINI_API_KEY"],
+                        ticker=data.get("Ticker"),
+                        company_name=data.get("Name"),
+                        sector=data.get("Sektor"),
+                        industry=data.get("Branche"),
+                    )
+                )
+
+            st.session_state[
+                "qualitative_research_preview"
+            ] = research_result
+
+        research_preview = st.session_state.get(
+            "qualitative_research_preview"
+        )
+
+        if (
+            research_preview is not None
+            and research_preview.get("Ticker") == data.get("Ticker")
+        ):
+            st.info(
+                "Neue qualitative Recherche – noch nicht gespeichert"
+            )
+
+            existing_ratings = qualitative_details.get(
+                "ratings",
+                {},
+            )
+
+            preview_icons = {
+                "Burggraben / Wettbewerbsposition": "🏰",
+                "Kapitalallokation": "💰",
+                "Management & Governance": "👔",
+                "Bilanzierungs-/Ergebnisqualität": "📘",
+                "Strukturelle Geschäftsrisiken": "⚠️",
+            }
+
+            for factor, details in research_preview["Faktoren"].items():
+                old_score = existing_ratings.get(factor)
+                new_score = details.get("Bewertung")
+
+                if new_score is not None:
+                    if new_score >= 4:
+                        traffic_light = "🟢"
+                    elif new_score >= 3:
+                        traffic_light = "🟡"
+                    elif new_score >= 2:
+                        traffic_light = "🟠"
+                    else:
+                        traffic_light = "🔴"
+
+                    points_text = f"{new_score * 4:.0f} / 20"
+                else:
+                    traffic_light = "⚪"
+                    points_text = "Nicht bewertbar"
+
+                factor_icon = preview_icons.get(factor, "•")
+
+                st.markdown(
+                    f"##### {traffic_light} {factor_icon} {factor}"
+                    f"<span style='float:right'>{points_text}</span>",
+                    unsafe_allow_html=True,
+                )
+
+                if (
+                    old_score is not None
+                    and new_score is not None
+                    and old_score != new_score
+                ):
+                    st.caption(
+                        f"Bisher: {old_score * 4:.0f} / 20 → "
+                        f"Neu: {new_score * 4:.0f} / 20"
+                    )
+
+                if details.get("Begründung"):
+                    st.caption(details["Begründung"])
+
+                competitors = details.get("Hauptkonkurrenten")
+
+                if (
+                    factor == "Burggraben / Wettbewerbsposition"
+                    and competitors
+                ):
+                    st.caption(
+                        "**Hauptkonkurrenten:** "
+                        + " · ".join(competitors)
+                    )
+
+            source_count = len(
+                research_preview.get("Quellen", [])
+            )
+            search_count = len(
+                research_preview.get("Suchanfragen", [])
+            )
+
+            if source_count > 0:
+                st.caption(
+                    f"Mit Web-Recherche · "
+                    f"{source_count} Quellen · "
+                    f"{search_count} Suchanfragen"
+                )
+            else:
+                st.warning(
+                    "Keine verifizierten Web-Quellen verfügbar. "
+                    "Die Bewertung basiert auf der Gemini-Analyse, "
+                    "ist aber nicht durch Grounding-Quellen belegt."
+                )
+
+            if st.button(
+                "Neue Bewertung übernehmen",
+                key=f"save_qualitative_research_{data.get('Ticker')}",
+                type="primary",
+            ):
+                save_qualitative_quality_research(
+                    research_preview
+                )
+                del st.session_state[
+                    "qualitative_research_preview"
+                ]
+                st.rerun()
+
+        if qualitative_score is not None:
+            st.markdown(
+                f"**{qualitative_score} / 100** · "
+                f"{evaluable_factors} von {total_factors} Faktoren bewertbar"
+            )
+        else:
+            st.markdown(
+                f"**{qualitative_status or 'Nicht ausreichend bewertbar'}** · "
+                f"{evaluable_factors} von {total_factors} Faktoren bewertbar"
+            )
+
+        qualitative_ratings = qualitative_details.get(
+            "ratings",
+            {},
+        )
+
+        factor_details = data.get(
+            "Qualitative Quality Factor Details",
+            {},
+        )
+
+        factor_icons = {
+            "Burggraben / Wettbewerbsposition": "🏰",
+            "Kapitalallokation": "💰",
+            "Management & Governance": "👔",
+            "Bilanzierungs-/Ergebnisqualität": "📘",
+            "Strukturelle Geschäftsrisiken": "⚠️",
+        }
+
+        for factor, factor_score in qualitative_ratings.items():
+            if factor_score >= 4:
+                traffic_light = "🟢"
+            elif factor_score >= 3:
+                traffic_light = "🟡"
+            elif factor_score >= 2:
+                traffic_light = "🟠"
+            else:
+                traffic_light = "🔴"
+
+            factor_icon = factor_icons.get(factor, "•")
+
+            st.markdown(
+                f"##### {traffic_light} {factor_icon} {factor}"
+                f"<span style='float:right'>{factor_score * 4:.0f} / 20</span>",
+                unsafe_allow_html=True,
+            )
+
+            reason = factor_details.get(
+                factor,
+                {},
+            ).get("reason")
+
+            if reason:
+                st.caption(reason)
+
+            competitors = factor_details.get(
+                factor,
+                {},
+            ).get("competitors")
+
+            if (
+                factor == "Burggraben / Wettbewerbsposition"
+                and competitors
+            ):
+                st.caption(
+                    "**Hauptkonkurrenten:** "
+                    + competitors
+                )
+
+        st.divider()
+
+        st.markdown("#### 📊 2. Kennzahlenbasierte Qualität (60%)")
+
+        evaluable_quant_sections = sum(
+            value is not None
+            for value in breakdown.values()
+        )
+
+        total_quant_sections = len(breakdown)
+
+        if quantitative_quality is not None:
+            st.markdown(
+                f"**{quantitative_quality} / 100** · "
+                f"{evaluable_quant_sections} von "
+                f"{total_quant_sections} Bereichen bewertbar"
+            )
+
         _render_section_header(
             "💰 Profitabilität",
             breakdown["Profitabilität"],

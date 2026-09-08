@@ -5,9 +5,9 @@ import pandas as pd
 import yfinance as yf
 
 
-UNIVERSE_PATH = Path("inra/data/universe.csv")
+UNIVERSE_PATH = Path("data/universe.csv")
 
-BENCHMARK_CACHE_PATH = Path("inra/data/benchmark_cache.csv")
+BENCHMARK_CACHE_PATH = Path("data/benchmark_cache.csv")
 
 def get_benchmark_cache_timestamp():
     if not BENCHMARK_CACHE_PATH.exists():

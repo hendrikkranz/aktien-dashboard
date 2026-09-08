@@ -660,3 +660,93 @@ def calculate_quality_score(data: dict) -> int:
     ) * 100
 
     return min(round(normalized_score), 100)
+QUALITATIVE_QUALITY_FACTORS = (
+    "Burggraben / Wettbewerbsposition",
+    "Kapitalallokation",
+    "Management & Governance",
+    "Bilanzierungs-/Ergebnisqualität",
+    "Strukturelle Geschäftsrisiken",
+)
+
+
+def calculate_qualitative_quality_score(
+    ratings: dict,
+) -> dict:
+    """
+    Berechnet den qualitativen Quality Score.
+
+    Jeder Faktor wird auf einer Skala von 1 bis 5 bewertet.
+    Nicht bewertbare Faktoren werden ausgelassen.
+
+    Mindestens 3 von 5 Faktoren müssen bewertbar sein.
+    """
+    valid_ratings = {}
+
+    for factor in QUALITATIVE_QUALITY_FACTORS:
+        value = ratings.get(factor)
+
+        if value is None:
+            continue
+
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            continue
+
+        if 1 <= value <= 5:
+            valid_ratings[factor] = value
+
+    evaluable_factors = len(valid_ratings)
+    total_factors = len(QUALITATIVE_QUALITY_FACTORS)
+
+    if evaluable_factors < 3:
+        return {
+            "score": None,
+            "evaluable_factors": evaluable_factors,
+            "total_factors": total_factors,
+            "achieved_points": None,
+            "maximum_points": None,
+            "ratings": valid_ratings,
+            "status": "Nicht ausreichend bewertbar",
+        }
+
+    achieved_points = sum(valid_ratings.values())
+    maximum_points = evaluable_factors * 5
+
+    normalized_score = (
+        achieved_points / maximum_points
+    ) * 100
+
+    return {
+        "score": round(normalized_score),
+        "evaluable_factors": evaluable_factors,
+        "total_factors": total_factors,
+        "achieved_points": achieved_points,
+        "maximum_points": maximum_points,
+        "ratings": valid_ratings,
+        "status": "Bewertbar",
+    }
+
+def calculate_basis_quality_score(
+    quantitative_score: Optional[float],
+    qualitative_score: Optional[float],
+) -> Optional[int]:
+    """
+    Verknüpft quantitative und qualitative Unternehmensqualität.
+
+    Gewichtung:
+    - Quantitative Quality: 60 %
+    - Qualitative Quality: 40 %
+
+    Wenn einer der beiden Bereiche nicht belastbar bewertbar ist,
+    wird kein Basis-Quality-Score berechnet.
+    """
+    if quantitative_score is None or qualitative_score is None:
+        return None
+
+    basis_score = (
+        quantitative_score * 0.60
+        + qualitative_score * 0.40
+    )
+
+    return min(max(round(basis_score), 0), 100)

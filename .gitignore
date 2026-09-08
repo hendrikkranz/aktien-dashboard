@@ -1,2 +1,8 @@
 __pycache__/
 .venv/
+
+# Lokale Zugangsdaten / Secrets
+.env
+.env.*
+.streamlit/secrets.toml
+inra/.streamlit/secrets.toml

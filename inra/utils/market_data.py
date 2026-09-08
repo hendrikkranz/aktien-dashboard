@@ -9,11 +9,17 @@ from modules.opportunity_score import (
     calculate_opportunity_score,
 )
 from modules.quality_score import (
+    calculate_basis_quality_score,
     calculate_quality_breakdown,
     calculate_quality_score,
+    calculate_qualitative_quality_score,
 )
 from utils.research_adjustments import (
     apply_research_adjustments,
+)
+from utils.qualitative_quality import (
+    get_qualitative_quality_details,
+    get_qualitative_quality_ratings,
 )
 from modules.trend_structure import (
     analyze_trend_structure,
@@ -666,7 +672,7 @@ def load_company_snapshot(ticker: str) -> dict:
     return_on_capital = None
     ebit = None
     interest_expense = None
-
+    interest_coverage = None
     if (
         income_stmt is not None
         and not income_stmt.empty
@@ -825,6 +831,8 @@ def load_company_snapshot(ticker: str) -> dict:
         cash_to_debt_ratio is not None
         and cash_to_debt_ratio < 0.10
     )
+
+    capital_allocation_points = None
 
     if operating_cashflow is not None:
 
@@ -1040,9 +1048,38 @@ def load_company_snapshot(ticker: str) -> dict:
     snapshot["Opportunity Breakdown"] = (
         calculate_opportunity_breakdown(snapshot)
     )
-    snapshot["Unternehmensqualität"] = (
-        calculate_quality_score(snapshot)
+    quantitative_quality = calculate_quality_score(snapshot)
+
+    qualitative_quality_ratings = (
+        get_qualitative_quality_ratings(ticker)
     )
+
+    qualitative_quality_details = (
+        get_qualitative_quality_details(ticker)
+    )
+
+    qualitative_quality = (
+        calculate_qualitative_quality_score(
+            qualitative_quality_ratings
+        )
+    )
+
+    basis_quality = calculate_basis_quality_score(
+        quantitative_quality,
+        qualitative_quality["score"],
+    )
+
+    snapshot["Quantitative Quality"] = quantitative_quality
+    snapshot["Qualitative Quality"] = qualitative_quality["score"]
+    snapshot["Qualitative Quality Details"] = qualitative_quality
+    snapshot["Qualitative Quality Factor Details"] = qualitative_quality_details
+    snapshot["Basis Quality"] = basis_quality
+    snapshot["Unternehmensqualität"] = (
+        basis_quality
+        if basis_quality is not None
+        else quantitative_quality
+    )
+
     snapshot["Quality Breakdown"] = (
         calculate_quality_breakdown(snapshot)
     )
