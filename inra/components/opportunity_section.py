@@ -123,6 +123,8 @@ def _render_opportunity_breakdown(
         "Forward KGV": _format_value(
             data.get("Forward KGV"),
         ),
+        "KGV vs. Branche": "siehe Branchenvergleich",
+        "Branchenbewertung historisch": "siehe Branchenvergleich",
         "Dividendenstrategie": (
             "Keine Daten"
             if data.get("Dividendenrendite") is None
@@ -147,11 +149,19 @@ def _render_opportunity_breakdown(
             "ab 10 % eine reduzierte Punktzahl."
         ),
         "Forward KGV": (
-            "Bis 20 werden 30 Punkte vergeben. "
-            "Bis 22 gibt es 17 Punkte, "
-            "bis 25 noch 14 Punkte, "
-            "bis 30 noch 8 Punkte "
-            "und über 30 keine Punkte."
+            "Das Forward KGV wird je nach Bewertungsgruppe "
+            "(NIEDRIG, STANDARD oder WACHSTUM) bewertet. "
+            "Dieser Kernbereich liefert maximal 24 Punkte."
+        ),
+        "KGV vs. Branche": (
+            "Vergleicht das Forward KGV der Aktie mit dem "
+            "aktuellen Forward KGV der zugeordneten "
+            "Damodaran-Branche. Maximal 3 Punkte."
+        ),
+        "Branchenbewertung historisch": (
+            "Vergleicht das aktuelle Branchen-KGV mit dem "
+            "historischen Median der Jahre 2015 bis 2025. "
+            "Maximal 3 Punkte."
         ),
         "Abstand 52W-Hoch": (
             "Je näher der Kurs am 52-Wochen-Hoch liegt, "
@@ -196,14 +206,23 @@ def _render_opportunity_breakdown(
             for item in course_breakdown
         )
 
-        course_score_display = (
-            "Nicht bewertbar"
-            if all(
-                item["Punkte"] is None
-                for item in course_breakdown
-            )
-            else f"{course_total} / {course_maximum}"
+        course_available_maximum = sum(
+            item["Maximum"]
+            for item in course_breakdown
+            if item["Punkte"] is not None
         )
+
+        if course_available_maximum == 0:
+            course_score_display = "Nicht bewertbar"
+        elif course_available_maximum < course_maximum:
+            course_score_display = (
+                f"{course_total} / "
+                f"{course_available_maximum} verfügbare Punkte"
+            )
+        else:
+            course_score_display = (
+                f"{course_total} / {course_maximum}"
+            )
 
         st.markdown(
             f"##### 💰 Kursbewertung"
@@ -265,9 +284,95 @@ def _render_opportunity_breakdown(
                     )
                 )
 
+            if criterion == "Forward KGV":
+                current_value = _format_value(
+                    data.get("Forward KGV")
+                )
+
+                valuation_class = item.get(
+                    "Bewertungsklasse"
+                )
+
+                if valuation_class:
+                    class_labels = {
+                        "NIEDRIG": "Niedrig",
+                        "STANDARD": "Standard",
+                        "WACHSTUM": "Wachstum",
+                        "SONDERFALL": "Sonderfall",
+                    }
+
+                    current_value += (
+                        " · Bewertungsgruppe "
+                        f"{class_labels.get(valuation_class, valuation_class)}"
+                    )
+
+            elif criterion == "KGV vs. Branche":
+                if item.get("Punkte") is None:
+                    current_value = (
+                        "Nicht anwendbar bei diesem Sonderfall"
+                    )
+                else:
+                    stock_pe = data.get("Forward KGV")
+                    industry_pe = item.get("Branchen KGV")
+                    damodaran_industry = item.get(
+                        "Damodaran Branche"
+                    )
+
+                    if (
+                        stock_pe is not None
+                        and industry_pe is not None
+                    ):
+                        current_value = (
+                            f"{_format_value(stock_pe)} "
+                            f"vs. {_format_value(industry_pe)}"
+                        )
+
+                        if damodaran_industry:
+                            current_value += (
+                                f" · {damodaran_industry}"
+                            )
+                    else:
+                        current_value = "Keine Daten"
+
+            elif criterion == "Branchenbewertung historisch":
+                if item.get("Punkte") is None:
+                    current_value = (
+                        "Nicht anwendbar bei diesem Sonderfall"
+                    )
+                else:
+                    industry_pe = item.get("Branchen KGV")
+                    historical_median = item.get(
+                        "Historischer Median"
+                    )
+                    historical_years = item.get(
+                        "Historische Jahre"
+                    )
+
+                    if (
+                        industry_pe is not None
+                        and historical_median is not None
+                    ):
+                        current_value = (
+                            f"{_format_value(industry_pe)} aktuell "
+                            f"vs. {_format_value(historical_median)} "
+                            f"historischer Median"
+                        )
+
+                        if historical_years:
+                            current_value += (
+                                f" · {historical_years} Jahre"
+                            )
+                    else:
+                        current_value = "Keine Daten"
+
+            else:
+                current_value = values.get(
+                    criterion,
+                    "Keine Daten",
+                )
+
             st.caption(
-                f"Aktueller Wert: "
-                f"{values.get(criterion, 'Keine Daten')}"
+                f"Aktueller Wert: {current_value}"
             )
 
             if (

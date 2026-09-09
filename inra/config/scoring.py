@@ -6,7 +6,9 @@ QUALITY_WEIGHTS = {
 
 OPPORTUNITY_WEIGHTS = {
     "analystenpotenzial": 25,
-    "bewertung": 30,
+    "forward_kgv": 24,
+    "kgv_vs_branche": 3,
+    "branchenbewertung_historisch": 3,
 }
 
 CHART_WEIGHTS = {

@@ -67,6 +67,7 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 
 BENCHMARK_PATH = BASE_DIR / "data" / "damodaran_benchmarks_mgnroc.csv"
 ROE_BENCHMARK_PATH = BASE_DIR / "data" / "damodaran_benchmarks_roe.csv"
+PE_HISTORY_PATH = BASE_DIR / "data" / "damodaran_pe_history.csv"
 
 
 def get_industry_benchmark(damodaran_industry: str) -> dict:
@@ -162,4 +163,63 @@ def get_quality_benchmarks_for_yahoo_industry(
             sector,
             industry,
         ),
+    }
+
+def get_pe_benchmark_for_yahoo_industry(
+    sector: str,
+    industry: str,
+) -> dict:
+    if not MAPPING_PATH.exists() or not PE_HISTORY_PATH.exists():
+        return {}
+
+    mapping = pd.read_csv(MAPPING_PATH)
+
+    row = mapping.loc[
+        (mapping["Yahoo_Sektor"] == sector)
+        & (mapping["Yahoo_Branche"] == industry)
+    ]
+
+    if row.empty:
+        return {}
+
+    damodaran_industry = row.iloc[0]["Damodaran_Branche"]
+
+    if pd.isna(damodaran_industry):
+        return {}
+
+    history = pd.read_csv(PE_HISTORY_PATH, sep=";")
+
+    rows = history.loc[
+        history["Damodaran_Branche"] == damodaran_industry
+    ].copy()
+
+    if rows.empty:
+        return {}
+
+    current_rows = rows.loc[rows["Jahr"] == 2026]
+    historical_rows = rows.loc[
+        (rows["Jahr"] >= 2015)
+        & (rows["Jahr"] <= 2025)
+    ]
+
+    current_forward_pe = None
+    if not current_rows.empty:
+        value = current_rows.iloc[0]["Forward_KGV"]
+        if pd.notna(value):
+            current_forward_pe = float(value)
+
+    historical_values = pd.to_numeric(
+        historical_rows["Forward_KGV"],
+        errors="coerce",
+    ).dropna()
+
+    historical_median = None
+    if not historical_values.empty:
+        historical_median = float(historical_values.median())
+
+    return {
+        "damodaran_industry": damodaran_industry,
+        "current_forward_pe": current_forward_pe,
+        "historical_forward_pe_median": historical_median,
+        "historical_years": int(len(historical_values)),
     }
