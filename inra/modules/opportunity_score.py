@@ -12,17 +12,22 @@ def calculate_opportunity_breakdown(data: dict) -> list:
     analyst_points = None
 
     if analyst_upside is not None:
-        analyst_points = 0
-
-        if analyst_upside >= 20:
+        if analyst_upside < 0:
+            analyst_points = 0
+        elif analyst_upside < 5:
+            analyst_points = 3
+        elif analyst_upside < 10:
+            analyst_points = 7
+        elif analyst_upside < 15:
+            analyst_points = 12
+        elif analyst_upside < 20:
+            analyst_points = 17
+        elif analyst_upside < 30:
+            analyst_points = 21
+        else:
             analyst_points = OPPORTUNITY_WEIGHTS[
                 "analystenpotenzial"
             ]
-        elif analyst_upside >= 10:
-            analyst_points = round(
-                OPPORTUNITY_WEIGHTS["analystenpotenzial"]
-                * 0.625
-            )
 
     breakdown.append(
         {

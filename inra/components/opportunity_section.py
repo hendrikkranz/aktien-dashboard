@@ -145,8 +145,10 @@ def _render_opportunity_breakdown(
 
     explanations = {
         "Analystenpotenzial": (
-            "Ab 20 % wird die volle Punktzahl vergeben, "
-            "ab 10 % eine reduzierte Punktzahl."
+            "Bewertet den Abstand zum durchschnittlichen Analystenziel: "
+            "unter 0 % = 0, ab 0 % = 3, ab 5 % = 7, "
+            "ab 10 % = 12, ab 15 % = 17, ab 20 % = 21 "
+            "und ab 30 % = 25 Punkte."
         ),
         "Forward KGV": (
             "Das Forward KGV wird je nach Bewertungsgruppe "
