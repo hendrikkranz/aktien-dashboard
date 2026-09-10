@@ -23,6 +23,7 @@ from utils.investment_summary import create_investment_summary
 from modules.quality_score import (
     calculate_growth_breakdown,
     calculate_profitability_breakdown,
+    calculate_qualitative_quality_score,
 )
 
 
@@ -416,6 +417,31 @@ def render_quality_section(data: dict) -> None:
             research_preview is not None
             and research_preview.get("Ticker") == data.get("Ticker")
         ):
+
+            preview_ratings = {
+                factor: details.get("Bewertung")
+                for factor, details in research_preview.get(
+                    "Faktoren",
+                    {},
+                ).items()
+            }
+
+            preview_score_details = (
+                calculate_qualitative_quality_score(
+                    preview_ratings
+                )
+            )
+
+            qualitative_score = preview_score_details.get("score")
+            qualitative_status = preview_score_details.get("status")
+            evaluable_factors = preview_score_details.get(
+                "evaluable_factors",
+                0,
+            )
+            total_factors = preview_score_details.get(
+                "total_factors",
+                5,
+            )
             st.info(
                 "Neue qualitative Recherche – noch nicht gespeichert"
             )

@@ -1,5 +1,6 @@
 import json
 import re
+import socket
 from typing import Optional
 
 from google import genai
@@ -332,6 +333,12 @@ def research_qualitative_quality_with_gemini(
 ) -> dict:
     client = genai.Client(
         api_key=api_key,
+        http_options=types.HttpOptions(
+            timeout=90000,
+            retryOptions=types.HttpRetryOptions(
+                attempts=1,
+            ),
+        ),
     )
 
     prompt = build_qualitative_research_prompt(
@@ -341,18 +348,33 @@ def research_qualitative_quality_with_gemini(
         industry=industry,
     )
 
-    response = client.models.generate_content(
-        model=model,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=0.0,
-            tools=[
-                types.Tool(
-                    google_search=types.GoogleSearch()
-                )
-            ],
-        ),
-    )
+    original_getaddrinfo = socket.getaddrinfo
+
+    def ipv4_only(*args, **kwargs):
+        results = original_getaddrinfo(*args, **kwargs)
+        return [
+            item
+            for item in results
+            if item[0] == socket.AF_INET
+        ]
+
+    socket.getaddrinfo = ipv4_only
+
+    try:
+        response = client.models.generate_content(
+            model=model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.0,
+                tools=[
+                    types.Tool(
+                        google_search=types.GoogleSearch()
+                    )
+                ],
+            ),
+        )
+    finally:
+        socket.getaddrinfo = original_getaddrinfo
 
     raw_factors = _parse_json_response(
         response.text
