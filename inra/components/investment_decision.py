@@ -2,18 +2,31 @@ import textwrap
 
 import streamlit as st
 
+from modules.chart_score import calculate_chart_breakdown
+from modules.opportunity_score import calculate_opportunity_breakdown
+
 
 def render_investment_decision(data: dict) -> None:
     buy_score = data["Kaufchance"]
     quality_score = data["Unternehmensqualität"]
 
-    analyst_upside = data.get("Analystenpotenzial")
-    forward_pe = data.get("Forward KGV")
+    opportunity_breakdown = calculate_opportunity_breakdown(data)
+    chart_breakdown = calculate_chart_breakdown(data)
 
-    opportunity_data_complete = (
-        analyst_upside is not None
-        and forward_pe is not None
+    available_maximum = (
+        sum(
+            item["Maximum"]
+            for item in opportunity_breakdown
+            if item["Punkte"] is not None
+        )
+        + sum(
+            item["Maximum"]
+            for item in chart_breakdown
+            if item["Punkte"] is not None
+        )
     )
+
+    opportunity_data_complete = available_maximum == 100
 
     if not opportunity_data_complete:
         title = "Eingeschränkt bewertbar"

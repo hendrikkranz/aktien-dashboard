@@ -180,9 +180,9 @@ def _render_opportunity_breakdown(
         + sum(
             item["Maximum"]
             for item in chart_breakdown
+            if item["Punkte"] is not None
         )
     )
-
     if available_maximum == 100:
         expander_title = (
             f"Warum {data['Kaufchance']} von 100 Punkten?"
@@ -547,11 +547,13 @@ def _render_opportunity_breakdown(
         chart_total = sum(
             item["Punkte"]
             for item in chart_breakdown
+            if item["Punkte"] is not None
         )
 
         chart_maximum = sum(
             item["Maximum"]
             for item in chart_breakdown
+            if item["Punkte"] is not None
         )
 
         st.markdown(
@@ -609,22 +611,27 @@ def _render_opportunity_breakdown(
                     "und Momentum 3M / 6M / 12M."
                 )
             else:
-                if points >= maximum:
-                    icon = "🟢"
-                elif points > 0:
-                    icon = "🟡"
+                if points is None:
+                    st.markdown(
+                        "⚪ **Nicht bewertbar**"
+                    )
                 else:
-                    icon = "🔴"
+                    if points >= maximum:
+                        icon = "🟢"
+                    elif points > 0:
+                        icon = "🟡"
+                    else:
+                        icon = "🔴"
 
-                if points < 0:
-                    st.markdown(
-                        f"{icon} **{points} Punkte**"
-                    )
-                else:
-                    st.markdown(
-                        f"{icon} **{points} von "
-                        f"{maximum} Punkten**"
-                    )
+                    if points < 0:
+                        st.markdown(
+                            f"{icon} **{points} Punkte**"
+                        )
+                    else:
+                        st.markdown(
+                            f"{icon} **{points} von "
+                            f"{maximum} Punkten**"
+                        )
 
             if criterion == "Langfristiger Trend":
                 st.caption("Trendanalyse")
@@ -735,6 +742,7 @@ def _render_opportunity_breakdown(
         chart_total = sum(
             item["Punkte"]
             for item in chart_breakdown
+            if item["Punkte"] is not None
         )
 
         total = fundamental_total + chart_total
@@ -746,6 +754,7 @@ def _render_opportunity_breakdown(
         ) + sum(
             item["Maximum"]
             for item in chart_breakdown
+            if item["Punkte"] is not None
         )
 
         coverage = round(
@@ -769,11 +778,17 @@ def render_opportunity_section(
     buy_score = data["Kaufchance"]
     opportunity_breakdown = calculate_opportunity_breakdown(data)
 
+    chart_breakdown = calculate_chart_breakdown(data)
+
     available_maximum = sum(
         item["Maximum"]
         for item in opportunity_breakdown
         if item["Punkte"] is not None
-    ) + 45
+    ) + sum(
+        item["Maximum"]
+        for item in chart_breakdown
+        if item["Punkte"] is not None
+    )
 
     coverage = round(
         available_maximum / 100 * 100
@@ -789,33 +804,32 @@ def render_opportunity_section(
         )
 
     elif buy_score >= 68:
-        rating = "Kaufen"
+        rating = "Attraktiv"
         icon = "🟢"
         border = "#2EAD7B"
         explanation = (
-            "Der aktuelle Einstieg erscheint attraktiv. "
-            "Risiken und die eigene Anlagestrategie "
-            "sollten dennoch geprüft werden."
+            "Die aktuelle Einstiegssituation erscheint attraktiv. "
+            "Die Kaufchance berücksichtigt Bewertung, "
+            "Analystenpotenzial und Charttechnik."
         )
 
     elif buy_score >= 51:
-        rating = "Beobachten"
+        rating = "Neutral"
         icon = "🟡"
         border = "#D9A514"
         explanation = (
-            "Die Aktie ist interessant, "
-            "erfüllt derzeit aber noch nicht "
-            "alle Voraussetzungen für "
-            "eine klare Kaufempfehlung."
+            "Die aktuelle Einstiegssituation ist gemischt. "
+            "Positive und negative Signale halten sich "
+            "noch weitgehend die Waage."
         )
 
     else:
-        rating = "Abwarten"
+        rating = "Unattraktiv"
         icon = "🔴"
         border = "#D9534F"
         explanation = (
-            "Der aktuelle Einstieg erscheint "
-            "momentan nicht attraktiv genug."
+            "Die aktuelle Einstiegssituation erscheint "
+            "derzeit nicht attraktiv."
         )
 
     card = f"""

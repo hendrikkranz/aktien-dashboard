@@ -12,14 +12,14 @@ def calculate_chart_breakdown(data: dict) -> list:
     trend_channel_position = data.get("Trendkanal Position")
     trend_channel_normalized = data.get("Trendkanal Position Normalisiert")
 
-    momentum_points = 0
-    rsi_points = 0
-    distance_52w_points = 0
-    cm_macd_points = 0
-    trend_channel_points = 0
+    momentum_points = None
+    rsi_points = None
+    distance_52w_points = None
+    cm_macd_points = None
+    trend_channel_points = None
     overheating_points = 0
     overheating_risk = 0
-    prime_entry_points = 0
+    prime_entry_points = None
 
     if rsi is not None:
         if rsi >= 80:
@@ -68,6 +68,8 @@ def calculate_chart_breakdown(data: dict) -> list:
         and distance_52w is not None
         and momentum_3m is not None
     ):
+        prime_entry_points = 0
+
         if (
             45 <= rsi <= 60
             and -15 <= distance_52w <= -5
@@ -80,25 +82,31 @@ def calculate_chart_breakdown(data: dict) -> list:
         ):
             prime_entry_points = 3
 
+    long_term_trend_status = data.get("Langfristiger Trend Status")
+    long_term_trend = data.get("Langfristiger Trend")
+
     if (
         trend_channel_normalized is not None
-        and data.get("Langfristiger Trend Status") == "Belastbar"
-        and data.get("Langfristiger Trend") == "Aufwärtstrend"
+        and long_term_trend_status is not None
+        and long_term_trend is not None
     ):
-        if trend_channel_normalized <= -1.0:
-            trend_channel_points = 4
-        elif trend_channel_normalized <= -0.5:
-            trend_channel_points = 3
-        elif trend_channel_normalized < 0.5:
-            trend_channel_points = 2
-        elif trend_channel_normalized < 1.0:
-            trend_channel_points = 1
-        else:
-            trend_channel_points = 0
+        trend_channel_points = 0
+
+        if (
+            long_term_trend_status == "Belastbar"
+            and long_term_trend == "Aufwärtstrend"
+        ):
+            if trend_channel_normalized <= -1.0:
+                trend_channel_points = 4
+            elif trend_channel_normalized <= -0.5:
+                trend_channel_points = 3
+            elif trend_channel_normalized < 0.5:
+                trend_channel_points = 2
+            elif trend_channel_normalized < 1.0:
+                trend_channel_points = 1
 
     long_term_trend_points = data.get(
-    "Langfristiger Trend Score",
-    0,
+        "Langfristiger Trend Score"
     )
 
     if (
@@ -117,6 +125,8 @@ def calculate_chart_breakdown(data: dict) -> list:
             momentum_points = 2
 
     if rsi is not None:
+        rsi_points = 0
+
         if 40 <= rsi <= 60:
             rsi_points = 8
         elif 30 <= rsi < 40:
@@ -129,6 +139,8 @@ def calculate_chart_breakdown(data: dict) -> list:
             rsi_points = 2
 
     if distance_52w is not None:
+        distance_52w_points = 0
+
         if distance_52w >= -5:
             distance_52w_points = 7
         elif distance_52w >= -10:
@@ -149,6 +161,8 @@ def calculate_chart_breakdown(data: dict) -> list:
         and len(cm_macd_weekly) >= 5
         and len(cm_signal_weekly) >= 5
     ):
+        cm_macd_points = 0
+
         # 1. Histogramm steigt
         if (
             cm_histogram_weekly[-1]
@@ -270,4 +284,5 @@ def calculate_chart_score(data: dict) -> int:
     return sum(
         item["Punkte"]
         for item in breakdown
+        if item["Punkte"] is not None
     )
