@@ -35,7 +35,10 @@ from utils.fundamental_interpreter import (
     interpret_rsi,
 )
 
-from modules.opportunity_score import calculate_opportunity_breakdown
+from modules.opportunity_score import (
+    calculate_opportunity_breakdown,
+    get_pe_valuation_class,
+)
 
 from modules.chart_score import calculate_chart_breakdown
 
@@ -794,7 +797,21 @@ def render_opportunity_section(
         available_maximum / 100 * 100
     )
 
-    if coverage < 100:
+    if (
+        coverage < 100
+        and get_pe_valuation_class(data) == "SONDERFALL"
+    ):
+        rating = "Bewertung als Sonderfall"
+        icon = "⚪"
+        border = "#8b949e"
+        explanation = (
+            "Die KGV-basierte Kursbewertung ist für diesen "
+            "Unternehmenstyp methodisch nicht anwendbar. "
+            f"Die Kaufchance basiert daher auf "
+            f"{available_maximum} statt 100 möglichen Punkten."
+        )
+
+    elif coverage < 100:
         rating = "Eingeschränkt bewertbar"
         icon = "⚪"
         border = "#8b949e"

@@ -3,7 +3,10 @@ import textwrap
 import streamlit as st
 
 from modules.chart_score import calculate_chart_breakdown
-from modules.opportunity_score import calculate_opportunity_breakdown
+from modules.opportunity_score import (
+    calculate_opportunity_breakdown,
+    get_pe_valuation_class,
+)
 
 def _is_distressed(data: dict) -> bool:
     distress_values = (
@@ -56,6 +59,21 @@ def render_investment_decision(data: dict) -> None:
             "Mehrere zentrale operative Kennzahlen sind negativ. "
             "Die fundamentale Belastung ist derzeit zu hoch für "
             "ein Investment."
+        )
+
+    elif (
+        not opportunity_data_complete
+        and get_pe_valuation_class(data) == "SONDERFALL"
+    ):
+        title = "Sonderfall"
+        icon = "⚪"
+        background = "#F3F4F6"
+        border = "#8b949e"
+        text = (
+            "Die KGV-basierte Kursbewertung ist für diesen "
+            "Unternehmenstyp methodisch nicht anwendbar. "
+            "Daher wird derzeit kein reguläres Investment-Urteil "
+            "vergeben."
         )
 
     elif not opportunity_data_complete:
