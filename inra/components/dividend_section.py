@@ -20,6 +20,12 @@ def render_dividend_section(data: dict) -> None:
         else ""
     )
 
+    display_score = (
+        f"{points} / 15"
+        if points is not None
+        else "Keine Daten"
+    )
+
     if is_non_dividend_payer:
         display_score = "Keine Dividende"
         rating = "Nicht anwendbar"
@@ -190,7 +196,7 @@ def render_dividend_section(data: dict) -> None:
             )
 
             st.markdown(
-                f"**Dividendenrendite:** {value}  \\n"
+                f"**Dividendenrendite:** {value}  \n"
                 f"**{dividend_yield_points} von 5 Punkten**"
             )
 
@@ -200,7 +206,7 @@ def render_dividend_section(data: dict) -> None:
                 payout_value = "Keine Daten"
 
             st.markdown(
-                f"**Ausschüttungsquote:** {payout_value}  \\n"
+                f"**Ausschüttungsquote:** {payout_value}  \n"
                 f"**{payout_points} von 3 Punkten**"
             )
 
@@ -212,7 +218,7 @@ def render_dividend_section(data: dict) -> None:
                 growth_score = "Noch nicht bewertet"
 
             st.markdown(
-                f"**Dividendenwachstum (3J):** {growth_value}  \\n"
+                f"**Dividendenwachstum (3J):** {growth_value}  \n"
                 f"**{growth_score}**"
             )
 
@@ -231,7 +237,7 @@ def render_dividend_section(data: dict) -> None:
                 continuity_score = "Noch nicht bewertet"
 
             st.markdown(
-                f"**Kontinuität:** {continuity_value}  \\n"
+                f"**Kontinuität:** {continuity_value}  \n"
                 f"**{continuity_score}**"
             )
 
@@ -256,11 +262,11 @@ def render_dividend_section(data: dict) -> None:
                     reduction = raw_points - points
 
                     st.info(
-                        f"**Finale Anpassung:**  \\n"
-                        f"Berechneter Score: **{raw_points} / 15**  \\n"
+                        f"**Finale Anpassung:**  \n"
+                        f"Berechneter Score: **{raw_points} / 15**  \n"
                         f"Begrenzung wegen Dividendenrendite "
                         f"unter 1,5 %: **−{reduction} "
-                        f"{'Punkt' if reduction == 1 else 'Punkte'}**  \\n"
+                        f"{'Punkt' if reduction == 1 else 'Punkte'}**  \n"
                         f"Finaler Score: **{points} / 15**"
                     )
 
