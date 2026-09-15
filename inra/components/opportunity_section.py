@@ -313,9 +313,12 @@ def _render_opportunity_breakdown(
 
             elif criterion == "KGV vs. Branche":
                 if item.get("Punkte") is None:
-                    current_value = (
-                        "Nicht anwendbar bei diesem Sonderfall"
-                    )
+                    if valuation_class == "SONDERFALL":
+                        current_value = (
+                            "Nicht anwendbar bei diesem Sonderfall"
+                        )
+                    else:
+                        current_value = "Nicht bewertbar"
                 else:
                     stock_pe = data.get("Forward KGV")
                     industry_pe = item.get("Branchen KGV")
