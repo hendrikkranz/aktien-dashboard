@@ -451,7 +451,8 @@ def calculate_balance_score(
         (total_debt - total_cash) / ebitda
         if total_debt is not None
         and total_cash is not None
-        and ebitda not in (None, 0)
+        and ebitda is not None
+        and ebitda > 0
         else None
     )
 

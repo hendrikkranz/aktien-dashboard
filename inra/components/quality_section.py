@@ -317,7 +317,8 @@ def render_quality_section(data: dict) -> None:
         (total_debt - total_cash) / ebitda
         if total_debt is not None
         and total_cash is not None
-        and ebitda not in (None, 0)
+        and ebitda is not None
+        and ebitda > 0
         else None
     )
     cash_to_debt_ratio = (
@@ -853,15 +854,25 @@ def render_quality_section(data: dict) -> None:
             _render_metric_row(
                 "Net Debt / EBITDA",
                 (
-                    f"{net_debt_to_ebitda:.2f}"
-                    if net_debt_to_ebitda is not None
-                    else "–"
+                    "Nicht sinnvoll berechenbar"
+                    if ebitda is not None and ebitda <= 0
+                    else (
+                        f"{net_debt_to_ebitda:.2f}"
+                        if net_debt_to_ebitda is not None
+                        else "–"
+                    )
                 ),
-                interpret_net_debt_to_ebitda(net_debt_to_ebitda),
+                (
+                    {"level": "poor", "label": "EBITDA negativ"}
+                    if ebitda is not None and ebitda <= 0
+                    else interpret_net_debt_to_ebitda(
+                        net_debt_to_ebitda
+                    )
+                ),
                 (
                     "Verhältnis der Nettoverschuldung zum EBITDA. "
-                    "Die Kennzahl zeigt, wie hoch die Verschuldung "
-                    "im Verhältnis zur operativen Ertragskraft ist."
+                    "Bei negativem EBITDA ist die Kennzahl nicht "
+                    "wirtschaftlich sinnvoll interpretierbar."
                 ),
             )
 

@@ -5,6 +5,20 @@ import streamlit as st
 from modules.chart_score import calculate_chart_breakdown
 from modules.opportunity_score import calculate_opportunity_breakdown
 
+def _is_distressed(data: dict) -> bool:
+    distress_values = (
+        data.get("Kapitalrendite"),
+        data.get("Operative Marge"),
+        data.get("Operativer Cashflow"),
+        data.get("EBITDA"),
+    )
+
+    negative_signals = sum(
+        value is not None and value < 0
+        for value in distress_values
+    )
+
+    return negative_signals >= 3
 
 def render_investment_decision(data: dict) -> None:
     buy_score = data["Kaufchance"]
@@ -28,7 +42,23 @@ def render_investment_decision(data: dict) -> None:
 
     opportunity_data_complete = available_maximum == 100
 
-    if not opportunity_data_complete:
+    investment_score = (
+        0.60 * buy_score
+        + 0.40 * quality_score
+    )
+
+    if _is_distressed(data):
+        title = "Kein Investment"
+        icon = "🔴"
+        background = "#FDEEEE"
+        border = "#D9534F"
+        text = (
+            "Mehrere zentrale operative Kennzahlen sind negativ. "
+            "Die fundamentale Belastung ist derzeit zu hoch für "
+            "ein Investment."
+        )
+
+    elif not opportunity_data_complete:
         title = "Eingeschränkt bewertbar"
         icon = "⚪"
         background = "#F3F4F6"
@@ -38,34 +68,66 @@ def render_investment_decision(data: dict) -> None:
             "wesentliche Daten zur Kaufchance."
         )
 
-    elif buy_score >= 68 and quality_score >= 70:
-        title = "Kaufen"
+    elif investment_score >= 80 and buy_score >= 70:
+        title = "Klarer Kauf"
+        icon = "★"
+        background = "#E4F8EE"
+        border = "#20C77A"
+        text = (
+            "Kaufchance und Unternehmensqualität ergeben zusammen "
+            "eine besonders überzeugende Investment-Konstellation."
+        )
+
+    elif investment_score >= 70 and buy_score >= 60:
+        title = "Erste Position aufbauen"
         icon = "🟢"
         background = "#EAF7F2"
         border = "#2EAD7B"
         text = (
-            "Die Aktie bietet derzeit einen attraktiven Einstieg. "
-            "Auch die Unternehmensqualität unterstützt ein "
-            "langfristiges Investment."
+            "Die Kombination aus Einstiegschance und "
+            "Unternehmensqualität spricht derzeit für den Aufbau "
+            "einer ersten Position."
         )
-    elif buy_score >=51:
+
+    elif buy_score >= 75 and investment_score < 70:
+        title = "Trading-Chance"
+        icon = "🔵"
+        background = "#EEF5FF"
+        border = "#4A90E2"
+        text = (
+            "Die aktuelle Einstiegssituation ist außergewöhnlich "
+            "attraktiv, die Unternehmensqualität reicht jedoch "
+            "nicht für eine reguläre Kaufempfehlung."
+        )
+
+    elif investment_score >= 55:
         title = "Beobachten"
         icon = "🟡"
         background = "#FFF8E1"
         border = "#D9A514"
         text = (
-            "Die Aktie ist interessant, erfüllt derzeit aber noch "
-            "nicht alle Voraussetzungen für eine klare Kaufempfehlung."
+            "Die Aktie bleibt interessant, die Kombination aus "
+            "Einstiegschance und Unternehmensqualität reicht derzeit "
+            "aber noch nicht für eine Kaufempfehlung."
         )
+
     else:
         title = "Abwarten"
-        icon = "🔴"
-        background = "#FDEEEE"
-        border = "#D9534F"
+        icon = "🟠"
+        background = "#FFF3E8"
+        border = "#E58A2B"
         text = (
-            "Der aktuelle Einstieg erscheint momentan "
+            "Die aktuelle Kombination aus Einstiegschance und "
+            "Unternehmensqualität ist für ein Investment derzeit "
             "nicht attraktiv genug."
         )
+
+    if title == "Klarer Kauf":
+        icon_html = (
+            '<span style="color:#20C77A;">★</span>'
+        )
+    else:
+        icon_html = icon
 
     html = textwrap.dedent(
     f"""
@@ -94,7 +156,7 @@ Investment-Urteil
     font-weight:700;
     margin-top:10px;
 ">
-{icon} {title}
+{icon_html} {title}
 </div>
 
 <div style="
