@@ -393,22 +393,32 @@ def render_quality_section(data: dict) -> None:
             "🔄 Qualitative Analyse aktualisieren (API-Kosten: ca. 1–2 Ct.)",
             key=f"qualitative_research_{data.get('Ticker')}",
         ):
-            with st.spinner(
-                "Qualitative Unternehmensanalyse wird recherchiert ..."
-            ):
-                research_result = (
-                    research_qualitative_quality_with_gemini(
-                        api_key=st.secrets["GEMINI_API_KEY"],
-                        ticker=data.get("Ticker"),
-                        company_name=data.get("Name"),
-                        sector=data.get("Sektor"),
-                        industry=data.get("Branche"),
+            try:
+                with st.spinner(
+                    "Qualitative Unternehmensanalyse wird recherchiert ..."
+                ):
+                    research_result = (
+                        research_qualitative_quality_with_gemini(
+                            api_key=st.secrets["GEMINI_API_KEY"],
+                            ticker=data.get("Ticker"),
+                            company_name=data.get("Name"),
+                            sector=data.get("Sektor"),
+                            industry=data.get("Branche"),
+                        )
                     )
-                )
 
-            st.session_state[
-                "qualitative_research_preview"
-            ] = research_result
+                st.session_state[
+                    "qualitative_research_preview"
+                ] = research_result
+
+            except Exception as exc:
+                st.error(
+                    "Die qualitative Analyse konnte nicht verarbeitet "
+                    "werden. Bitte erneut versuchen."
+                )
+                st.caption(
+                    f"Technischer Hinweis: {type(exc).__name__}"
+                )
 
         research_preview = st.session_state.get(
             "qualitative_research_preview"
