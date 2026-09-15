@@ -417,48 +417,65 @@ def load_company_snapshot(ticker: str) -> dict:
 
     dividend_yield = info.get("dividendYield")
     payout_ratio = info.get("payoutRatio")
+    five_year_avg_dividend_yield = info.get(
+        "fiveYearAvgDividendYield"
+    )
+    dividend_rate = info.get("dividendRate")
+    trailing_dividend_rate = info.get(
+        "trailingAnnualDividendRate"
+    )
+
+    is_non_dividend_payer = (
+        not annual_dividends
+        and dividend_yield in (None, 0)
+        and dividend_rate in (None, 0)
+        and trailing_dividend_rate in (None, 0)
+    )
 
     payout_ratio_points = None
-
-    if payout_ratio is not None:
-        payout_percent = payout_ratio * 100
-
-        if payout_percent > 110:
-            payout_ratio_points = 0
-        elif payout_percent > 90:
-            payout_ratio_points = 1
-        elif payout_percent > 70:
-            payout_ratio_points = 2
-        elif payout_percent > 20:
-            payout_ratio_points = 3
-        elif payout_percent > 0:
-            payout_ratio_points = 2
-        else:
-            payout_ratio_points = 0
-    five_year_avg_dividend_yield = info.get("fiveYearAvgDividendYield")
-    dividend_rate = info.get("dividendRate")
     dividend_yield_points = None
 
-    if (
-        dividend_yield is None
-        and info.get("trailingAnnualDividendRate") == 0
-    ):
+    if is_non_dividend_payer:
         dividend_yield = 0.0
+        payout_ratio_points = None
         dividend_yield_points = None
 
-    if dividend_yield is not None:
-        if dividend_yield >= 5:
-            dividend_yield_points = 5
-        elif dividend_yield >= 4:
-            dividend_yield_points = 4
-        elif dividend_yield >= 3:
-            dividend_yield_points = 3
-        elif dividend_yield >= 2:
-            dividend_yield_points = 2
-        elif dividend_yield > 0:
-            dividend_yield_points = 1
-        else:
-            dividend_yield_points = 0
+    else:
+        if payout_ratio is not None:
+            payout_percent = payout_ratio * 100
+
+            if payout_percent > 110:
+                payout_ratio_points = 0
+            elif payout_percent > 90:
+                payout_ratio_points = 1
+            elif payout_percent > 70:
+                payout_ratio_points = 2
+            elif payout_percent > 20:
+                payout_ratio_points = 3
+            elif payout_percent > 0:
+                payout_ratio_points = 2
+            else:
+                payout_ratio_points = 0
+
+        if (
+            dividend_yield is None
+            and trailing_dividend_rate == 0
+        ):
+            dividend_yield = 0.0
+
+        if dividend_yield is not None:
+            if dividend_yield >= 5:
+                dividend_yield_points = 5
+            elif dividend_yield >= 4:
+                dividend_yield_points = 4
+            elif dividend_yield >= 3:
+                dividend_yield_points = 3
+            elif dividend_yield >= 2:
+                dividend_yield_points = 2
+            elif dividend_yield > 0:
+                dividend_yield_points = 1
+            else:
+                dividend_yield_points = 0
 
     current_price = (
         info.get("currentPrice")
@@ -886,7 +903,10 @@ def load_company_snapshot(ticker: str) -> dict:
 
     dividend_strategy_score = None
 
-    if dividend_available_maximum > 0:
+    if (
+        not is_non_dividend_payer
+        and dividend_available_maximum > 0
+    ):
         dividend_strategy_score = round(
             dividend_available_points
             / dividend_available_maximum
@@ -967,6 +987,11 @@ def load_company_snapshot(ticker: str) -> dict:
         "Kurs": current_price,
         "Währung": info.get("currency"),
         "Dividendenrendite": dividend_yield,
+        "Dividendenstrategie Status": (
+            "Keine Dividende"
+            if is_non_dividend_payer
+            else "Bewertbar"
+        ),
         "Dividendenrendite Punkte": dividend_yield_points,
         "Ausschüttungsquote": payout_ratio,
         "Ausschüttungsquote Punkte": payout_ratio_points,
