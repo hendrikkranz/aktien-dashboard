@@ -53,17 +53,58 @@ def calculate_opportunity_breakdown(data: dict) -> list:
         "historical_forward_pe_median"
     )
 
-    core_points = calculate_forward_pe_core_score(
-        forward_pe,
+    pe_current_year = data.get("KGV GJ +0")
+    pe_next_year = data.get("KGV GJ +1")
+
+    current_year_points = calculate_forward_pe_core_score(
+        pe_current_year,
         valuation_class,
     )
+    next_year_points = calculate_forward_pe_core_score(
+        pe_next_year,
+        valuation_class,
+    )
+
+    if (
+        current_year_points is not None
+        and next_year_points is not None
+    ):
+        core_points = round(
+            0.60 * current_year_points
+            + 0.40 * next_year_points,
+            1,
+        )
+    elif current_year_points is not None:
+        core_points = current_year_points
+    elif next_year_points is not None:
+        core_points = next_year_points
+    else:
+        core_points = calculate_forward_pe_core_score(
+            forward_pe,
+            valuation_class,
+        )
+
+    if (
+        pe_current_year is not None
+        and pe_next_year is not None
+    ):
+        relative_forward_pe = (
+            0.60 * pe_current_year
+            + 0.40 * pe_next_year
+        )
+    elif pe_current_year is not None:
+        relative_forward_pe = pe_current_year
+    elif pe_next_year is not None:
+        relative_forward_pe = pe_next_year
+    else:
+        relative_forward_pe = forward_pe
 
     relative_points = None
     regime_points = None
 
     if valuation_class != "SONDERFALL":
         relative_points = calculate_pe_industry_relative_score(
-            forward_pe,
+            relative_forward_pe,
             industry_forward_pe,
         )
         regime_points = calculate_pe_industry_regime_score(
@@ -77,6 +118,22 @@ def calculate_opportunity_breakdown(data: dict) -> list:
             "Punkte": core_points,
             "Maximum": 24,
             "Bewertungsklasse": valuation_class,
+            "Geschäftsjahr +0": data.get("Geschäftsjahr +0"),
+            "KGV GJ +0": pe_current_year,
+            "EPS GJ +0": data.get("EPS GJ +0"),
+            "Analysten GJ +0": data.get(
+                "Analysten EPS GJ +0"
+            ),
+            "Punkte GJ +0": current_year_points,
+            "Gewicht GJ +0": 0.60,
+            "Geschäftsjahr +1": data.get("Geschäftsjahr +1"),
+            "KGV GJ +1": pe_next_year,
+            "EPS GJ +1": data.get("EPS GJ +1"),
+            "Analysten GJ +1": data.get(
+                "Analysten EPS GJ +1"
+            ),
+            "Punkte GJ +1": next_year_points,
+            "Gewicht GJ +1": 0.40,
         }
     )
 
@@ -85,6 +142,7 @@ def calculate_opportunity_breakdown(data: dict) -> list:
             "Kriterium": "KGV vs. Branche",
             "Punkte": relative_points,
             "Maximum": 3,
+            "Aktien KGV gewichtet": relative_forward_pe,
             "Branchen KGV": industry_forward_pe,
             "Damodaran Branche": pe_benchmark.get(
                 "damodaran_industry"

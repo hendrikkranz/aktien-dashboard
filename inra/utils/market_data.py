@@ -499,6 +499,67 @@ def load_company_snapshot(ticker: str) -> dict:
                 "Analystenziel",
             )
 
+    # Explizite EPS-Konsensschätzungen für das laufende und
+    # das folgende Geschäftsjahr. Daraus werden die KGVs selbst
+    # berechnet, damit der Zeithorizont transparent bleibt.
+    earnings_estimate = None
+
+    try:
+        earnings_estimate = ticker_obj.get_earnings_estimate()
+    except Exception:
+        earnings_estimate = None
+
+    fiscal_year_current = None
+    fiscal_year_next = None
+    eps_current_year = None
+    eps_next_year = None
+    pe_current_year = None
+    pe_next_year = None
+    analysts_current_year = None
+    analysts_next_year = None
+
+    next_fiscal_year_end = info.get("nextFiscalYearEnd")
+
+    if next_fiscal_year_end:
+        try:
+            fiscal_year_current = pd.to_datetime(
+                next_fiscal_year_end,
+                unit="s",
+            ).year
+            fiscal_year_next = fiscal_year_current + 1
+        except (TypeError, ValueError, OverflowError):
+            pass
+
+    if (
+        earnings_estimate is not None
+        and not earnings_estimate.empty
+    ):
+        if "0y" in earnings_estimate.index:
+            row = earnings_estimate.loc["0y"]
+            eps_current_year = row.get("avg")
+            analysts_current_year = row.get("numberOfAnalysts")
+
+        if "+1y" in earnings_estimate.index:
+            row = earnings_estimate.loc["+1y"]
+            eps_next_year = row.get("avg")
+            analysts_next_year = row.get("numberOfAnalysts")
+
+    if (
+        current_price is not None
+        and eps_current_year is not None
+        and not pd.isna(eps_current_year)
+        and eps_current_year > 0
+    ):
+        pe_current_year = current_price / eps_current_year
+
+    if (
+        current_price is not None
+        and eps_next_year is not None
+        and not pd.isna(eps_next_year)
+        and eps_next_year > 0
+    ):
+        pe_next_year = current_price / eps_next_year
+
     forward_pe = info.get("forwardPE")
     forward_pe_manual = False
     forward_pe_metadata = {}
@@ -1005,6 +1066,14 @@ def load_company_snapshot(ticker: str) -> dict:
         "Dividenden jährlich": annual_dividends,
         "KGV": info.get("trailingPE"),
         "Forward KGV": forward_pe,
+        "KGV GJ +0": pe_current_year,
+        "KGV GJ +1": pe_next_year,
+        "EPS GJ +0": eps_current_year,
+        "EPS GJ +1": eps_next_year,
+        "Geschäftsjahr +0": fiscal_year_current,
+        "Geschäftsjahr +1": fiscal_year_next,
+        "Analysten EPS GJ +0": analysts_current_year,
+        "Analysten EPS GJ +1": analysts_next_year,
         "Forward KGV manuell": forward_pe_manual,
         "Forward KGV Metadaten": forward_pe_metadata,
         "Analystenziel": analyst_target,

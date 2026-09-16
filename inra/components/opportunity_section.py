@@ -154,14 +154,19 @@ def _render_opportunity_breakdown(
             "und ab 30 % = 25 Punkte."
         ),
         "Forward KGV": (
-            "Das Forward KGV wird je nach Bewertungsgruppe "
-            "(NIEDRIG, STANDARD oder WACHSTUM) bewertet. "
-            "Dieser Kernbereich liefert maximal 24 Punkte."
+            "Bewertet die KGVs der beiden nächsten verfügbaren "
+            "Geschäftsjahre anhand der Bewertungsgruppe "
+            "(NIEDRIG, STANDARD oder WACHSTUM). "
+            "Das nähere Geschäftsjahr wird mit 60 %, das folgende "
+            "mit 40 % gewichtet. Maximal 24 Punkte."
         ),
         "KGV vs. Branche": (
-            "Vergleicht das Forward KGV der Aktie mit dem "
-            "aktuellen Forward KGV der zugeordneten "
-            "Damodaran-Branche. Maximal 3 Punkte."
+            "Vergleicht das für die KGV-Bewertung verwendete "
+            "Aktien-KGV mit dem aktuellen Forward KGV der "
+            "zugeordneten Damodaran-Branche. Sind beide "
+            "Geschäftsjahre verfügbar, wird das Aktien-KGV "
+            "zu 60 % aus dem näheren und zu 40 % aus dem "
+            "folgenden Geschäftsjahr gebildet. Maximal 3 Punkte."
         ),
         "Branchenbewertung historisch": (
             "Vergleicht das aktuelle Branchen-KGV mit dem "
@@ -186,13 +191,15 @@ def _render_opportunity_breakdown(
             if item["Punkte"] is not None
         )
     )
+    display_buy_score = round(data["Kaufchance"])
+
     if available_maximum == 100:
         expander_title = (
-            f"Warum {data['Kaufchance']} von 100 Punkten?"
+            f"Warum {display_buy_score} von 100 Punkten?"
         )
     else:
         expander_title = (
-            f"Warum {data['Kaufchance']} von "
+            f"Warum {display_buy_score} von "
             f"{available_maximum} verfügbaren Punkten?"
         )
 
@@ -221,12 +228,12 @@ def _render_opportunity_breakdown(
             course_score_display = "Nicht bewertbar"
         elif course_available_maximum < course_maximum:
             course_score_display = (
-                f"{course_total} / "
+                f"{round(course_total)} / "
                 f"{course_available_maximum} verfügbare Punkte"
             )
         else:
             course_score_display = (
-                f"{course_total} / {course_maximum}"
+                f"{round(course_total)} / {course_maximum}"
             )
 
         st.markdown(
@@ -252,8 +259,14 @@ def _render_opportunity_breakdown(
             else:
                 icon = "🔴"
 
+            display_criterion = (
+                "KGV Geschäftsjahre"
+                if criterion == "Forward KGV"
+                else criterion
+            )
+
             st.markdown(
-                f"###### {criterion}"
+                f"###### {display_criterion}"
             )
 
             if points is None:
@@ -265,8 +278,9 @@ def _render_opportunity_breakdown(
                     f"{icon} **{points} Punkte**"
                 )
             else:
+                display_points = round(points)
                 st.markdown(
-                    f"{icon} **{points} von {maximum} Punkten**"
+                    f"{icon} **{display_points} von {maximum} Punkten**"
             )
 
             if criterion == "Langfristiger Trend":
@@ -290,22 +304,61 @@ def _render_opportunity_breakdown(
                 )
 
             if criterion == "Forward KGV":
-                current_value = _format_value(
-                    data.get("Forward KGV")
-                )
-
                 valuation_class = item.get(
                     "Bewertungsklasse"
                 )
 
-                if valuation_class:
-                    class_labels = {
-                        "NIEDRIG": "Niedrig",
-                        "STANDARD": "Standard",
-                        "WACHSTUM": "Wachstum",
-                        "SONDERFALL": "Sonderfall",
-                    }
+                class_labels = {
+                    "NIEDRIG": "Niedrig",
+                    "STANDARD": "Standard",
+                    "WACHSTUM": "Wachstum",
+                    "SONDERFALL": "Sonderfall",
+                }
 
+                year_0 = item.get("Geschäftsjahr +0")
+                pe_0 = item.get("KGV GJ +0")
+                eps_0 = item.get("EPS GJ +0")
+                analysts_0 = item.get("Analysten GJ +0")
+                points_0 = item.get("Punkte GJ +0")
+
+                year_1 = item.get("Geschäftsjahr +1")
+                pe_1 = item.get("KGV GJ +1")
+                eps_1 = item.get("EPS GJ +1")
+                analysts_1 = item.get("Analysten GJ +1")
+                points_1 = item.get("Punkte GJ +1")
+
+                if (
+                    valuation_class == "SONDERFALL"
+                    and pe_0 is not None
+                    and pe_1 is not None
+                ):
+                    current_value = (
+                        f"GJ {year_0}: {_format_value(pe_0)} · "
+                        f"GJ {year_1}: {_format_value(pe_1)}"
+                    )
+                elif pe_0 is not None and pe_1 is not None:
+                    current_value = (
+                        f"GJ {year_0}: {_format_value(pe_0)} "
+                        f"({points_0}/24 · 60 %) · "
+                        f"GJ {year_1}: {_format_value(pe_1)} "
+                        f"({points_1}/24 · 40 %)"
+                    )
+                elif pe_0 is not None:
+                    current_value = (
+                        f"GJ {year_0}: {_format_value(pe_0)} "
+                        f"({points_0}/24)"
+                    )
+                elif pe_1 is not None:
+                    current_value = (
+                        f"GJ {year_1}: {_format_value(pe_1)} "
+                        f"({points_1}/24)"
+                    )
+                else:
+                    current_value = _format_value(
+                        data.get("Forward KGV")
+                    )
+
+                if valuation_class:
                     current_value += (
                         " · Bewertungsgruppe "
                         f"{class_labels.get(valuation_class, valuation_class)}"
@@ -320,7 +373,9 @@ def _render_opportunity_breakdown(
                     else:
                         current_value = "Nicht bewertbar"
                 else:
-                    stock_pe = data.get("Forward KGV")
+                    stock_pe = item.get(
+                        "Aktien KGV gewichtet"
+                    )
                     industry_pe = item.get("Branchen KGV")
                     damodaran_industry = item.get(
                         "Damodaran Branche"
@@ -379,9 +434,30 @@ def _render_opportunity_breakdown(
                     "Keine Daten",
                 )
 
-            st.caption(
-                f"Aktueller Wert: {current_value}"
+            value_label = (
+                "KGV-Bewertung"
+                if criterion == "Forward KGV"
+                else "Aktueller Wert"
             )
+
+            st.caption(
+                f"{value_label}: {current_value}"
+            )
+
+            if (
+                criterion == "Forward KGV"
+                and eps_0 is not None
+                and eps_1 is not None
+                and analysts_0 is not None
+                and analysts_1 is not None
+            ):
+                st.caption(
+                    f"EPS-Konsens: GJ {year_0} "
+                    f"{_format_value(eps_0)} "
+                    f"({int(analysts_0)} Analysten) · "
+                    f"GJ {year_1} {_format_value(eps_1)} "
+                    f"({int(analysts_1)} Analysten)"
+                )
 
             if (
                 criterion == "Analystenpotenzial"
@@ -544,9 +620,23 @@ def _render_opportunity_breakdown(
 
                             st.rerun()
 
-            st.caption(
-                explanations.get(criterion, "")
-            )
+            if (
+                criterion == "Forward KGV"
+                and valuation_class == "SONDERFALL"
+            ):
+                explanation = (
+                    "Die KGVs der verfügbaren Geschäftsjahre "
+                    "werden zur Information angezeigt. Für diesen "
+                    "Sonderfall erfolgt jedoch keine KGV-Bewertung "
+                    "und keine 60/40-Gewichtung."
+                )
+            else:
+                explanation = explanations.get(
+                    criterion,
+                    "",
+                )
+
+            st.caption(explanation)
 
             st.divider()
 
@@ -770,7 +860,7 @@ def _render_opportunity_breakdown(
         st.divider()
 
         st.markdown(
-            f"**Aktuell bewertet: {total} von {available_maximum} verfügbaren Punkten**"
+            f"**Aktuell bewertet: {round(total)} von {available_maximum} verfügbaren Punkten**"
         )
 
         st.caption(
@@ -876,7 +966,7 @@ def render_opportunity_section(
         font-weight:700;
         margin-top:10px;
     ">
-        {buy_score} / {available_maximum}
+        {round(buy_score)} / {available_maximum}
     </div>
 
     <div style="
