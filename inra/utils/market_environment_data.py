@@ -1495,3 +1495,226 @@ def build_broad_dollar_component() -> Dict:
         "coverage": 1.0 if score is not None else 0.0,
         "data": data,
     }
+def load_inflation_series(
+    series_id: str,
+) -> Dict:
+    """
+    Lädt eine monatliche Inflations-Indexreihe von FRED und
+    berechnet YoY-Inflation sowie annualisierte 3M-Dynamik.
+
+    Zusätzlich werden die aktuellen Werte innerhalb der
+    verfügbaren eigenen Historie in Perzentile übersetzt.
+    """
+
+    url = (
+        "https://fred.stlouisfed.org/graph/fredgraph.csv"
+        f"?id={series_id}"
+    )
+
+    try:
+        df = pd.read_csv(url)
+
+        df["observation_date"] = pd.to_datetime(
+            df["observation_date"]
+        )
+        df[series_id] = pd.to_numeric(
+            df[series_id],
+            errors="coerce",
+        )
+
+        df = (
+            df.dropna(subset=[series_id])
+            .sort_values("observation_date")
+        )
+
+        if len(df) < 60:
+            raise ValueError(
+                "Zu wenige gültige Inflationsbeobachtungen."
+            )
+
+        series = (
+            df.set_index("observation_date")[series_id]
+            .sort_index()
+        )
+
+        yoy = series.pct_change(12) * 100.0
+
+        momentum_3m = (
+            (series / series.shift(3)) ** 4 - 1.0
+        ) * 100.0
+
+        yoy_valid = yoy.dropna()
+        momentum_3m_valid = momentum_3m.dropna()
+
+        if yoy_valid.empty or momentum_3m_valid.empty:
+            raise ValueError(
+                "Inflationsänderungen konnten nicht berechnet werden."
+            )
+
+        current_yoy = float(yoy_valid.iloc[-1])
+        current_3m = float(momentum_3m_valid.iloc[-1])
+
+        yoy_percentile = float(
+            (yoy_valid <= current_yoy).mean() * 100.0
+        )
+        momentum_3m_percentile = float(
+            (
+                momentum_3m_valid <= current_3m
+            ).mean()
+            * 100.0
+        )
+
+        return {
+            "series": series_id,
+            "current_value": float(series.iloc[-1]),
+            "yoy_pct": current_yoy,
+            "momentum_3m_annualized_pct": current_3m,
+            "yoy_percentile": yoy_percentile,
+            "momentum_3m_percentile": momentum_3m_percentile,
+            "as_of": series.index[-1],
+            "history_start": series.index[0],
+            "observations": int(len(series)),
+            "error": None,
+        }
+
+    except Exception as exc:
+        return {
+            "series": series_id,
+            "current_value": None,
+            "yoy_pct": None,
+            "momentum_3m_annualized_pct": None,
+            "yoy_percentile": None,
+            "momentum_3m_percentile": None,
+            "as_of": None,
+            "history_start": None,
+            "observations": 0,
+            "error": str(exc),
+        }
+
+def build_inflation_trend_component() -> Dict:
+    """
+    Baut den globalen Inflation-Trend-Frühwarnbaustein
+    mit maximal 5 Punkten.
+
+    V0.1 Regionen:
+    - USA:      50 %
+    - Eurozone: 30 %
+    - China:    20 %
+
+    China bleibt derzeit bewusst ohne Score, da keine ausreichend
+    aktuelle und robuste monatliche Reihe verfügbar ist.
+
+    Verfügbare Regionen werden für den Score normalisiert.
+    Die Coverage zeigt weiterhin die tatsächlich verfügbare
+    regionale Abdeckung.
+
+    USA:
+    - Headline + Core
+
+    Eurozone:
+    - nur Headline bepunktet
+    - Core wird derzeit nicht in den Score einbezogen, da der
+      historische Test keinen überzeugenden zusätzlichen
+      Frühwarnnutzen gezeigt hat.
+    """
+
+    from modules.market_risk_score import (
+        calculate_inflation_region_score,
+    )
+
+    usa_headline = load_inflation_series(
+        "CPIAUCSL"
+    )
+    usa_core = load_inflation_series(
+        "CPILFESL"
+    )
+
+    eurozone_headline = load_inflation_series(
+        "CP00MI15EA20M086NEST"
+    )
+    eurozone_core = load_inflation_series(
+        "TOTNRGFOODEA20MI15XM"
+    )
+
+    usa_score = calculate_inflation_region_score(
+        headline_yoy_percentile=usa_headline[
+            "yoy_percentile"
+        ],
+        headline_3m_percentile=usa_headline[
+            "momentum_3m_percentile"
+        ],
+        core_yoy_percentile=usa_core[
+            "yoy_percentile"
+        ],
+        core_3m_percentile=usa_core[
+            "momentum_3m_percentile"
+        ],
+        max_points=5.0,
+    )
+
+    eurozone_score = calculate_inflation_region_score(
+        headline_yoy_percentile=eurozone_headline[
+            "yoy_percentile"
+        ],
+        headline_3m_percentile=eurozone_headline[
+            "momentum_3m_percentile"
+        ],
+        core_yoy_percentile=None,
+        core_3m_percentile=None,
+        max_points=5.0,
+    )
+
+    regions = {
+        "USA": {
+            "weight": 0.50,
+            "score": usa_score,
+            "headline": usa_headline,
+            "core": usa_core,
+        },
+        "Eurozone": {
+            "weight": 0.30,
+            "score": eurozone_score,
+            "headline": eurozone_headline,
+            "core": eurozone_core,
+            "core_scored": False,
+        },
+        "China": {
+            "weight": 0.20,
+            "score": None,
+            "headline": None,
+            "core": None,
+            "reason": (
+                "Keine ausreichend aktuelle und robuste "
+                "monatliche Inflationsreihe für V0.1."
+            ),
+        },
+    }
+
+    weighted_score = 0.0
+    available_weight = 0.0
+
+    for region in regions.values():
+        score = region["score"]
+        weight = region["weight"]
+
+        if score is None:
+            continue
+
+        weighted_score += score * weight
+        available_weight += weight
+
+    if available_weight == 0.0:
+        score = None
+    else:
+        score = weighted_score / available_weight
+
+    return {
+        "score": (
+            round(score, 4)
+            if score is not None
+            else None
+        ),
+        "max_points": 5.0,
+        "coverage": round(available_weight, 4),
+        "regions": regions,
+    }

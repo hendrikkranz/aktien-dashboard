@@ -1025,6 +1025,142 @@ def calculate_broad_dollar_score(
         max_points,
     )
 
+def calculate_inflation_percentile_risk(
+    percentile: Optional[float],
+) -> Optional[float]:
+    """
+    Übersetzt das historische Perzentil einer Inflationskennzahl
+    in einen Risikowert zwischen 0 und 1.
+
+    V0.1:
+    - < P50:       0.00
+    - P50 bis P75: 0.25
+    - P75 bis P90: 0.50
+    - P90 bis P95: 0.75
+    - >= P95:      1.00
+
+    Die Perzentile werden regions- und kennzahlenspezifisch aus
+    der jeweiligen verfügbaren Historie berechnet.
+    """
+
+    if percentile is None:
+        return None
+
+    if percentile < 50.0:
+        return 0.0
+
+    if percentile < 75.0:
+        return 0.25
+
+    if percentile < 90.0:
+        return 0.50
+
+    if percentile < 95.0:
+        return 0.75
+
+    return 1.0
+
+
+def calculate_inflation_series_risk(
+    yoy_percentile: Optional[float],
+    momentum_3m_percentile: Optional[float],
+) -> Optional[float]:
+    """
+    Berechnet das Risiko einer Inflationsreihe.
+
+    V0.1:
+    - 60 % Inflationsniveau (YoY)
+    - 40 % kurzfristige Dynamik (3M annualisiert)
+
+    Fehlende Teilkomponenten werden innerhalb der verfügbaren
+    Gewichte normalisiert.
+    """
+
+    components = [
+        (
+            calculate_inflation_percentile_risk(
+                yoy_percentile,
+            ),
+            0.60,
+        ),
+        (
+            calculate_inflation_percentile_risk(
+                momentum_3m_percentile,
+            ),
+            0.40,
+        ),
+    ]
+
+    weighted_risk = 0.0
+    available_weight = 0.0
+
+    for risk, weight in components:
+        if risk is None:
+            continue
+
+        weighted_risk += risk * weight
+        available_weight += weight
+
+    if available_weight == 0.0:
+        return None
+
+    return weighted_risk / available_weight
+
+
+def calculate_inflation_region_score(
+    headline_yoy_percentile: Optional[float],
+    headline_3m_percentile: Optional[float],
+    core_yoy_percentile: Optional[float] = None,
+    core_3m_percentile: Optional[float] = None,
+    max_points: float = 5.0,
+) -> Optional[float]:
+    """
+    Berechnet den regionalen Inflation-Trend-Score.
+
+    V0.1:
+    - Headline Inflation: 75 %
+    - Core Inflation:     25 %
+
+    Core ist optional. Wenn Core fachlich nicht verwendet wird
+    oder nicht verfügbar ist, erhält Headline das volle verfügbare
+    Gewicht. Fehlende Daten werden niemals als 0 Risiko behandelt.
+    """
+
+    headline_risk = calculate_inflation_series_risk(
+        headline_yoy_percentile,
+        headline_3m_percentile,
+    )
+
+    core_risk = calculate_inflation_series_risk(
+        core_yoy_percentile,
+        core_3m_percentile,
+    )
+
+    components = [
+        (headline_risk, 0.75),
+        (core_risk, 0.25),
+    ]
+
+    weighted_risk = 0.0
+    available_weight = 0.0
+
+    for risk, weight in components:
+        if risk is None:
+            continue
+
+        weighted_risk += risk * weight
+        available_weight += weight
+
+    if available_weight == 0.0:
+        return None
+
+    normalized_risk = weighted_risk / available_weight
+
+    return _clamp(
+        normalized_risk * max_points,
+        0.0,
+        max_points,
+    )
 
 def calculate_block_score(
     component_scores: Dict[str, Optional[float]],
