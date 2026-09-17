@@ -1718,3 +1718,132 @@ def build_inflation_trend_component() -> Dict:
         "coverage": round(available_weight, 4),
         "regions": regions,
     }
+
+def load_initial_jobless_claims() -> Dict[str, object]:
+    """
+    Lädt die wöchentlichen US Initial Jobless Claims von FRED.
+
+    V0.1-Signal:
+    4-Wochen-Durchschnitt relativ zu seinem niedrigsten
+    Stand der vergangenen 52 Wochen.
+    """
+
+    series_id = "ICSA"
+    url = (
+        "https://fred.stlouisfed.org/graph/fredgraph.csv"
+        f"?id={series_id}"
+    )
+
+    try:
+        df = pd.read_csv(url)
+
+        df["observation_date"] = pd.to_datetime(
+            df["observation_date"],
+            errors="coerce",
+        )
+        df[series_id] = pd.to_numeric(
+            df[series_id],
+            errors="coerce",
+        )
+
+        df = (
+            df.dropna(
+                subset=["observation_date", series_id]
+            )
+            .sort_values("observation_date")
+            .reset_index(drop=True)
+        )
+
+        df["ma4"] = (
+            df[series_id]
+            .rolling(window=4, min_periods=4)
+            .mean()
+        )
+
+        df["low52"] = (
+            df["ma4"]
+            .rolling(window=52, min_periods=52)
+            .min()
+        )
+
+        df["rise_from_52w_low_pct"] = (
+            df["ma4"] / df["low52"] - 1.0
+        ) * 100.0
+
+        valid = df.dropna(
+            subset=["rise_from_52w_low_pct"]
+        )
+
+        if valid.empty:
+            raise ValueError(
+                "Keine ausreichenden ICSA-Daten "
+                "für das 52-Wochen-Signal."
+            )
+
+        latest = valid.iloc[-1]
+
+        return {
+            "series_id": series_id,
+            "value": float(latest[series_id]),
+            "ma4": float(latest["ma4"]),
+            "low52": float(latest["low52"]),
+            "rise_from_52w_low_pct": float(
+                latest["rise_from_52w_low_pct"]
+            ),
+            "as_of": latest["observation_date"],
+            "history_start": df[
+                "observation_date"
+            ].iloc[0],
+            "observations": int(len(df)),
+            "error": None,
+        }
+
+    except Exception as exc:
+        return {
+            "series_id": series_id,
+            "value": None,
+            "ma4": None,
+            "low52": None,
+            "rise_from_52w_low_pct": None,
+            "as_of": None,
+            "history_start": None,
+            "observations": 0,
+            "error": str(exc),
+        }
+
+
+def build_initial_jobless_claims_component() -> Dict[str, object]:
+    """
+    Baut die V0.1-Komponente Initial Jobless Claims.
+
+    US-only Frühwarnindikator mit maximal 3 Risikopunkten.
+    """
+
+    from modules.market_risk_score import (
+        calculate_initial_jobless_claims_score,
+    )
+
+    data = load_initial_jobless_claims()
+
+    score = calculate_initial_jobless_claims_score(
+        rise_from_52w_low_pct=data[
+            "rise_from_52w_low_pct"
+        ],
+        max_points=3.0,
+    )
+
+    return {
+        "score": (
+            round(score, 4)
+            if score is not None
+            else None
+        ),
+        "max_points": 3.0,
+        "coverage": (
+            1.0
+            if score is not None
+            else 0.0
+        ),
+        "region": "USA",
+        "data": data,
+    }

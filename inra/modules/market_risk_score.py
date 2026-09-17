@@ -36,7 +36,7 @@ MARKET_RISK_WEIGHTS = {
         "oecd_cli": 7.0,
         "broad_dollar": 5.0,
         "inflation_trend": 5.0,
-        "seasonality": 3.0,
+        "initial_jobless_claims": 3.0,
     },
     "fall_height": {
         "valuation": 10.0,
@@ -1161,6 +1161,44 @@ def calculate_inflation_region_score(
         0.0,
         max_points,
     )
+
+
+def calculate_initial_jobless_claims_score(
+    rise_from_52w_low_pct: Optional[float],
+    max_points: float = 3.0,
+) -> Optional[float]:
+    """
+    Bewertet die Verschlechterung der US Initial Jobless Claims.
+
+    Grundlage ist der 4-Wochen-Durchschnitt der Erstanträge relativ
+    zu seinem niedrigsten Stand der vergangenen 52 Wochen.
+
+    V0.1 ist bewusst nicht monoton:
+    Der historische Test zeigt die stärkste Frühwarnwirkung bei einer
+    Verschlechterung um etwa 20 bis 50 Prozent. Bei noch höheren Werten
+    ist die Arbeitsmarktverschlechterung häufig bereits weit fortgeschritten.
+    """
+
+    if rise_from_52w_low_pct is None:
+        return None
+
+    if rise_from_52w_low_pct < 10.0:
+        risk = 0.0
+    elif rise_from_52w_low_pct < 20.0:
+        risk = 0.5 / 3.0
+    elif rise_from_52w_low_pct < 30.0:
+        risk = 1.0
+    elif rise_from_52w_low_pct < 50.0:
+        risk = 2.0 / 3.0
+    else:
+        risk = 1.0 / 3.0
+
+    return _clamp(
+        risk * max_points,
+        0.0,
+        max_points,
+    )
+
 
 def calculate_block_score(
     component_scores: Dict[str, Optional[float]],
