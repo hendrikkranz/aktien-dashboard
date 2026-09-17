@@ -58,6 +58,29 @@ CREDIT_STRESS_REGIONS = {
 }
 
 
+
+VOLATILITY_STRESS_REGIONS = {
+    "usa": {
+        "name": "USA",
+        "series_name": "CBOE Volatility Index (VIX)",
+        "fred_id": "VIXCLS",
+        "weight": 0.50,
+    },
+    "europe": {
+        "name": "Europa",
+        "series_name": "EURO STOXX 50 Volatility (VSTOXX)",
+        "fred_id": None,
+        "weight": 0.30,
+    },
+    "em": {
+        "name": "Emerging Markets",
+        "series_name": "CBOE Emerging Markets ETF Volatility Index (VXEEM)",
+        "fred_id": "VXEEMCLS",
+        "weight": 0.20,
+    },
+}
+
+
 def load_fred_series(
     fred_id: str,
 ) -> pd.DataFrame:
@@ -151,6 +174,46 @@ def calculate_credit_stress_metrics(
     }
 
 
+
+def calculate_volatility_stress_metrics(
+    history: pd.DataFrame,
+) -> Optional[Dict[str, float]]:
+    """
+    Berechnet die Rohkennzahlen einer Volatilitätsreihe.
+
+    Benötigt mindestens 61 gültige Beobachtungen für:
+    - aktuelles Volatilitätsniveau
+    - Perzentil innerhalb der verfügbaren Historie
+    - Veränderung über 20 Handelstage
+    - Veränderung über 60 Handelstage
+
+    Die eigentliche Risikobewertung erfolgt separat
+    in modules/market_risk_score.py.
+    """
+
+    if history.empty or len(history) < 61:
+        return None
+
+    values = history["Wert"]
+
+    current = float(values.iloc[-1])
+    value_20d = float(values.iloc[-21])
+    value_60d = float(values.iloc[-61])
+
+    percentile = float(
+        (values <= current).mean() * 100
+    )
+
+    return {
+        "volatility_level": current,
+        "percentile_history": percentile,
+        "change_20d": current - value_20d,
+        "change_60d": current - value_60d,
+        "as_of": history.iloc[-1]["Datum"],
+        "observations": int(len(history)),
+    }
+
+
 def load_credit_stress_data() -> Dict[str, dict]:
     """
     Lädt die Credit-Stress-Rohdaten für USA und Europa.
@@ -173,6 +236,45 @@ def load_credit_stress_data() -> Dict[str, dict]:
         metrics = calculate_credit_stress_metrics(
             history,
         )
+
+        results[region_key] = {
+            **config,
+            "available": metrics is not None,
+            "metrics": metrics,
+        }
+
+    return results
+
+
+
+def load_volatility_stress_data() -> Dict[str, dict]:
+    """
+    Lädt die Volatility-Stress-Rohdaten.
+
+    Regionale Zielabdeckung V0.1:
+    - USA / VIX: 50 %
+    - Europa / VSTOXX: 30 %
+    - Emerging Markets / VXEEM: 20 %
+
+    VSTOXX bleibt nicht verfügbar, solange keine robuste,
+    automatisierbare Datenquelle eingebunden ist.
+    Fehlende Daten werden nicht als 0 Risiko interpretiert.
+    """
+
+    results = {}
+
+    for region_key, config in VOLATILITY_STRESS_REGIONS.items():
+        fred_id = config.get("fred_id")
+
+        if fred_id is None:
+            metrics = None
+        else:
+            history = load_fred_series(
+                fred_id,
+            )
+            metrics = calculate_volatility_stress_metrics(
+                history,
+            )
 
         results[region_key] = {
             **config,
@@ -331,6 +433,77 @@ def build_market_trend_component(
             else None
         ),
         "max_points": 14.0,
+        "coverage": round(available_weight, 4),
+        "regions": regional_data,
+    }
+
+
+
+def build_volatility_stress_component() -> Dict[str, object]:
+    """
+    Erstellt den vollständigen regional gewichteten
+    Volatility-Stress-Baustein.
+
+    Regionalgewichtung V0.1:
+    - USA / VIX:                  50 %
+    - Europa / VSTOXX:           30 %
+    - Emerging Markets / VXEEM:  20 %
+
+    Je Region:
+    - 80 % aktuelles Volatilitätsniveau
+    - 20 % Volatilitätsdynamik über 20 und 60 Handelstage
+
+    Fehlende Regionen erhalten keine künstlichen 0 Risikopunkte.
+    Die verfügbaren Regionalgewichte werden stattdessen auf 100 %
+    normalisiert. Die tatsächliche Datenabdeckung bleibt separat
+    als coverage sichtbar.
+    """
+
+    from modules.market_risk_score import (
+        calculate_volatility_region_score,
+    )
+
+    regional_data = load_volatility_stress_data()
+
+    weighted_score = 0.0
+    available_weight = 0.0
+
+    for region_key, item in regional_data.items():
+        metrics = item["metrics"]
+
+        if metrics is None:
+            item["risk_score"] = None
+            continue
+
+        risk_score = calculate_volatility_region_score(
+            metrics["percentile_history"],
+            metrics["change_20d"],
+            metrics["change_60d"],
+            max_points=8.0,
+        )
+
+        item["risk_score"] = risk_score
+
+        if risk_score is None:
+            continue
+
+        weight = float(item["weight"])
+
+        weighted_score += risk_score * weight
+        available_weight += weight
+
+    if available_weight == 0:
+        score = None
+    else:
+        score = weighted_score / available_weight
+
+    return {
+        "score": (
+            round(score, 4)
+            if score is not None
+            else None
+        ),
+        "max_points": 8.0,
         "coverage": round(available_weight, 4),
         "regions": regional_data,
     }

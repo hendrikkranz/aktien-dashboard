@@ -255,6 +255,144 @@ def calculate_credit_region_score(
     )
 
 
+
+def calculate_volatility_level_risk(
+    percentile_history: Optional[float],
+) -> Optional[float]:
+    """
+    Bewertet das aktuelle Volatilitätsniveau auf 0 bis 1.
+
+    V0.1 verwendet das langfristige Perzentil der jeweiligen
+    Volatilitätsreihe. Dadurch werden strukturell unterschiedliche
+    Normalniveaus von VIX, VSTOXX und VXEEM berücksichtigt.
+
+    Arbeitsschwellen:
+    - unter P50:  0.00
+    - P50-P75:    0.25
+    - P75-P90:    0.50
+    - P90-P95:    0.75
+    - ab P95:     1.00
+
+    Die Schwellen werden später historisch kalibriert.
+    """
+
+    if percentile_history is None:
+        return None
+
+    percentile = _clamp(
+        float(percentile_history),
+        0.0,
+        100.0,
+    )
+
+    if percentile < 50.0:
+        return 0.0
+    if percentile < 75.0:
+        return 0.25
+    if percentile < 90.0:
+        return 0.50
+    if percentile < 95.0:
+        return 0.75
+
+    return 1.0
+
+
+def calculate_volatility_dynamics_risk(
+    change_20d: Optional[float],
+    change_60d: Optional[float],
+) -> Optional[float]:
+    """
+    Bewertet die Verschlechterungsdynamik der Volatilität auf 0 bis 1.
+
+    Nur steigende Volatilität erhöht das Risiko.
+
+    V0.1-Arbeitsschwellen je Zeitraum:
+    - <= 0:       0.00
+    - < +2.5:     0.20
+    - < +5.0:     0.40
+    - < +8.0:     0.60
+    - < +15.0:    0.80
+    - >= +15.0:   1.00
+
+    20 und 60 Handelstage werden gleich gewichtet.
+    Die Schwellen orientieren sich an den empirisch geprüften
+    Verteilungen von VIX und VXEEM und werden später historisch
+    kalibriert.
+    """
+
+    if change_20d is None or change_60d is None:
+        return None
+
+    def _change_risk(change: float) -> float:
+        if change <= 0.0:
+            return 0.0
+        if change < 2.5:
+            return 0.20
+        if change < 5.0:
+            return 0.40
+        if change < 8.0:
+            return 0.60
+        if change < 15.0:
+            return 0.80
+        return 1.0
+
+    risk_20d = _change_risk(float(change_20d))
+    risk_60d = _change_risk(float(change_60d))
+
+    return round(
+        0.50 * risk_20d
+        + 0.50 * risk_60d,
+        4,
+    )
+
+
+def calculate_volatility_region_score(
+    percentile_history: Optional[float],
+    change_20d: Optional[float],
+    change_60d: Optional[float],
+    max_points: float = 8.0,
+) -> Optional[float]:
+    """
+    Regionaler Volatility-Stress-Score.
+
+    V0.1:
+    - 80 % aktuelles Volatilitätsniveau
+    - 20 % Volatilitätsdynamik
+
+    max_points dient nur zur Skalierung. Die spätere globale
+    Aggregation gewichtet VIX, VSTOXX und VXEEM separat.
+    """
+
+    level_risk = calculate_volatility_level_risk(
+        percentile_history,
+    )
+    dynamics_risk = calculate_volatility_dynamics_risk(
+        change_20d,
+        change_60d,
+    )
+
+    if level_risk is None and dynamics_risk is None:
+        return None
+
+    weighted_risk = 0.0
+    available_weight = 0.0
+
+    if level_risk is not None:
+        weighted_risk += 0.80 * level_risk
+        available_weight += 0.80
+
+    if dynamics_risk is not None:
+        weighted_risk += 0.20 * dynamics_risk
+        available_weight += 0.20
+
+    normalized_risk = weighted_risk / available_weight
+
+    return round(
+        max_points * normalized_risk,
+        4,
+    )
+
+
 def calculate_block_score(
     component_scores: Dict[str, Optional[float]],
     block_name: str,
