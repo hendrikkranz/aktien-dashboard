@@ -393,6 +393,81 @@ def calculate_volatility_region_score(
     )
 
 
+
+def calculate_global_liquidity_percentile_risk(
+    percentile: Optional[float],
+) -> Optional[float]:
+    """
+    Übersetzt die historische Position einer Zentralbank-Bilanzentwicklung
+    in einen Risikofaktor von 0 bis 1.
+
+    Niedrige Perzentile bedeuten ungewöhnlich schwache bzw. restriktive
+    Bilanzentwicklung und damit höheres Liquiditätsrisiko.
+    """
+
+    if percentile is None:
+        return None
+
+    percentile = _clamp(float(percentile), 0.0, 100.0)
+
+    if percentile >= 50.0:
+        return 0.0
+    if percentile >= 25.0:
+        return 0.25
+    if percentile >= 10.0:
+        return 0.50
+    if percentile >= 5.0:
+        return 0.75
+
+    return 1.0
+
+
+def calculate_global_liquidity_region_score(
+    percentile_3m: Optional[float],
+    percentile_12m: Optional[float],
+    max_points: float = 8.0,
+) -> Optional[float]:
+    """
+    Bewertet die Liquiditätsentwicklung einer Zentralbank.
+
+    Gewichtung V0.1:
+    - 12M-Trend: 70 %
+    - 3M-Dynamik: 30 %
+
+    Falls nur einer der beiden Horizonte verfügbar ist, wird der
+    verfügbare Teil auf das volle Komponentenmaximum normalisiert.
+    """
+
+    risk_3m = calculate_global_liquidity_percentile_risk(
+        percentile_3m
+    )
+    risk_12m = calculate_global_liquidity_percentile_risk(
+        percentile_12m
+    )
+
+    weighted_risk = 0.0
+    available_weight = 0.0
+
+    if risk_12m is not None:
+        weighted_risk += risk_12m * 0.70
+        available_weight += 0.70
+
+    if risk_3m is not None:
+        weighted_risk += risk_3m * 0.30
+        available_weight += 0.30
+
+    if available_weight == 0.0:
+        return None
+
+    normalized_risk = weighted_risk / available_weight
+
+    return _clamp(
+        normalized_risk * max_points,
+        0.0,
+        max_points,
+    )
+
+
 def calculate_block_score(
     component_scores: Dict[str, Optional[float]],
     block_name: str,
