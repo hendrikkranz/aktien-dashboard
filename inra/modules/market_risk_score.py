@@ -1200,6 +1200,29 @@ def calculate_initial_jobless_claims_score(
     )
 
 
+def calculate_valuation_cape_score(
+    historical_percentile,
+    max_points=10.0,
+):
+    """Score market valuation risk from the historical CAPE percentile."""
+    if historical_percentile is None:
+        return None
+
+    percentile = _clamp(float(historical_percentile), 0.0, 100.0)
+
+    if percentile < 60.0:
+        risk = 0.0
+    elif percentile < 80.0:
+        risk = 2.0 / 10.0
+    elif percentile < 90.0:
+        risk = 4.0 / 10.0
+    elif percentile < 97.0:
+        risk = 7.0 / 10.0
+    else:
+        risk = 1.0
+
+    return risk * max_points
+
 def calculate_block_score(
     component_scores: Dict[str, Optional[float]],
     block_name: str,

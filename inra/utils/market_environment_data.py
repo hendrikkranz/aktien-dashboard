@@ -7,9 +7,12 @@ Grundprinzipien:
 - Datenbeschaffung und Scoring strikt voneinander trennen
 """
 
+from pathlib import Path
 from typing import Dict, Optional
+import re
 
 import pandas as pd
+import requests
 
 from utils.market_data import load_price_history
 
@@ -1846,4 +1849,382 @@ def build_initial_jobless_claims_component() -> Dict[str, object]:
         ),
         "region": "USA",
         "data": data,
+    }
+
+
+VALUATION_REGIONS = {
+    "USA": {
+        "weight": 0.40,
+    },
+    "Europe": {
+        "weight": 0.25,
+    },
+    "China": {
+        "weight": 0.20,
+    },
+    "Emerging Markets": {
+        "weight": 0.15,
+    },
+}
+
+
+def calculate_historical_percentile(
+    current_value,
+    historical_values,
+) -> Optional[float]:
+    """
+    Berechnet die historische Rangposition eines aktuellen Werts.
+
+    Rückgabe:
+        0.0 bis 100.0 = Anteil der gültigen historischen
+        Beobachtungen, die kleiner oder gleich dem aktuellen Wert sind.
+        None = keine verwertbaren Daten.
+    """
+    if current_value is None:
+        return None
+
+    values = pd.to_numeric(
+        pd.Series(historical_values),
+        errors="coerce",
+    ).dropna()
+
+    if values.empty:
+        return None
+
+    current_value = float(current_value)
+
+    percentile = (
+        (values <= current_value).sum()
+        / len(values)
+        * 100.0
+    )
+
+    return float(percentile)
+
+
+def load_usa_valuation_history(
+    current_trailing_pe=None,
+    current_cape=None,
+) -> Dict[str, object]:
+    """
+    Lädt die historische USA-Bewertungsreferenz nach Shiller
+    und ordnet aktuelle KGV- und CAPE-Werte historisch ein.
+    """
+    path = Path(
+        "data/market_risk/valuation_usa_history.csv"
+    )
+
+    try:
+        df = pd.read_csv(path)
+
+        pe_values = pd.to_numeric(
+            df["trailing_pe"],
+            errors="coerce",
+        ).dropna()
+
+        cape_values = pd.to_numeric(
+            df["cape"],
+            errors="coerce",
+        ).dropna()
+
+        pe_percentile = calculate_historical_percentile(
+            current_trailing_pe,
+            pe_values,
+        )
+
+        cape_percentile = calculate_historical_percentile(
+            current_cape,
+            cape_values,
+        )
+
+        return {
+            "current_trailing_pe": current_trailing_pe,
+            "trailing_pe_percentile": pe_percentile,
+            "current_cape": current_cape,
+            "cape_percentile": cape_percentile,
+            "pe_history_start": (
+                float(df.loc[pe_values.index, "date"].iloc[0])
+                if not pe_values.empty
+                else None
+            ),
+            "pe_history_end": (
+                float(df.loc[pe_values.index, "date"].iloc[-1])
+                if not pe_values.empty
+                else None
+            ),
+            "pe_observations": int(len(pe_values)),
+            "cape_history_start": (
+                float(df.loc[cape_values.index, "date"].iloc[0])
+                if not cape_values.empty
+                else None
+            ),
+            "cape_history_end": (
+                float(df.loc[cape_values.index, "date"].iloc[-1])
+                if not cape_values.empty
+                else None
+            ),
+            "cape_observations": int(len(cape_values)),
+            "source": "Robert J. Shiller",
+            "error": None,
+        }
+
+    except Exception as exc:
+        return {
+            "current_trailing_pe": current_trailing_pe,
+            "trailing_pe_percentile": None,
+            "current_cape": current_cape,
+            "cape_percentile": None,
+            "pe_history_start": None,
+            "pe_history_end": None,
+            "pe_observations": 0,
+            "cape_history_start": None,
+            "cape_history_end": None,
+            "cape_observations": 0,
+            "source": "Robert J. Shiller",
+            "error": str(exc),
+        }
+
+
+def load_current_usa_valuation() -> Dict[str, object]:
+    """
+    Lädt aktuelle USA-Bewertungskennzahlen von Multpl.
+
+    Trailing-KGV und Shiller-CAPE werden unabhängig abgerufen.
+    Fehlende oder nicht mehr parsebare Werte bleiben None.
+    """
+    indicators = {
+        "trailing_pe": {
+            "url": "https://www.multpl.com/s-p-500-pe-ratio",
+            "pattern": (
+                r"Current S&P 500 PE Ratio is "
+                r"([0-9]+(?:\.[0-9]+)?)"
+            ),
+        },
+        "cape": {
+            "url": "https://www.multpl.com/shiller-pe",
+            "pattern": (
+                r"Current Shiller PE Ratio is "
+                r"([0-9]+(?:\.[0-9]+)?)"
+            ),
+        },
+    }
+
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+    }
+
+    result = {
+        "trailing_pe": None,
+        "cape": None,
+        "source": "Multpl",
+        "errors": {},
+    }
+
+    for name, config in indicators.items():
+        try:
+            response = requests.get(
+                config["url"],
+                headers=headers,
+                timeout=15,
+            )
+            response.raise_for_status()
+
+            match = re.search(
+                config["pattern"],
+                response.text,
+            )
+
+            if match is None:
+                raise ValueError(
+                    "Aktueller Wert im HTML nicht gefunden."
+                )
+
+            result[name] = float(match.group(1))
+
+        except Exception as exc:
+            result["errors"][name] = str(exc)
+
+    return result
+
+
+def load_global_cape_valuations() -> Dict[str, object]:
+    """
+    Lädt aktuelle CAPE-Werte und historische CAPE-Perzentile
+    für die Market-Risk-Regionen.
+
+    Technischer Abrufpunkt:
+        Portfolio Lab
+
+    Zugrunde liegende Datenquelle:
+        Research Affiliates Asset Allocation Interactive
+
+    Die Perzentile vergleichen jeden Markt mit seiner eigenen
+    historischen CAPE-Verteilung.
+    """
+    url = "https://www.portfoliolab.app/tools/global-cape-valuations"
+
+    markets = {
+        "USA": "US-Large",
+        "Europe": "Europe",
+        "China": "China",
+        "Emerging Markets": "Emerging-Markets",
+    }
+
+    result = {
+        "regions": {},
+        "source": "Research Affiliates",
+        "retrieval_source": "Portfolio Lab",
+        "url": url,
+        "as_of": None,
+        "frequency": "monthly",
+        "error": None,
+    }
+
+    try:
+        response = requests.get(
+            url,
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=15,
+        )
+        response.raise_for_status()
+        text = response.text
+
+        as_of_match = re.search(
+            r"RESEARCH AFFILIATES,\s*AS OF\s+"
+            r"([A-Z]+\s+\d{1,2},\s+\d{4})",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if as_of_match is not None:
+            result["as_of"] = as_of_match.group(1).title()
+
+        for region, market_id in markets.items():
+            try:
+                start = text.find(f'id="cape-row-{market_id}"')
+
+                if start == -1:
+                    raise ValueError(
+                        f"CAPE-Zeile für {market_id} nicht gefunden."
+                    )
+
+                block = text[start:start + 1800]
+
+                values = re.findall(
+                    r">([0-9]+(?:\.[0-9]+)?)%?<",
+                    block,
+                )
+
+                if len(values) < 2:
+                    raise ValueError(
+                        f"CAPE/Perzentil für {market_id} "
+                        "nicht eindeutig gefunden."
+                    )
+
+                cape = float(values[0])
+                percentile = float(values[1])
+
+                if cape <= 0:
+                    raise ValueError(
+                        f"Unplausibles CAPE für {market_id}: {cape}"
+                    )
+
+                if not 0.0 <= percentile <= 100.0:
+                    raise ValueError(
+                        f"Unplausibles Perzentil für {market_id}: "
+                        f"{percentile}"
+                    )
+
+                result["regions"][region] = {
+                    "cape": cape,
+                    "cape_percentile": percentile,
+                    "market_id": market_id,
+                    "error": None,
+                }
+
+            except Exception as exc:
+                result["regions"][region] = {
+                    "cape": None,
+                    "cape_percentile": None,
+                    "market_id": market_id,
+                    "error": str(exc),
+                }
+
+    except Exception as exc:
+        result["error"] = str(exc)
+
+        for region, market_id in markets.items():
+            result["regions"][region] = {
+                "cape": None,
+                "cape_percentile": None,
+                "market_id": market_id,
+                "error": str(exc),
+            }
+
+    return result
+
+
+def build_global_cape_component() -> Dict[str, object]:
+    """
+    Baut den globalen CAPE-Baustein für Market Risk.
+
+    Regionen und Gewichte:
+        USA               40 %
+        Europe            25 %
+        China             20 %
+        Emerging Markets  15 %
+
+    Jede Region wird anhand ihres historischen CAPE-Perzentils
+    separat bewertet. Fehlende Regionen reduzieren die Coverage;
+    verfügbare Regionen werden auf die vollen 10 Punkte normalisiert.
+    """
+    from modules.market_risk_score import calculate_valuation_cape_score
+
+    data = load_global_cape_valuations()
+
+    regions = {}
+    weighted_score = 0.0
+    available_weight = 0.0
+
+    for region, config in VALUATION_REGIONS.items():
+        weight = config["weight"]
+        values = data["regions"].get(region, {})
+
+        cape = values.get("cape")
+        percentile = values.get("cape_percentile")
+
+        score = calculate_valuation_cape_score(
+            percentile,
+            max_points=10.0,
+        )
+
+        if score is not None:
+            weighted_score += score * weight
+            available_weight += weight
+
+        regions[region] = {
+            "weight": weight,
+            "cape": cape,
+            "cape_percentile": percentile,
+            "score": score,
+            "max_points": 10.0,
+            "error": values.get("error"),
+        }
+
+    if available_weight > 0:
+        score = weighted_score / available_weight
+    else:
+        score = None
+
+    return {
+        "score": score,
+        "max_points": 10.0,
+        "coverage": available_weight,
+        "available_weight": available_weight,
+        "regions": regions,
+        "source": data["source"],
+        "retrieval_source": data["retrieval_source"],
+        "url": data["url"],
+        "as_of": data["as_of"],
+        "frequency": data["frequency"],
+        "error": data["error"],
     }
