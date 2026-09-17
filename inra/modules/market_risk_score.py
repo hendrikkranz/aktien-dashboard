@@ -926,6 +926,106 @@ def calculate_oecd_cli_score(
     )
 
 
+def calculate_broad_dollar_change_risk(
+    change_pct: Optional[float],
+    horizon: str,
+) -> Optional[float]:
+    """
+    Bewertet eine Aufwertung des breiten handelsgewichteten US-Dollars.
+
+    Nur Dollaraufwertungen erzeugen Risikopunkte.
+    Ein fallender oder unveränderter Dollar wird mit 0 bewertet.
+
+    Die Schwellen orientieren sich an den historischen Verteilungen
+    des Fed Broad Dollar Index seit 2006.
+    """
+
+    if change_pct is None:
+        return None
+
+    change_pct = float(change_pct)
+
+    if change_pct <= 0.0:
+        return 0.0
+
+    if horizon == "3m":
+        if change_pct < 2.0:
+            return 0.25
+        if change_pct < 4.5:
+            return 0.50
+        if change_pct < 5.5:
+            return 0.75
+        return 1.0
+
+    if horizon == "6m":
+        if change_pct < 3.3:
+            return 0.25
+        if change_pct < 5.5:
+            return 0.50
+        if change_pct < 7.2:
+            return 0.75
+        return 1.0
+
+    raise ValueError(
+        "horizon muss '3m' oder '6m' sein."
+    )
+
+
+def calculate_broad_dollar_score(
+    change_3m_pct: Optional[float],
+    change_6m_pct: Optional[float],
+    max_points: float = 5.0,
+) -> Optional[float]:
+    """
+    Berechnet den Broad-Dollar-Frühwarnscore.
+
+    V0.1:
+    - 60 % kurzfristige 3M-Dollaraufwertung
+    - 40 % 6M-Persistenz
+
+    Fehlende Horizonte werden innerhalb der verfügbaren Gewichte
+    normalisiert und niemals als 0 Risiko behandelt.
+    """
+
+    components = [
+        (
+            calculate_broad_dollar_change_risk(
+                change_3m_pct,
+                "3m",
+            ),
+            0.60,
+        ),
+        (
+            calculate_broad_dollar_change_risk(
+                change_6m_pct,
+                "6m",
+            ),
+            0.40,
+        ),
+    ]
+
+    weighted_risk = 0.0
+    available_weight = 0.0
+
+    for risk, weight in components:
+        if risk is None:
+            continue
+
+        weighted_risk += risk * weight
+        available_weight += weight
+
+    if available_weight == 0.0:
+        return None
+
+    normalized_risk = weighted_risk / available_weight
+
+    return _clamp(
+        normalized_risk * max_points,
+        0.0,
+        max_points,
+    )
+
+
 def calculate_block_score(
     component_scores: Dict[str, Optional[float]],
     block_name: str,

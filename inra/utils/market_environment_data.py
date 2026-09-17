@@ -1379,3 +1379,119 @@ def build_oecd_cli_component() -> Dict[str, object]:
         "coverage": round(available_weight, 4),
         "regions": cli_data,
     }
+
+
+def load_broad_dollar_data() -> Dict:
+    """
+    Lädt den Fed Broad Dollar Index (DTWEXBGS) von FRED.
+
+    V0.1 verwendet:
+    - 3M-Veränderung für kurzfristigen Dollarstress
+    - 6M-Veränderung für Persistenz
+
+    Die tägliche Reihe wird für die Veränderungsberechnung
+    auf Monatsultimo verdichtet.
+    """
+
+    url = (
+        "https://fred.stlouisfed.org/graph/fredgraph.csv"
+        "?id=DTWEXBGS"
+    )
+
+    try:
+        df = pd.read_csv(url)
+
+        df["observation_date"] = pd.to_datetime(
+            df["observation_date"]
+        )
+        df["DTWEXBGS"] = pd.to_numeric(
+            df["DTWEXBGS"],
+            errors="coerce",
+        )
+
+        df = (
+            df.dropna(subset=["DTWEXBGS"])
+            .sort_values("observation_date")
+        )
+
+        if len(df) < 130:
+            raise ValueError(
+                "Zu wenige gültige Broad-Dollar-Beobachtungen."
+            )
+
+        as_of = df["observation_date"].iloc[-1]
+        history_start = df["observation_date"].iloc[0]
+        current_value = float(df["DTWEXBGS"].iloc[-1])
+
+        monthly = (
+            df.set_index("observation_date")["DTWEXBGS"]
+            .resample("ME")
+            .last()
+            .dropna()
+        )
+
+        if len(monthly) < 7:
+            raise ValueError(
+                "Zu wenige monatliche Broad-Dollar-Beobachtungen."
+            )
+
+        change_3m = (
+            float(monthly.iloc[-1] / monthly.iloc[-4] - 1.0)
+            * 100.0
+        )
+        change_6m = (
+            float(monthly.iloc[-1] / monthly.iloc[-7] - 1.0)
+            * 100.0
+        )
+
+        return {
+            "series": "DTWEXBGS",
+            "current_value": current_value,
+            "change_3m_pct": change_3m,
+            "change_6m_pct": change_6m,
+            "as_of": as_of,
+            "history_start": history_start,
+            "observations": int(len(df)),
+            "error": None,
+        }
+
+    except Exception as exc:
+        return {
+            "series": "DTWEXBGS",
+            "current_value": None,
+            "change_3m_pct": None,
+            "change_6m_pct": None,
+            "as_of": None,
+            "history_start": None,
+            "observations": 0,
+            "error": str(exc),
+        }
+
+
+def build_broad_dollar_component() -> Dict:
+    """
+    Baut den Broad-Dollar-Frühwarnbaustein mit maximal 5 Punkten.
+    """
+
+    from modules.market_risk_score import (
+        calculate_broad_dollar_score,
+    )
+
+    data = load_broad_dollar_data()
+
+    score = calculate_broad_dollar_score(
+        change_3m_pct=data["change_3m_pct"],
+        change_6m_pct=data["change_6m_pct"],
+        max_points=5.0,
+    )
+
+    return {
+        "score": (
+            round(score, 4)
+            if score is not None
+            else None
+        ),
+        "max_points": 5.0,
+        "coverage": 1.0 if score is not None else 0.0,
+        "data": data,
+    }
