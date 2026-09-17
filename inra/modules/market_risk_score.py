@@ -115,6 +115,146 @@ def calculate_market_trend_score(
     return round(max_points * risk_fraction, 4)
 
 
+
+def calculate_credit_level_risk(
+    spread_pct: Optional[float],
+    percentile_3y: Optional[float],
+) -> Optional[float]:
+    """
+    Bewertet das aktuelle High-Yield-Spread-Niveau auf 0 bis 1.
+
+    V0.1 kombiniert:
+    - absolutes Spread-Niveau
+    - Perzentil innerhalb der verfügbaren 3-Jahres-Historie
+
+    Die kurze FRED-Historie entscheidet damit nicht allein über
+    die Einstufung. Die Schwellen werden später historisch kalibriert.
+    """
+
+    if spread_pct is None or percentile_3y is None:
+        return None
+
+    spread = float(spread_pct)
+    percentile = _clamp(float(percentile_3y), 0.0, 100.0)
+
+    if spread < 3.0:
+        absolute_risk = 0.0
+    elif spread < 4.0:
+        absolute_risk = 0.25
+    elif spread < 5.0:
+        absolute_risk = 0.50
+    elif spread < 7.0:
+        absolute_risk = 0.75
+    else:
+        absolute_risk = 1.0
+
+    if percentile < 50.0:
+        percentile_risk = 0.0
+    elif percentile < 75.0:
+        percentile_risk = 0.25
+    elif percentile < 90.0:
+        percentile_risk = 0.50
+    elif percentile < 95.0:
+        percentile_risk = 0.75
+    else:
+        percentile_risk = 1.0
+
+    return round(
+        0.70 * absolute_risk
+        + 0.30 * percentile_risk,
+        4,
+    )
+
+
+def calculate_credit_dynamics_risk(
+    change_20d_pp: Optional[float],
+    change_60d_pp: Optional[float],
+) -> Optional[float]:
+    """
+    Bewertet die Verschlechterungsdynamik des High-Yield-Spreads
+    auf 0 bis 1.
+
+    Positive Veränderungen bedeuten steigende Spreads und damit
+    zunehmenden Kreditstress.
+
+    20 Handelstage und 60 Handelstage werden gleich gewichtet.
+    """
+
+    if change_20d_pp is None or change_60d_pp is None:
+        return None
+
+    def _change_risk(change: float) -> float:
+        if change <= 0.0:
+            return 0.0
+        if change < 0.15:
+            return 0.20
+        if change < 0.30:
+            return 0.40
+        if change < 0.50:
+            return 0.60
+        if change < 1.00:
+            return 0.80
+        return 1.0
+
+    risk_20d = _change_risk(float(change_20d_pp))
+    risk_60d = _change_risk(float(change_60d_pp))
+
+    return round(
+        0.50 * risk_20d
+        + 0.50 * risk_60d,
+        4,
+    )
+
+
+def calculate_credit_region_score(
+    spread_pct: Optional[float],
+    percentile_3y: Optional[float],
+    change_20d_pp: Optional[float],
+    change_60d_pp: Optional[float],
+    max_points: float = 11.0,
+) -> Optional[float]:
+    """
+    Regionaler Credit-Stress-Score.
+
+    V0.1:
+    - 70 % aktuelles Spread-Niveau
+    - 30 % Spread-Dynamik
+
+    max_points dient nur zur Skalierung. Die spätere globale
+    Aggregation gewichtet USA und Europa separat.
+    """
+
+    level_risk = calculate_credit_level_risk(
+        spread_pct,
+        percentile_3y,
+    )
+    dynamics_risk = calculate_credit_dynamics_risk(
+        change_20d_pp,
+        change_60d_pp,
+    )
+
+    if level_risk is None and dynamics_risk is None:
+        return None
+
+    weighted_risk = 0.0
+    available_weight = 0.0
+
+    if level_risk is not None:
+        weighted_risk += 0.70 * level_risk
+        available_weight += 0.70
+
+    if dynamics_risk is not None:
+        weighted_risk += 0.30 * dynamics_risk
+        available_weight += 0.30
+
+    normalized_risk = weighted_risk / available_weight
+
+    return round(
+        max_points * normalized_risk,
+        4,
+    )
+
+
 def calculate_block_score(
     component_scores: Dict[str, Optional[float]],
     block_name: str,
