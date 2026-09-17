@@ -1219,3 +1219,163 @@ def build_yield_curve_component() -> Dict[str, object]:
         "coverage": round(available_weight, 4),
         "series": curve_data,
     }
+
+
+OECD_CLI_REGIONS = {
+    "USA": {
+        "name": "USA",
+        "weight": 0.40,
+    },
+    "G4E": {
+        "name": "Major four European countries",
+        "weight": 0.25,
+    },
+    "CHN": {
+        "name": "China",
+        "weight": 0.20,
+    },
+    "G20": {
+        "name": "G20",
+        "weight": 0.15,
+    },
+}
+
+
+def load_oecd_cli_data() -> Dict[str, object]:
+    """
+    Lädt den OECD Composite Leading Indicator (CLI).
+
+    Offizielle OECD-SDMX-Reihe:
+    - monatlich
+    - amplitude adjusted
+    - USA, G4E, China und G20
+
+    Berechnet je Region:
+    - aktuellen CLI-Wert
+    - Veränderung über 3 Monate
+    - Veränderung über 6 Monate
+
+    Fehlende oder nicht ausreichend lange Reihen bleiben nicht bewertbar.
+    """
+
+    import io
+    import requests
+
+    url = (
+        "https://sdmx.oecd.org/public/rest/v1/data/"
+        "OECD.SDD.STES,DSD_STES@DF_CLI,/"
+        ".M.LI...AA...H"
+    )
+
+    try:
+        response = requests.get(
+            url,
+            headers={"Accept": "text/csv"},
+            timeout=30,
+        )
+        response.raise_for_status()
+
+        raw = pd.read_csv(io.StringIO(response.text))
+
+    except Exception as exc:
+        return {
+            area: {
+                **config,
+                "available": False,
+                "metrics": None,
+                "error": str(exc),
+            }
+            for area, config in OECD_CLI_REGIONS.items()
+        }
+
+    result = {}
+
+    for area, config in OECD_CLI_REGIONS.items():
+        region = (
+            raw[raw["REF_AREA"] == area]
+            [["TIME_PERIOD", "OBS_VALUE"]]
+            .dropna()
+            .sort_values("TIME_PERIOD")
+            .copy()
+        )
+
+        if len(region) < 7:
+            result[area] = {
+                **config,
+                "available": False,
+                "metrics": None,
+                "error": "Nicht genügend OECD-CLI-Beobachtungen.",
+            }
+            continue
+
+        values = region["OBS_VALUE"].astype(float).reset_index(drop=True)
+
+        current_value = float(values.iloc[-1])
+        change_3m = current_value - float(values.iloc[-4])
+        change_6m = current_value - float(values.iloc[-7])
+
+        result[area] = {
+            **config,
+            "available": True,
+            "metrics": {
+                "current_value": current_value,
+                "change_3m": change_3m,
+                "change_6m": change_6m,
+                "as_of": region["TIME_PERIOD"].iloc[-1],
+                "observations": int(len(region)),
+                "history_start": region["TIME_PERIOD"].iloc[0],
+            },
+        }
+
+    return result
+
+
+def build_oecd_cli_component() -> Dict[str, object]:
+    """
+    Erstellt den OECD-CLI-Frühwarnbaustein.
+
+    V0.1:
+    - 50 % Dynamik
+    - 30 % Regime
+    - 20 % globale Breite
+
+    Regionale Grundgewichte:
+    - USA 40 %
+    - G4E 25 %
+    - China 20 %
+    - G20 15 %
+
+    Fehlende Regionen werden nicht als 0 Risiko behandelt.
+    """
+
+    from modules.market_risk_score import calculate_oecd_cli_score
+
+    cli_data = load_oecd_cli_data()
+
+    regional_metrics = {
+        area: item["metrics"]
+        for area, item in cli_data.items()
+        if item["metrics"] is not None
+    }
+
+    score = calculate_oecd_cli_score(
+        regional_metrics=regional_metrics,
+        max_points=7.0,
+    )
+
+    available_weight = sum(
+        item["weight"]
+        for item in cli_data.values()
+        if item["metrics"] is not None
+    )
+
+    return {
+        "score": (
+            round(score, 4)
+            if score is not None
+            else None
+        ),
+        "max_points": 7.0,
+        "coverage": round(available_weight, 4),
+        "regions": cli_data,
+    }

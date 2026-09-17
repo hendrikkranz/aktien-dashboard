@@ -687,6 +687,245 @@ def calculate_yield_curve_series_score(
         max_points,
     )
 
+def calculate_oecd_cli_dynamics_risk(
+    change_3m: Optional[float],
+    change_6m: Optional[float],
+) -> Optional[float]:
+    """
+    Bewertet Stärke und Persistenz der CLI-Bewegung.
+
+    0.0 = klar positive Dynamik
+    1.0 = außergewöhnlich starke negative Dynamik
+
+    3M und 6M werden gleich gewichtet. Die Schwellen orientieren sich
+    an den historischen Verteilungen von USA, G4E, China und G20.
+    """
+
+    def _score_change(change: Optional[float], horizon: str) -> Optional[float]:
+        if change is None:
+            return None
+
+        change = float(change)
+
+        if horizon == "3m":
+            if change >= 0.0:
+                return 0.0
+            if change > -0.25:
+                return 0.25
+            if change > -0.50:
+                return 0.50
+            if change > -0.80:
+                return 0.75
+            return 1.0
+
+        if change >= 0.0:
+            return 0.0
+        if change > -0.50:
+            return 0.25
+        if change > -0.90:
+            return 0.50
+        if change > -1.50:
+            return 0.75
+        return 1.0
+
+    scores = [
+        score
+        for score in [
+            _score_change(change_3m, "3m"),
+            _score_change(change_6m, "6m"),
+        ]
+        if score is not None
+    ]
+
+    if not scores:
+        return None
+
+    return sum(scores) / len(scores)
+
+
+def calculate_oecd_cli_regime_risk(
+    current_value: Optional[float],
+    change_3m: Optional[float],
+) -> Optional[float]:
+    """
+    Bewertet das aktuelle CLI-Regime.
+
+    Historische US-Tests zeigen:
+    - über 100 + fallend: höchste Frühwarnwirkung
+    - unter 100 + fallend: ebenfalls erhöht
+    - über 100 + steigend: niedrig
+    - unter 100 + steigend: niedrigste Frühwarnwirkung
+
+    Das Niveau unter 100 wird deshalb nicht automatisch als hohes
+    Aktienmarktrisiko interpretiert.
+    """
+
+    if current_value is None or change_3m is None:
+        return None
+
+    above_100 = float(current_value) >= 100.0
+    rising = float(change_3m) > 0.0
+
+    if above_100 and rising:
+        return 0.20
+
+    if above_100 and not rising:
+        return 1.00
+
+    if not above_100 and rising:
+        return 0.00
+
+    return 0.85
+
+
+def calculate_oecd_cli_breadth_risk(
+    regional_change_3m: Dict[str, Optional[float]],
+) -> Optional[float]:
+    """
+    Bewertet die globale Breite der CLI-Abschwächung.
+
+    Entscheidend ist der Anteil der verfügbaren Regionen mit
+    negativer 3M-Dynamik. Fehlende Regionen werden nicht als
+    risikofrei behandelt.
+    """
+
+    available = [
+        float(change)
+        for change in regional_change_3m.values()
+        if change is not None
+    ]
+
+    if not available:
+        return None
+
+    falling_share = sum(
+        change < 0.0
+        for change in available
+    ) / len(available)
+
+    if falling_share == 0.0:
+        return 0.0
+
+    if falling_share <= 0.25:
+        return 0.25
+
+    if falling_share <= 0.50:
+        return 0.50
+
+    if falling_share <= 0.75:
+        return 0.75
+
+    return 1.0
+
+
+def calculate_oecd_cli_score(
+    regional_metrics: Dict[str, Dict[str, Optional[float]]],
+    max_points: float = 7.0,
+) -> Optional[float]:
+    """
+    Berechnet den OECD-CLI-Frühwarnscore.
+
+    V0.1:
+    - 50 % Dynamik
+    - 30 % Regime
+    - 20 % globale Breite
+
+    Regionale Gewichte:
+    - USA 40 %
+    - G4E 25 %
+    - China 20 %
+    - G20 15 %
+
+    Fehlende Regionen werden innerhalb der verfügbaren Gewichte
+    normalisiert und niemals als 0 Risiko behandelt.
+    """
+
+    region_weights = {
+        "USA": 0.40,
+        "G4E": 0.25,
+        "CHN": 0.20,
+        "G20": 0.15,
+    }
+
+    weighted_dynamics = 0.0
+    dynamics_weight = 0.0
+
+    weighted_regime = 0.0
+    regime_weight = 0.0
+
+    regional_change_3m = {}
+
+    for region, weight in region_weights.items():
+        metrics = regional_metrics.get(region, {})
+
+        current_value = metrics.get("current_value")
+        change_3m = metrics.get("change_3m")
+        change_6m = metrics.get("change_6m")
+
+        regional_change_3m[region] = change_3m
+
+        dynamics_risk = calculate_oecd_cli_dynamics_risk(
+            change_3m=change_3m,
+            change_6m=change_6m,
+        )
+
+        if dynamics_risk is not None:
+            weighted_dynamics += dynamics_risk * weight
+            dynamics_weight += weight
+
+        regime_risk = calculate_oecd_cli_regime_risk(
+            current_value=current_value,
+            change_3m=change_3m,
+        )
+
+        if regime_risk is not None:
+            weighted_regime += regime_risk * weight
+            regime_weight += weight
+
+    dynamics = (
+        weighted_dynamics / dynamics_weight
+        if dynamics_weight > 0.0
+        else None
+    )
+
+    regime = (
+        weighted_regime / regime_weight
+        if regime_weight > 0.0
+        else None
+    )
+
+    breadth = calculate_oecd_cli_breadth_risk(
+        regional_change_3m
+    )
+
+    components = [
+        (dynamics, 0.50),
+        (regime, 0.30),
+        (breadth, 0.20),
+    ]
+
+    weighted_score = 0.0
+    available_weight = 0.0
+
+    for value, weight in components:
+        if value is None:
+            continue
+
+        weighted_score += value * weight
+        available_weight += weight
+
+    if available_weight == 0.0:
+        return None
+
+    normalized_risk = weighted_score / available_weight
+
+    return _clamp(
+        normalized_risk * max_points,
+        0.0,
+        max_points,
+    )
+
+
 def calculate_block_score(
     component_scores: Dict[str, Optional[float]],
     block_name: str,
