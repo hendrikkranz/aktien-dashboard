@@ -1036,3 +1036,186 @@ def build_global_liquidity_component() -> Dict[str, object]:
         "coverage": round(available_weight, 4),
         "central_banks": central_bank_data,
     }
+def load_yield_curve_data() -> Dict[str, object]:
+    """
+    Lädt und berechnet die Rohdaten für den US-Yield-Curve-Frühwarnindikator.
+
+    V0.1:
+    - 10Y-2Y: FRED T10Y2Y
+    - 10Y-3M: FRED T10Y3M
+    - Monatsdurchschnitte zur robusten Regimeerkennung
+    - substanzielle Inversion:
+      mindestens 3 aufeinanderfolgende Monate <= -0,10 Prozentpunkte
+
+    Die Funktion berechnet noch keinen Risikoscore.
+    """
+
+    from modules.market_risk_score import (
+        find_last_substantial_yield_curve_inversion,
+    )
+
+    series_config = {
+        "10y_2y": {
+            "series_id": "T10Y2Y",
+            "series_name": "10-Year Treasury Minus 2-Year Treasury",
+        },
+        "10y_3m": {
+            "series_id": "T10Y3M",
+            "series_name": "10-Year Treasury Minus 3-Month Treasury",
+        },
+    }
+
+    result = {}
+
+    for key, config in series_config.items():
+        history = load_fred_series(config["series_id"])
+
+        if history.empty:
+            result[key] = {
+                **config,
+                "available": False,
+                "metrics": None,
+            }
+            continue
+
+        clean = (
+            history
+            .dropna(subset=["Datum", "Wert"])
+            .sort_values("Datum")
+        )
+
+        monthly = (
+            clean
+            .set_index("Datum")["Wert"]
+            .resample("ME")
+            .mean()
+            .dropna()
+        )
+
+        if monthly.empty:
+            result[key] = {
+                **config,
+                "available": False,
+                "metrics": None,
+            }
+            continue
+
+        inversion = (
+            find_last_substantial_yield_curve_inversion(monthly)
+        )
+
+        months_since_inversion_end = None
+        resteepening_from_minimum = None
+        inversion_start = None
+        inversion_end = None
+        inversion_duration_months = None
+        inversion_minimum_spread = None
+
+        if inversion is not None:
+            start_index = inversion["start_index"]
+            end_index = inversion["end_index"]
+
+            inversion_start = monthly.index[start_index]
+            inversion_end = monthly.index[end_index]
+            inversion_duration_months = inversion["duration_months"]
+            inversion_minimum_spread = inversion["minimum_spread"]
+
+            months_since_inversion_end = (
+                len(monthly) - 1 - end_index
+            )
+
+            resteepening_from_minimum = (
+                float(monthly.iloc[-1])
+                - float(inversion_minimum_spread)
+            )
+
+        result[key] = {
+            **config,
+            "available": True,
+            "metrics": {
+                "current_spread": float(monthly.iloc[-1]),
+                "as_of": clean["Datum"].iloc[-1],
+                "monthly_as_of": monthly.index[-1],
+                "observations": int(len(clean)),
+                "monthly_observations": int(len(monthly)),
+                "inversion_start": inversion_start,
+                "inversion_end": inversion_end,
+                "inversion_duration_months": inversion_duration_months,
+                "inversion_minimum_spread": inversion_minimum_spread,
+                "months_since_inversion_end": months_since_inversion_end,
+                "resteepening_from_minimum": resteepening_from_minimum,
+            },
+        }
+
+    return result
+
+def build_yield_curve_component() -> Dict[str, object]:
+    """
+    Erstellt den Yield-Curve-Frühwarnbaustein.
+
+    V0.1:
+    - 10Y-3M: 60 %
+    - 10Y-2Y: 40 %
+
+    Je Zinskurve:
+    - 40 % aktueller Kurvenzustand
+    - 60 % Inversions-/Re-Steepening-Regime
+
+    Fehlende Reihen erhalten keine künstlichen 0 Risikopunkte.
+    Verfügbare Gewichte werden auf 100 % normalisiert.
+    """
+
+    from modules.market_risk_score import (
+        calculate_yield_curve_series_score,
+    )
+
+    curve_data = load_yield_curve_data()
+
+    series_weights = {
+        "10y_2y": 0.40,
+        "10y_3m": 0.60,
+    }
+
+    weighted_score = 0.0
+    available_weight = 0.0
+
+    for key, item in curve_data.items():
+        metrics = item["metrics"]
+        weight = series_weights[key]
+
+        item["weight"] = weight
+
+        if metrics is None:
+            item["risk_score"] = None
+            continue
+
+        risk_score = calculate_yield_curve_series_score(
+            metrics["current_spread"],
+            metrics["months_since_inversion_end"],
+            metrics["resteepening_from_minimum"],
+            max_points=7.0,
+        )
+
+        item["risk_score"] = risk_score
+
+        if risk_score is None:
+            continue
+
+        weighted_score += risk_score * weight
+        available_weight += weight
+
+    if available_weight == 0:
+        score = None
+    else:
+        score = weighted_score / available_weight
+
+    return {
+        "score": (
+            round(score, 4)
+            if score is not None
+            else None
+        ),
+        "max_points": 7.0,
+        "coverage": round(available_weight, 4),
+        "series": curve_data,
+    }

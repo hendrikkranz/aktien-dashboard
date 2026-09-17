@@ -467,6 +467,225 @@ def calculate_global_liquidity_region_score(
         max_points,
     )
 
+def is_substantial_yield_curve_inversion(
+    monthly_spreads,
+    threshold: float = -0.10,
+    min_months: int = 3,
+) -> bool:
+    """
+    Erkennt eine substanzielle Zinskurveninversion.
+
+    V0.1:
+    - Monatsdurchschnitt des Spreads <= -0,10 Prozentpunkte
+    - mindestens 3 aufeinanderfolgende Monate
+
+    Kurze Bewegungen knapp unter null gelten damit nicht automatisch
+    als makroökonomisch relevantes Inversionssignal.
+    """
+
+    if monthly_spreads is None or len(monthly_spreads) < min_months:
+        return False
+
+    consecutive_months = 0
+
+    for spread in monthly_spreads:
+        if spread is not None and float(spread) <= threshold:
+            consecutive_months += 1
+
+            if consecutive_months >= min_months:
+                return True
+        else:
+            consecutive_months = 0
+
+    return False
+
+def find_last_substantial_yield_curve_inversion(
+    monthly_spreads,
+    threshold: float = -0.10,
+    min_months: int = 3,
+):
+    """
+    Findet die letzte substanzielle Zinskurveninversion.
+
+    Rückgabe:
+    - start_index
+    - end_index
+    - duration_months
+    - minimum_spread
+
+    Falls keine substanzielle Inversion vorhanden ist: None.
+    """
+
+    if monthly_spreads is None or len(monthly_spreads) < min_months:
+        return None
+
+    phases = []
+    start_index = None
+
+    for index, spread in enumerate(monthly_spreads):
+        is_inverted = (
+            spread is not None
+            and float(spread) <= threshold
+        )
+
+        if is_inverted and start_index is None:
+            start_index = index
+
+        if not is_inverted and start_index is not None:
+            end_index = index - 1
+
+            if end_index - start_index + 1 >= min_months:
+                phases.append((start_index, end_index))
+
+            start_index = None
+
+    if start_index is not None:
+        end_index = len(monthly_spreads) - 1
+
+        if end_index - start_index + 1 >= min_months:
+            phases.append((start_index, end_index))
+
+    if not phases:
+        return None
+
+    start_index, end_index = phases[-1]
+    phase_values = monthly_spreads.iloc[start_index:end_index + 1]
+
+    return {
+        "start_index": start_index,
+        "end_index": end_index,
+        "duration_months": end_index - start_index + 1,
+        "minimum_spread": float(phase_values.min()),
+    }
+
+def calculate_yield_curve_state_risk(
+    current_spread: Optional[float],
+) -> Optional[float]:
+    """
+    Bewertet den aktuellen Zustand eines Yield-Curve-Spreads
+    als Risikofaktor von 0 bis 1.
+
+    V0.1:
+    > +0,50 pp        -> 0,00
+    0 bis +0,50 pp    -> 0,25
+    0 bis -0,10 pp    -> 0,50
+    -0,10 bis -0,50   -> 0,75
+    <= -0,50 pp       -> 1,00
+
+    Die vorausgegangene Inversion und das Re-Steepening werden
+    separat in der Regime-/Dynamik-Komponente bewertet.
+    """
+
+    if current_spread is None:
+        return None
+
+    spread = float(current_spread)
+
+    if spread > 0.50:
+        return 0.0
+    if spread >= 0.0:
+        return 0.25
+    if spread > -0.10:
+        return 0.50
+    if spread > -0.50:
+        return 0.75
+
+    return 1.0
+
+def calculate_yield_curve_regime_risk(
+    months_since_inversion_end: Optional[int],
+    resteepening_from_minimum: Optional[float],
+) -> Optional[float]:
+    """
+    Bewertet das Yield-Curve-Regime als Risikofaktor von 0 bis 1.
+
+    V0.1:
+    - laufende substanzielle Inversion: 0,75
+    - Post-Inversion bis 36 Monate:
+        Re-Steepening < 0,50 pp  -> 0,25
+        < 1,00 pp                -> 0,50
+        < 2,00 pp                -> 0,75
+        >= 2,00 pp               -> 1,00
+    - mehr als 36 Monate nach Inversionsende: 0,00
+
+    Der Faktor ist ein Frühwarnsignal und keine Crash-Prognose.
+    """
+
+    if (
+        months_since_inversion_end is None
+        or resteepening_from_minimum is None
+    ):
+        return None
+
+    months = int(months_since_inversion_end)
+    resteepening = float(resteepening_from_minimum)
+
+    if months == 0:
+        return 0.75
+
+    if months > 36:
+        return 0.0
+
+    if resteepening < 0.50:
+        return 0.25
+    if resteepening < 1.00:
+        return 0.50
+    if resteepening < 2.00:
+        return 0.75
+
+    return 1.0
+
+def calculate_yield_curve_series_score(
+    current_spread: Optional[float],
+    months_since_inversion_end: Optional[int],
+    resteepening_from_minimum: Optional[float],
+    max_points: float = 7.0,
+) -> Optional[float]:
+    """
+    Berechnet den Risikoscore einer einzelnen Yield-Curve-Reihe.
+
+    V0.1:
+    - 40 % aktueller Kurvenzustand
+    - 60 % Inversions-/Re-Steepening-Regime
+
+    Fehlende Teilkomponenten werden nicht als 0 Risiko behandelt.
+    Ist nur eine Komponente verfügbar, erhält sie das volle Gewicht.
+    """
+
+    state_risk = calculate_yield_curve_state_risk(
+        current_spread
+    )
+
+    regime_risk = calculate_yield_curve_regime_risk(
+        months_since_inversion_end,
+        resteepening_from_minimum,
+    )
+
+    components = [
+        (state_risk, 0.40),
+        (regime_risk, 0.60),
+    ]
+
+    weighted_risk = 0.0
+    available_weight = 0.0
+
+    for risk, weight in components:
+        if risk is None:
+            continue
+
+        weighted_risk += risk * weight
+        available_weight += weight
+
+    if available_weight == 0:
+        return None
+
+    normalized_risk = weighted_risk / available_weight
+
+    return _clamp(
+        normalized_risk * max_points,
+        0.0,
+        max_points,
+    )
 
 def calculate_block_score(
     component_scores: Dict[str, Optional[float]],
