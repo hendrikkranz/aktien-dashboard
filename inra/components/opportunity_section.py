@@ -448,15 +448,26 @@ def _render_opportunity_breakdown(
                 criterion == "Forward KGV"
                 and eps_0 is not None
                 and eps_1 is not None
-                and analysts_0 is not None
-                and analysts_1 is not None
             ):
+                analysts_0_text = (
+                    f"{int(analysts_0)} Analysten"
+                    if analysts_0 is not None
+                    and analysts_0 == analysts_0
+                    else "Analystenzahl nicht verfügbar"
+                )
+                analysts_1_text = (
+                    f"{int(analysts_1)} Analysten"
+                    if analysts_1 is not None
+                    and analysts_1 == analysts_1
+                    else "Analystenzahl nicht verfügbar"
+                )
+
                 st.caption(
                     f"EPS-Konsens: GJ {year_0} "
                     f"{_format_value(eps_0)} "
-                    f"({int(analysts_0)} Analysten) · "
+                    f"({analysts_0_text}) · "
                     f"GJ {year_1} {_format_value(eps_1)} "
-                    f"({int(analysts_1)} Analysten)"
+                    f"({analysts_1_text})"
                 )
 
             if (
