@@ -243,6 +243,7 @@ def load_ecb_series(
 
 
 
+
 def load_boj_series(
     database: str,
     series_id: str,
@@ -2175,7 +2176,7 @@ def build_global_cape_component() -> Dict[str, object]:
 
     Jede Region wird anhand ihres historischen CAPE-Perzentils
     separat bewertet. Fehlende Regionen reduzieren die Coverage;
-    verfügbare Regionen werden auf die vollen 10 Punkte normalisiert.
+    verfügbare Regionen werden auf die vollen 25 Punkte normalisiert.
     """
     from modules.market_risk_score import calculate_valuation_cape_score
 
@@ -2194,7 +2195,7 @@ def build_global_cape_component() -> Dict[str, object]:
 
         score = calculate_valuation_cape_score(
             percentile,
-            max_points=10.0,
+            max_points=25.0,
         )
 
         if score is not None:
@@ -2206,7 +2207,7 @@ def build_global_cape_component() -> Dict[str, object]:
             "cape": cape,
             "cape_percentile": percentile,
             "score": score,
-            "max_points": 10.0,
+            "max_points": 25.0,
             "error": values.get("error"),
         }
 
@@ -2217,7 +2218,7 @@ def build_global_cape_component() -> Dict[str, object]:
 
     return {
         "score": score,
-        "max_points": 10.0,
+        "max_points": 25.0,
         "coverage": available_weight,
         "available_weight": available_weight,
         "regions": regions,
@@ -2227,4 +2228,65 @@ def build_global_cape_component() -> Dict[str, object]:
         "as_of": data["as_of"],
         "frequency": data["frequency"],
         "error": data["error"],
+    }
+
+
+def build_market_risk_snapshot() -> Dict[str, object]:
+    """
+    Baut den vollständigen aktuellen InRA Market Risk Snapshot V0.1.
+
+    Diese Funktion ist die zentrale Schnittstelle zwischen
+    Marktdaten, Komponenten-Scores und Benutzeroberfläche.
+
+    Die Benutzeroberfläche soll keine eigene Scoring-Logik enthalten.
+    """
+
+    from modules.market_risk_score import (
+        calculate_market_risk_score,
+        get_market_risk_label,
+    )
+
+    components = {
+        "market_trend": build_market_trend_component(),
+        "credit_stress": build_credit_stress_component(),
+        "volatility_stress": build_volatility_stress_component(),
+
+        # Für Market Breadth existiert in V0.1 bewusst
+        # noch keine belastbare historische Datenbasis.
+        "market_breadth": None,
+
+        "global_liquidity": build_global_liquidity_component(),
+        "yield_curve": build_yield_curve_component(),
+        "oecd_cli": build_oecd_cli_component(),
+        "broad_dollar": build_broad_dollar_component(),
+        "inflation_trend": build_inflation_trend_component(),
+        "initial_jobless_claims": (
+            build_initial_jobless_claims_component()
+        ),
+
+        "valuation": build_global_cape_component(),
+    }
+
+    component_scores = {
+        name: (
+            component.get("score")
+            if component is not None
+            else None
+        )
+        for name, component in components.items()
+    }
+
+    risk = calculate_market_risk_score(
+        component_scores
+    )
+
+    return {
+        "score": risk["score"],
+        "max_points": risk["max_points"],
+        "label": get_market_risk_label(
+            risk["score"]
+        ),
+        "coverage": risk["coverage"],
+        "blocks": risk["blocks"],
+        "components": components,
     }

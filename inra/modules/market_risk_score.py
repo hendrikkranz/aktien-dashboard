@@ -39,10 +39,7 @@ MARKET_RISK_WEIGHTS = {
         "initial_jobless_claims": 3.0,
     },
     "fall_height": {
-        "valuation": 10.0,
-        "equity_bond_yield_gap": 7.0,
-        "market_concentration": 5.0,
-        "leverage": 3.0,
+        "valuation": 25.0,
     },
 }
 
