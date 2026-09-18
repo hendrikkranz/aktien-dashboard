@@ -2290,3 +2290,93 @@ def build_market_risk_snapshot() -> Dict[str, object]:
         "blocks": risk["blocks"],
         "components": components,
     }
+
+
+def _prepare_market_risk_snapshot_for_json(value):
+    """
+    Bereitet einen Market-Risk-Snapshot für die persistente
+    JSON-Speicherung vor.
+
+    Historische DataFrames werden nicht im UI-Snapshot gespeichert.
+    Zeitstempel werden als ISO-Strings gespeichert.
+    """
+
+    if isinstance(value, pd.DataFrame):
+        return None
+
+    if isinstance(value, pd.Timestamp):
+        return value.isoformat()
+
+    if isinstance(value, dict):
+        return {
+            key: _prepare_market_risk_snapshot_for_json(item)
+            for key, item in value.items()
+        }
+
+    if isinstance(value, (list, tuple)):
+        return [
+            _prepare_market_risk_snapshot_for_json(item)
+            for item in value
+        ]
+
+    return value
+
+
+def save_market_risk_snapshot(
+    path="data/market_risk/latest_snapshot.json",
+):
+    """
+    Berechnet den aktuellen Market-Risk-Snapshot und speichert
+    eine kompakte UI-Version persistent als JSON.
+    """
+
+    import json
+    from pathlib import Path
+
+    from datetime import datetime
+
+    snapshot = build_market_risk_snapshot()
+    snapshot["generated_at"] = datetime.now().astimezone().isoformat(
+        timespec="seconds"
+    )
+    snapshot = _prepare_market_risk_snapshot_for_json(snapshot)
+
+    output_path = Path(path)
+    output_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    output_path.write_text(
+        json.dumps(
+            snapshot,
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    return snapshot
+
+
+def load_market_risk_snapshot(
+    path="data/market_risk/latest_snapshot.json",
+):
+    """
+    Lädt den zuletzt erfolgreich gespeicherten
+    Market-Risk-Snapshot für die Benutzeroberfläche.
+    """
+
+    import json
+    from pathlib import Path
+
+    input_path = Path(path)
+
+    if not input_path.exists():
+        return None
+
+    return json.loads(
+        input_path.read_text(
+            encoding="utf-8",
+        )
+    )
