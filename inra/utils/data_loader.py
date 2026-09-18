@@ -18,6 +18,91 @@ def get_benchmark_cache_timestamp():
 def load_universe() -> pd.DataFrame:
     return pd.read_csv(UNIVERSE_PATH)
 
+def is_ticker_in_universe(ticker: str) -> bool:
+    if not ticker:
+        return False
+
+    universe = load_universe()
+
+    return (
+        universe["Ticker"]
+        .astype(str)
+        .str.upper()
+        .eq(ticker.strip().upper())
+        .any()
+    )
+
+def add_stock_to_universe(
+    name: str,
+    ticker: str,
+    sector=None,
+    industry=None,
+    country=None,
+) -> bool:
+    if not ticker or is_ticker_in_universe(ticker):
+        return False
+
+    row = pd.DataFrame(
+        [
+            {
+                "Name": name or ticker,
+                "Ticker": ticker.strip().upper(),
+                "Sektor": sector,
+                "Branche": industry,
+                "Land": country,
+                "Liste": "Watchlist",
+                "Aktiv": 1,
+            }
+        ]
+    )
+
+    row.to_csv(
+        UNIVERSE_PATH,
+        mode="a",
+        header=False,
+        index=False,
+    )
+
+    return True
+
+def update_stock_in_benchmark_cache(ticker: str) -> dict:
+    from utils.market_data import load_company_snapshot
+
+    if not ticker:
+        raise ValueError("Ticker fehlt.")
+
+    ticker = ticker.strip().upper()
+    data = load_company_snapshot(ticker)
+
+    if BENCHMARK_CACHE_PATH.exists():
+        cache = pd.read_csv(BENCHMARK_CACHE_PATH)
+        cache = cache[
+            ~cache["Ticker"]
+            .astype(str)
+            .str.upper()
+            .eq(ticker)
+        ]
+    else:
+        cache = pd.DataFrame()
+
+    new_row = pd.DataFrame([data])
+
+    if cache.empty:
+        updated_cache = new_row
+    else:
+        updated_cache = pd.concat(
+            [cache, new_row],
+            ignore_index=True,
+        )
+
+    updated_cache.to_csv(
+        BENCHMARK_CACHE_PATH,
+        index=False,
+    )
+
+    return data
+
+
 def load_benchmark_cache() -> pd.DataFrame:
     if not BENCHMARK_CACHE_PATH.exists():
         return pd.DataFrame()

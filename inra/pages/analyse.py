@@ -13,7 +13,12 @@ from components.opportunity_section import (
 from components.quality_section import (
     render_quality_section,
 )
-from utils.data_loader import find_ticker
+from utils.data_loader import (
+    add_stock_to_universe,
+    find_ticker,
+    is_ticker_in_universe,
+    update_stock_in_benchmark_cache,
+)
 from utils.market_data import (
     load_company_snapshot,
     load_price_history,
@@ -136,6 +141,52 @@ if ticker:
             data.get("Währung"),
         )
     )
+
+    watchlist_message = st.session_state.pop(
+        "watchlist_message",
+        None,
+    )
+
+    if watchlist_message:
+        message_type, message_text = watchlist_message
+
+        if message_type == "success":
+            st.success(message_text)
+        else:
+            st.warning(message_text)
+
+    if not is_ticker_in_universe(data["Ticker"]):
+        if st.button(
+            "➕ Zur Watchlist hinzufügen",
+            key=f"add_to_watchlist_{data['Ticker']}",
+        ):
+            added = add_stock_to_universe(
+                name=data["Name"],
+                ticker=data["Ticker"],
+                sector=data.get("Sektor"),
+                industry=data.get("Branche"),
+                country=data.get("Land"),
+            )
+
+            if added:
+                try:
+                    update_stock_in_benchmark_cache(
+                        data["Ticker"]
+                    )
+                    st.session_state["watchlist_message"] = (
+                        "success",
+                        "Aktie wurde zur Watchlist hinzugefügt "
+                        "und für den Scout aufbereitet.",
+                    )
+                except Exception as error:
+                    st.session_state["watchlist_message"] = (
+                        "warning",
+                        "Aktie wurde zur Watchlist hinzugefügt, "
+                        "konnte aber noch nicht für den Scout "
+                        f"aufbereitet werden: {error}",
+                    )
+
+                st.rerun()
 
     col_title, col_period = st.columns([3, 2])
 
