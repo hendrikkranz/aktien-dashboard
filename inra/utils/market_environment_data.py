@@ -2231,6 +2231,399 @@ def build_global_cape_component() -> Dict[str, object]:
     }
 
 
+
+def build_anfcI_under_the_radar() -> Dict[str, object]:
+    """
+    Under-the-Radar-Signal:
+    schnelle Verschärfung der US-Finanzbedingungen.
+
+    Eingefrorene Research-Regel:
+        ANFCI-Veränderung über 13 Wochen > +0,5.
+    """
+    history = load_fred_series("ANFCI")
+
+    if history.empty or len(history) < 14:
+        return {
+            "name": "ANFCI",
+            "status": "unavailable",
+            "label": "Nicht verfügbar",
+            "value": None,
+            "as_of": None,
+            "detail": (
+                "Die ANFCI-Daten konnten nicht ausreichend "
+                "geladen werden."
+            ),
+        }
+
+    history = history.sort_values("Datum").copy()
+    history["change_13w"] = history["Wert"].diff(13)
+
+    latest = history.dropna(
+        subset=["change_13w"]
+    ).iloc[-1]
+
+    value = float(latest["Wert"])
+    change = float(latest["change_13w"])
+    signal = change > 0.5
+
+    return {
+        "name": "ANFCI",
+        "status": "warning" if signal else "normal",
+        "label": (
+            "Schnelle Verschärfung"
+            if signal
+            else "Kein Warnsignal"
+        ),
+        "value": value,
+        "change_13w": change,
+        "as_of": latest["Datum"],
+        "detail": (
+            f"13-Wochen-Veränderung: {change:+.2f}. "
+            "Warnsignal bei mehr als +0,50. "
+            "Das Signal zeigt eine ungewöhnlich schnelle "
+            "Verschärfung der US-Finanzbedingungen."
+        ),
+    }
+
+
+def build_sahm_under_the_radar() -> Dict[str, object]:
+    """
+    Sahm Rule als US-Rezessionsregime.
+
+    Offizielle Schwelle:
+        SAHMREALTIME >= 0,50 Prozentpunkte.
+    """
+    history = load_fred_series("SAHMREALTIME")
+
+    if history.empty:
+        return {
+            "name": "Sahm Rule",
+            "status": "unavailable",
+            "label": "Nicht verfügbar",
+            "value": None,
+            "as_of": None,
+            "detail": (
+                "Die Sahm-Rule-Daten konnten nicht "
+                "geladen werden."
+            ),
+        }
+
+    latest = history.sort_values("Datum").iloc[-1]
+    value = float(latest["Wert"])
+    signal = value >= 0.50
+
+    return {
+        "name": "Sahm Rule",
+        "status": "warning" if signal else "normal",
+        "label": (
+            "Rezessionssignal aktiv"
+            if signal
+            else "Kein Rezessionssignal"
+        ),
+        "value": value,
+        "as_of": latest["Datum"],
+        "detail": (
+            f"Aktueller Wert: {value:.2f}. "
+            "Das US-Rezessionssignal gilt ab 0,50 als aktiv. "
+            "Die Sahm Rule bestätigt eine deutliche "
+            "Arbeitsmarktverschlechterung, ist aber kein "
+            "frühes Börsenwarnsignal."
+        ),
+    }
+
+
+def build_gebert_under_the_radar() -> Dict[str, object]:
+    """
+    Gebert-Indikator für Europa/DAX.
+
+    Festgelegte Komponenten:
+    - Eurozone HICP
+    - letzte tatsächliche EZB-MRO-Zinsänderung
+    - EUR/USD
+    - Saison November bis April
+
+    Regime:
+        3-4 Punkte = positiv
+        0-1 Punkte = negativ
+        2 Punkte   = vorheriges Regime bleibt bestehen
+    """
+    hicp = load_ecb_series(
+        "HICP.M.U2.N.000000.4D0.INX"
+    ).copy()
+
+    mro = load_ecb_series(
+        "FM.B.U2.EUR.4F.KR.MRR.CHG"
+    ).copy()
+
+    fx = load_ecb_series(
+        "EXR.D.USD.EUR.SP00.A"
+    ).copy()
+
+    if hicp.empty or mro.empty or fx.empty:
+        return {
+            "name": "Gebert",
+            "status": "unavailable",
+            "label": "Nicht verfügbar",
+            "value": None,
+            "as_of": None,
+            "detail": (
+                "Mindestens eine benötigte ECB-Reihe "
+                "konnte nicht geladen werden."
+            ),
+        }
+
+    start = pd.Timestamp("1999-01-31")
+    end = min(
+        hicp["Datum"].max() + pd.offsets.MonthEnd(0),
+        fx["Datum"].max() + pd.offsets.MonthEnd(0),
+    )
+
+    monthly = pd.DataFrame({
+        "Datum": pd.date_range(
+            start,
+            end,
+            freq="ME",
+        )
+    })
+
+    # 1. Inflation
+    h = hicp.copy()
+
+    h["available_date"] = (
+        h["Datum"]
+        + pd.offsets.MonthBegin(1)
+        + pd.Timedelta(days=23)
+    )
+
+    h["hicp_yoy_pct"] = (
+        h["Wert"].pct_change(
+            12,
+            fill_method=None,
+        ) * 100
+    )
+
+    h["inflation_point"] = (
+        h["hicp_yoy_pct"]
+        < h["hicp_yoy_pct"].shift(12)
+    ).astype(int)
+
+    h_available = h[
+        [
+            "available_date",
+            "Datum",
+            "Wert",
+            "hicp_yoy_pct",
+            "inflation_point",
+        ]
+    ].rename(
+        columns={
+            "Datum": "hicp_reference_month",
+            "Wert": "hicp_index",
+        }
+    ).sort_values("available_date")
+
+    monthly = pd.merge_asof(
+        monthly.sort_values("Datum"),
+        h_available,
+        left_on="Datum",
+        right_on="available_date",
+        direction="backward",
+    )
+
+    # 2. EZB-MRO: nur tatsächliche Änderungen
+    rate = mro.copy().sort_values("Datum")
+
+    rate = rate.loc[
+        rate["Wert"].abs() > 1e-12
+    ].copy()
+
+    rate["interest_point"] = (
+        rate["Wert"] < 0
+    ).astype(int)
+
+    rate = rate.rename(
+        columns={
+            "Datum": "mro_change_date",
+            "Wert": "mro_change_pp",
+        }
+    )
+
+    monthly = pd.merge_asof(
+        monthly.sort_values("Datum"),
+        rate[
+            [
+                "mro_change_date",
+                "mro_change_pp",
+                "interest_point",
+            ]
+        ],
+        left_on="Datum",
+        right_on="mro_change_date",
+        direction="backward",
+    )
+
+    # 3. EUR/USD
+    fx_monthly = (
+        fx.set_index("Datum")["Wert"]
+        .resample("ME")
+        .last()
+        .dropna()
+        .rename("eurusd")
+        .to_frame()
+    )
+
+    fx_monthly["eurusd_12m_ago"] = (
+        fx_monthly["eurusd"].shift(12)
+    )
+
+    fx_monthly["currency_point"] = (
+        fx_monthly["eurusd"]
+        < fx_monthly["eurusd_12m_ago"]
+    ).astype(int)
+
+    fx_monthly = (
+        fx_monthly
+        .rename_axis("Datum")
+        .reset_index()
+    )
+
+    monthly = pd.merge(
+        monthly,
+        fx_monthly,
+        on="Datum",
+        how="left",
+    )
+
+    # 4. Saison
+    monthly["season_point"] = (
+        monthly["Datum"].dt.month.isin(
+            [11, 12, 1, 2, 3, 4]
+        )
+    ).astype(int)
+
+    component_cols = [
+        "inflation_point",
+        "interest_point",
+        "currency_point",
+        "season_point",
+    ]
+
+    valid = monthly[
+        [
+            "hicp_yoy_pct",
+            "mro_change_pp",
+            "eurusd_12m_ago",
+        ]
+    ].notna().all(axis=1)
+
+    monthly["gebert_points"] = pd.NA
+
+    monthly.loc[
+        valid,
+        "gebert_points",
+    ] = (
+        monthly.loc[
+            valid,
+            component_cols,
+        ].sum(axis=1)
+    )
+
+    # Regime rekonstruieren
+    regime = None
+    regimes = []
+
+    for points in monthly["gebert_points"]:
+        if pd.isna(points):
+            regimes.append(None)
+            continue
+
+        if points >= 3:
+            new_regime = "positiv"
+        elif points <= 1:
+            new_regime = "negativ"
+        else:
+            new_regime = regime
+
+        regime = new_regime
+        regimes.append(regime)
+
+    monthly["gebert_regime"] = regimes
+
+    current = monthly.dropna(
+        subset=["gebert_points", "gebert_regime"]
+    )
+
+    if current.empty:
+        return {
+            "name": "Gebert",
+            "status": "unavailable",
+            "label": "Nicht verfügbar",
+            "value": None,
+            "as_of": None,
+            "detail": (
+                "Der Gebert-Indikator konnte nicht "
+                "vollständig berechnet werden."
+            ),
+        }
+
+    latest = current.iloc[-1]
+    points = int(latest["gebert_points"])
+    regime = latest["gebert_regime"]
+
+    return {
+        "name": "Gebert",
+        "status": (
+            "normal"
+            if regime == "positiv"
+            else "warning"
+        ),
+        "label": (
+            "Positives Europa-Regime"
+            if regime == "positiv"
+            else "Negatives Europa-Regime"
+        ),
+        "value": points,
+        "regime": regime,
+        "as_of": latest["Datum"],
+        "detail": (
+            f"{points} von 4 Komponenten positiv. "
+            "3–4 Punkte wechseln ins positive Regime, "
+            "0–1 ins negative; bei 2 Punkten bleibt "
+            "das vorherige Regime bestehen. "
+            "Das Signal ist als ergänzendes "
+            "Europa/DAX-Regime zu verstehen."
+        ),
+    }
+
+
+def build_under_the_radar_snapshot() -> Dict[str, object]:
+    """
+    Experimentelle Zusatzebene außerhalb des
+    eigentlichen InRA Market Risk Scores.
+    """
+    builders = {
+        "anfci": build_anfcI_under_the_radar,
+        "gebert": build_gebert_under_the_radar,
+        "sahm": build_sahm_under_the_radar,
+    }
+
+    result = {}
+
+    for key, builder in builders.items():
+        try:
+            result[key] = builder()
+        except Exception as exc:
+            result[key] = {
+                "status": "unavailable",
+                "label": "Nicht verfügbar",
+                "value": None,
+                "as_of": None,
+                "detail": f"Datenfehler: {exc}",
+            }
+
+    return result
+
+
 def build_market_risk_snapshot() -> Dict[str, object]:
     """
     Baut den vollständigen aktuellen InRA Market Risk Snapshot V0.1.

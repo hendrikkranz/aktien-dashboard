@@ -1234,33 +1234,145 @@ early = blocks["early_warning"]
 fall = blocks["fall_height"]
 
 def render_market_level(icon, title, block, question, description):
-    st.markdown(
-        f"**{icon} {title} — "
-        f"{block['score']:.1f} / {block['max_points']:.0f}**"
+    score = block.get("score")
+    max_points = block.get("max_points")
+
+    normalized_score = (
+        score / max_points * 100
+        if score is not None
+        and max_points is not None
+        and max_points > 0
+        else None
     )
 
-    st.markdown(
-        f"""
-        <div style="
-            font-size: 0.88rem;
-            line-height: 1.45;
-            margin-top: -0.35rem;
-        ">
-            <em>{question}</em> · {description}
-        </div>
-        <div style="
-            font-size: 0.72rem;
-            color: #8b949e;
-            margin-top: 0.15rem;
-            margin-bottom: 0.8rem;
-        ">
-            Abdeckung {block['coverage'] * 100:.0f} %
-            {" · Score auf verfügbare Daten normalisiert"
-             if block["coverage"] < 1 else ""}
-        </div>
-        """,
-        unsafe_allow_html=True,
+    if normalized_score is None:
+        risk_label = "Nicht bewertbar"
+        ring_color = "#8b949e"
+        score_angle = 0
+        score_text = "—"
+    elif normalized_score < 25:
+        risk_label = "Niedrig"
+        ring_color = "#2ea043"
+        score_angle = normalized_score * 3.6
+        score_text = f"{normalized_score:.0f}"
+    elif normalized_score < 45:
+        risk_label = "Moderat"
+        ring_color = "#d6a72d"
+        score_angle = normalized_score * 3.6
+        score_text = f"{normalized_score:.0f}"
+    elif normalized_score < 65:
+        risk_label = "Erhöht"
+        ring_color = "#db6d28"
+        score_angle = normalized_score * 3.6
+        score_text = f"{normalized_score:.0f}"
+    else:
+        risk_label = "Hoch" if normalized_score < 80 else "Sehr hoch"
+        ring_color = "#f85149"
+        score_angle = normalized_score * 3.6
+        score_text = f"{normalized_score:.0f}"
+
+    left_col, gauge_col = st.columns(
+        [5.5, 1],
+        vertical_alignment="center",
     )
+
+    with left_col:
+        st.markdown(
+            f"**{icon} {title} — "
+            f"{score:.1f} / {max_points:.0f}**"
+        )
+
+        st.markdown(
+            f"""
+            <div style="
+                font-size: 0.88rem;
+                line-height: 1.45;
+                margin-top: -0.35rem;
+            ">
+                <em>{question}</em> · {description}
+            </div>
+            <div style="
+                font-size: 0.72rem;
+                color: #8b949e;
+                margin-top: 0.15rem;
+                margin-bottom: 0.8rem;
+            ">
+                Abdeckung {block['coverage'] * 100:.0f} %
+                {" · Score auf verfügbare Daten normalisiert"
+                 if block["coverage"] < 1 else ""}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with gauge_col:
+        st.html(
+            f"""
+            <div style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto;
+                max-width: 100px;
+            ">
+                <div style="
+                    width: 82px;
+                    height: 82px;
+                    border-radius: 50%;
+                    background:
+                        conic-gradient(
+                            {ring_color} 0deg {score_angle:.1f}deg,
+                            #30363d {score_angle:.1f}deg 360deg
+                        );
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    <div style="
+                        width: 68px;
+                        height: 68px;
+                        border-radius: 50%;
+                        background: #0e1117;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                    ">
+                        <div style="
+                            font-size: 1.35rem;
+                            line-height: 1;
+                            font-weight: 750;
+                            color: #fafafa;
+                        ">
+                            {score_text}
+                        </div>
+                        <div style="
+                            font-size: 0.65rem;
+                            color: #8b949e;
+                            margin-top: 0.12rem;
+                        ">
+                            / 100
+                        </div>
+                    </div>
+                </div>
+
+                <div style="
+                    margin-top: 0.3rem;
+                    padding: 0.12rem 0.45rem;
+                    border: 1px solid {ring_color};
+                    border-radius: 999px;
+                    font-size: 0.58rem;
+                    font-weight: 700;
+                    color: #f0f0f0;
+                    white-space: nowrap;
+                ">
+                    <span style="color:{ring_color};">●</span>
+                    {risk_label}
+                </div>
+            </div>
+            """
+        )
 
 
 render_market_level(
@@ -1378,3 +1490,59 @@ st.caption(
     "InRA Market Risk V0.1 · 0 = niedriges allgemeines Marktrisiko · "
     "100 = sehr hohes allgemeines Marktrisiko"
 )
+
+
+st.markdown("### 📡 Under the Radar")
+st.caption(
+    "Ergänzende Markt- und Regimesignale mit eigenständiger "
+    "Informationsbasis. Sie verändern den InRA Market Risk Score "
+    "derzeit bewusst nicht."
+)
+
+from utils.market_environment_data import build_under_the_radar_snapshot
+
+under_radar = build_under_the_radar_snapshot()
+
+for key, title, question in [
+    (
+        "anfci",
+        "ANFCI · US-Finanzbedingungen",
+        "Verschärfen sich die Finanzbedingungen ungewöhnlich schnell?",
+    ),
+    (
+        "gebert",
+        "Gebert-Indikator · Europa/DAX",
+        "Welches Regime zeigen Inflation, Zins, Euro und Saison?",
+    ),
+    (
+        "sahm",
+        "Sahm Rule · US-Rezessionsregime",
+        "Zeigt der US-Arbeitsmarkt bereits eine deutliche Verschlechterung?",
+    ),
+]:
+    item = under_radar.get(key, {})
+
+    status = item.get("status")
+    label = item.get("label", "Nicht verfügbar")
+    detail = item.get("detail", "")
+    as_of = item.get("as_of")
+
+    if status == "warning":
+        icon = "🔴"
+    elif status == "normal":
+        icon = "🟢"
+    else:
+        icon = "⚪"
+
+    if hasattr(as_of, "date"):
+        date_text = as_of.date().isoformat()
+    elif as_of:
+        date_text = str(as_of)[:10]
+    else:
+        date_text = "unbekannt"
+
+    st.markdown(f"**{icon} {title} — {label}**")
+    st.caption(question)
+    st.write(detail)
+    st.caption(f"Datenstand: {date_text}")
+
