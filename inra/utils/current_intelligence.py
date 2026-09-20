@@ -157,6 +157,25 @@ Weitere Regeln:
   wie eine dauerhafte Verbesserung behandelt werden.
 - Strategische Veränderungen mit unklarer Wirkung sind grundsätzlich
   neutral zu behandeln, bis eine belastbare Richtung erkennbar ist.
+- Bei großen Übernahmen, Fusionen, Abspaltungen, Kapitalmaßnahmen oder
+  vergleichbaren strategischen Transformationen darf die Größe oder
+  Materialität des Ereignisses NICHT mit einer positiven Wirkung
+  gleichgesetzt werden. "Transformativ" bedeutet nicht automatisch positiv.
+- Prüfe bei solchen Ereignissen ausdrücklich beide Seiten des Investment Case:
+  strategische Chancen wie Synergien, Wachstum oder Skaleneffekte UND
+  Gegenargumente wie Verwässerung, Integrationsrisiken, höhere Verschuldung,
+  regulatorische Unsicherheit oder eine Veränderung des Geschäfts- und
+  Risikoprofils.
+- Prüfe außerdem eine außergewöhnlich starke unmittelbare Marktreaktion,
+  sofern sie durch belastbare Quellen dokumentiert ist. Die Kursreaktion
+  entscheidet den Event Impact NICHT automatisch, ist aber als relevantes
+  Evidenzsignal zu berücksichtigen und bei erkennbarer Marktskepsis als
+  Gegenposition darzustellen.
+- Ein Event Impact von +5 oder -5 ist bei einem solchen strategischen
+  Großereignis nur angemessen, wenn die Richtung der Veränderung des
+  Investmentbildes trotz wesentlicher Gegenargumente belastbar überwiegt.
+  Bei einem substanziell gemischten oder noch offenen Bild ist 0 oder
+  allenfalls +/-2 vorzuziehen.
 - Trenne bei strategischen Ereignissen strikt zwischen FAKT und
   INTERPRETATION. Beispiel: Eine angekündigte Abspaltung ist ein Fakt;
   mögliche Vorteile durch höheren Streubesitz, größere Eigenständigkeit
@@ -420,7 +439,7 @@ def _build_tavily_queries(
 
     strategic_query = (
         f'"{company_name}" {ticker} '
-        "strategy acquisition divestment spin-off "
+        "strategy acquisition merger divestment spin-off "
         "deconsolidation restructuring regulation "
         "strategic review ongoing"
     )
