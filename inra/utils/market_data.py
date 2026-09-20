@@ -544,6 +544,42 @@ def load_company_snapshot(ticker: str) -> dict:
             eps_next_year = row.get("avg")
             analysts_next_year = row.get("numberOfAnalysts")
 
+    # Yahoo liefert die expliziten EPS-Schätzungen bei manchen
+    # internationalen Aktien/ADRs in einer anderen Währungs- oder
+    # Share-Einheit als den aktuellen Aktienkurs. forwardEps ist
+    # dagegen mit forwardPE und currentPrice konsistent.
+    #
+    # Deshalb wird der +1y-EPS über forwardEps normalisiert und
+    # derselbe Faktor auf den +0y-EPS angewendet.
+    forward_eps_reference = info.get("forwardEps")
+    eps_normalization_factor = None
+
+    if (
+        forward_eps_reference is not None
+        and not pd.isna(forward_eps_reference)
+        and forward_eps_reference > 0
+        and eps_next_year is not None
+        and not pd.isna(eps_next_year)
+        and eps_next_year > 0
+    ):
+        eps_normalization_factor = (
+            forward_eps_reference / eps_next_year
+        )
+
+        eps_current_year = (
+            eps_current_year * eps_normalization_factor
+            if (
+                eps_current_year is not None
+                and not pd.isna(eps_current_year)
+                and eps_current_year > 0
+            )
+            else None
+        )
+
+        eps_next_year = (
+            eps_next_year * eps_normalization_factor
+        )
+
     if (
         current_price is not None
         and eps_current_year is not None
