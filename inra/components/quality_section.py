@@ -781,10 +781,20 @@ def render_quality_section(data: dict) -> None:
                 else "Nicht bewertbar",
             },
             (
-                "Bewertet wird die geglättete Gewinnentwicklung. "
-                "Wenn eine belastbare 3-Jahres-Historie vorliegt, "
-                "kann der Median statt des letzten Einzeljahres "
-                "verwendet werden."
+                (
+                    "Trendbruch: Das jüngste Geschäftsjahr liegt bei "
+                    f"{data.get('Gewinnwachstum Jahresabschluss'):.1f} %. "
+                    "Die positive 3-Jahres-Entwicklung bleibt sichtbar, "
+                    "die Bewertung wird wegen des deutlichen "
+                    "Ergebnisrückgangs begrenzt."
+                )
+                if growth_breakdown.get("earnings_trend_break")
+                else (
+                    "Bewertet wird die geglättete Gewinnentwicklung. "
+                    "Wenn eine belastbare 3-Jahres-Historie vorliegt, "
+                    "kann der Median statt des letzten Einzeljahres "
+                    "verwendet werden."
+                )
             ),
         )
 

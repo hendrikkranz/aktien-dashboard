@@ -341,6 +341,21 @@ def calculate_growth_breakdown(
         earnings_growth
     )
 
+    earnings_trend_break = (
+        income_growth_median is not None
+        and income_growth_median > 0
+        and positive_income_years is not None
+        and positive_income_years >= 2
+        and earnings_growth_annual is not None
+        and earnings_growth_annual <= -15
+    )
+
+    if (
+        earnings_trend_break
+        and earnings_ratio is not None
+    ):
+        earnings_ratio = min(earnings_ratio, 0.35)
+
     weighted_scores = []
 
     if revenue_ratio is not None:
@@ -401,6 +416,7 @@ def calculate_growth_breakdown(
         "revenue_max": revenue_max,
         "earnings_growth": earnings_growth,
         "earnings_ratio": earnings_ratio,
+        "earnings_trend_break": earnings_trend_break,
         "earnings_points": earnings_points,
         "earnings_max": earnings_max,
     }
