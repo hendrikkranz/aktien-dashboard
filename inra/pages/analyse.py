@@ -1,6 +1,8 @@
 import altair as alt
 import streamlit as st
 
+from utils.current_intelligence import get_current_intelligence
+
 from components.investment_decision import (
     render_investment_decision,
 )
@@ -316,6 +318,44 @@ if ticker:
         )
 
         st.divider()
+
+    # Current Intelligence wirkt als begrenztes Overlay auf
+    # die Kaufchance. Nur persistent übernommene Analysen zählen.
+    base_buy_score = data.get(
+        "Kaufchance Basis",
+        data.get("Kaufchance"),
+    )
+
+    ticker = str(
+        data.get("Ticker") or ""
+    ).strip().upper()
+
+    current_intelligence = get_current_intelligence(
+        ticker
+    )
+
+    event_impact = 0
+
+    if isinstance(current_intelligence, dict):
+        proposed_impact = current_intelligence.get(
+            "Event_Impact_Vorschlag",
+            0,
+        )
+
+        if proposed_impact in {-10, -5, -2, 0, 2, 5, 10}:
+            event_impact = proposed_impact
+
+    data["Kaufchance Basis"] = base_buy_score
+    data["Event Impact"] = event_impact
+
+    if base_buy_score is not None:
+        data["Kaufchance"] = max(
+            0,
+            min(
+                100,
+                base_buy_score + event_impact,
+            ),
+        )
 
     render_investment_decision(data)
 

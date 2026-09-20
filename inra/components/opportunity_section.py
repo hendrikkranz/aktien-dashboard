@@ -41,6 +41,11 @@ from modules.opportunity_score import (
 )
 
 from modules.chart_score import calculate_chart_breakdown
+from utils.current_intelligence import (
+    get_current_intelligence,
+    research_current_intelligence_with_gemini,
+    save_current_intelligence,
+)
 
 def _format_value(
     value: Optional[float],
@@ -191,19 +196,43 @@ def _render_opportunity_breakdown(
             if item["Punkte"] is not None
         )
     )
+    base_buy_score = data.get(
+        "Kaufchance Basis",
+        data.get("Kaufchance"),
+    )
+    display_base_score = round(base_buy_score)
     display_buy_score = round(data["Kaufchance"])
+    event_impact = data.get("Event Impact", 0)
 
     if available_maximum == 100:
         expander_title = (
-            f"Warum {display_buy_score} von 100 Punkten?"
+            f"Warum {display_base_score} von "
+            f"100 Basispunkten?"
         )
     else:
         expander_title = (
-            f"Warum {display_buy_score} von "
-            f"{available_maximum} verfügbaren Punkten?"
+            f"Warum {display_base_score} von "
+            f"{available_maximum} verfügbaren Basispunkten?"
         )
 
     with st.expander(expander_title):
+
+        if event_impact:
+            impact_display = (
+                f"+{event_impact}"
+                if event_impact > 0
+                else str(event_impact)
+            )
+            st.markdown(
+                f"**Aktuelle Kaufchance:** "
+                f"{display_base_score} Basis "
+                f"{impact_display} Event Impact "
+                f"→ **{display_buy_score}**"
+            )
+            st.caption(
+                "Der Event Impact ergänzt die "
+                "nachfolgende Basisbewertung."
+            )
 
         course_breakdown = breakdown
 
@@ -878,6 +907,274 @@ def _render_opportunity_breakdown(
             f"Datenabdeckung: {coverage} %"
         )
 
+def _render_current_intelligence(data: dict) -> None:
+    ticker = data.get("Ticker")
+    company_name = (
+        data.get("Name")
+        or data.get("Unternehmen")
+        or ticker
+        or "Unbekannt"
+    )
+
+    preview_key = f"current_intelligence_preview_{ticker}"
+
+    st.markdown("### ⚡ Aktuelle Entwicklungen")
+
+    st.caption(
+        "Aktuelle Nachrichten und strategische Entwicklungen ergänzen "
+        "die bestehende Kaufchance. Der validierte Event Impact fließt "
+        "als begrenzter Zu- oder Abschlag ein."
+    )
+
+    if st.button(
+        "🔄 Aktuelle Entwicklungen analysieren "
+        "(API-Kosten: ca. 1–2 Ct.)",
+        key=f"current_intelligence_update_{ticker}",
+    ):
+        try:
+            with st.spinner(
+                "Aktuelle Entwicklungen werden recherchiert und bewertet …"
+            ):
+                opportunity_breakdown = (
+                    calculate_opportunity_breakdown(data)
+                )
+                chart_breakdown = calculate_chart_breakdown(data)
+
+                chart_points = sum(
+                    item["Punkte"]
+                    for item in chart_breakdown
+                    if item.get("Punkte") is not None
+                )
+
+                chart_maximum = sum(
+                    item["Maximum"]
+                    for item in chart_breakdown
+                    if item.get("Maximum") is not None
+                )
+
+                inra_context = {
+                    "Unternehmensqualität": data.get(
+                        "Unternehmensqualität"
+                    ),
+                    "Qualitative Quality": data.get(
+                        "Qualitative Quality"
+                    ),
+                    "Kaufchance Basis": data.get(
+                        "Kaufchance Basis",
+                        data.get("Kaufchance"),
+                    ),
+                    "Analystenpotenzial Prozent": data.get(
+                        "Analystenpotenzial"
+                    ),
+                    "Forward KGV": data.get("Forward KGV"),
+                    "Charttechnik Punkte": chart_points,
+                    "Charttechnik Maximum": chart_maximum,
+                    "Momentum 3M Prozent": data.get("Momentum 3M"),
+                    "Momentum 6M Prozent": data.get("Momentum 6M"),
+                    "Momentum 12M Prozent": data.get("Momentum 12M"),
+                    "RSI 14": data.get("RSI 14"),
+                    "Abstand 52W Hoch Prozent": data.get(
+                        "Abstand 52W Hoch"
+                    ),
+                    "Kaufchance Breakdown": opportunity_breakdown,
+                    "Charttechnik Breakdown": chart_breakdown,
+                }
+
+                result = research_current_intelligence_with_gemini(
+                    api_key=st.secrets["GEMINI_API_KEY"],
+                    tavily_api_key=st.secrets["TAVILY_API_KEY"],
+                    ticker=ticker,
+                    company_name=company_name,
+                    sector=data.get("Sektor"),
+                    industry=data.get("Branche"),
+                    momentum_3m=data.get("Momentum 3M"),
+                    momentum_6m=data.get("Momentum 6M"),
+                    inra_context=inra_context,
+                )
+
+            st.session_state[preview_key] = result
+
+        except Exception as exc:
+            st.error(
+                "Die aktuellen Entwicklungen konnten nicht "
+                f"analysiert werden: {exc}"
+            )
+            return
+
+    saved_result = get_current_intelligence(ticker)
+    preview_result = st.session_state.get(preview_key)
+
+    if (
+        preview_result is not None
+        and str(
+            preview_result.get("Ticker") or ""
+        ).strip().upper()
+        == str(ticker or "").strip().upper()
+    ):
+        result = preview_result
+        is_preview = True
+    else:
+        result = saved_result
+        is_preview = False
+
+    if not result:
+        st.caption(
+            "Noch keine aktuelle Nachrichtenanalyse gespeichert."
+        )
+        return
+
+    if is_preview:
+        st.info(
+            "Neue Current-Intelligence-Recherche – "
+            "noch nicht gespeichert"
+        )
+
+    analysis_date = result.get("Analyse_Datum")
+
+    if analysis_date:
+        st.caption(
+            f"Stand: {_format_date_de(analysis_date)}"
+        )
+
+    movement = result.get("Kursbewegung") or {}
+
+    st.markdown("#### 📈 Was bewegt die Aktie?")
+
+    if movement.get("Beschreibung"):
+        st.write(movement["Beschreibung"])
+
+    causes = movement.get("Ursachen") or []
+
+    if causes:
+        for index, cause in enumerate(causes[:2], start=1):
+            st.markdown(f"**{index}.** {cause}")
+
+    movement_meta = []
+
+    if movement.get("Zeitraum"):
+        movement_meta.append(movement["Zeitraum"])
+
+    if movement.get("Sicherheit"):
+        movement_meta.append(
+            f"Einordnung: {movement['Sicherheit']}"
+        )
+
+    if movement_meta:
+        st.caption(" · ".join(movement_meta))
+
+    positive = result.get("Positive_Entwicklungen") or []
+    negative = result.get("Negative_Entwicklungen") or []
+
+    col_positive, col_negative = st.columns(2)
+
+    with col_positive:
+        st.markdown("#### 🟢 Rückenwind")
+
+        if not positive:
+            st.caption(
+                "Aktuell kein wesentlicher neuer Rückenwind."
+            )
+
+        for index, item in enumerate(positive, start=1):
+            st.markdown(
+                f"**{index}. {item.get('Titel', 'Entwicklung')}**"
+            )
+
+            if item.get("Beschreibung"):
+                st.write(item["Beschreibung"])
+
+    with col_negative:
+        st.markdown("#### 🔴 Gegenwind")
+
+        if not negative:
+            st.caption(
+                "Aktuell kein wesentlicher neuer Gegenwind."
+            )
+
+        for index, item in enumerate(negative, start=1):
+            st.markdown(
+                f"**{index}. {item.get('Titel', 'Entwicklung')}**"
+            )
+
+            if item.get("Beschreibung"):
+                st.write(item["Beschreibung"])
+
+    open_factors = result.get("Offene_Faktoren") or []
+
+    if open_factors:
+        st.markdown("#### 👀 Darauf kommt es jetzt an")
+
+        for index, item in enumerate(open_factors, start=1):
+            title = item.get(
+                "Titel",
+                "Offener Faktor",
+            )
+            description = item.get("Beschreibung")
+
+            st.markdown(f"**{index}. {title}**")
+
+            if description:
+                st.write(description)
+
+    impact = result.get("Event_Impact_Vorschlag", 0)
+
+    if impact > 0:
+        impact_label = f"+{impact}"
+        impact_icon = "🟢"
+    elif impact < 0:
+        impact_label = str(impact)
+        impact_icon = "🔴"
+    else:
+        impact_label = "0"
+        impact_icon = "⚪"
+
+    if impact == 0:
+        st.markdown("#### ⚪ Event Impact = 0")
+        st.caption(
+            "Nachrichtenlage verändert die Kaufchance nicht."
+        )
+    else:
+        st.markdown(
+            f"#### {impact_icon} Event Impact: "
+            f"{impact_label} Punkte"
+        )
+
+        if result.get("Event_Impact_Begruendung"):
+            st.write(result["Event_Impact_Begruendung"])
+
+    source_count = result.get("Verwendbare_Quellen")
+    strong_count = result.get("Starke_Quellen")
+    source_status = result.get("Event_Impact_Status")
+
+    source_parts = []
+
+    if source_status:
+        source_parts.append(source_status)
+
+    if source_count is not None:
+        source_parts.append(
+            f"{source_count} verwendbare Quellen"
+        )
+
+    if strong_count is not None:
+        source_parts.append(
+            f"{strong_count} starke Quellen"
+        )
+
+    if source_parts:
+        st.caption(" · ".join(source_parts))
+
+    if is_preview:
+        if st.button(
+            "Neue Analyse übernehmen",
+            key=f"save_current_intelligence_{ticker}",
+            type="primary",
+        ):
+            save_current_intelligence(result)
+            del st.session_state[preview_key]
+            st.rerun()
+
+
 def render_opportunity_section(
     data: dict,
 ) -> None:
@@ -953,6 +1250,37 @@ def render_opportunity_section(
             "derzeit nicht attraktiv."
         )
 
+    base_buy_score = data.get("Kaufchance Basis")
+    event_impact = data.get("Event Impact")
+
+    if (
+        base_buy_score is not None
+        and event_impact is not None
+    ):
+        impact_text = (
+            f"+{event_impact}"
+            if event_impact > 0
+            else (
+                "±0"
+                if event_impact == 0
+                else str(event_impact)
+            )
+        )
+
+        overlay_html = f"""
+    <div style="
+        color:#8b949e;
+        font-size:13px;
+        margin-top:12px;
+    ">
+        Basis {round(base_buy_score)}
+        · Event Impact {impact_text}
+        → {round(buy_score)}
+    </div>
+"""
+    else:
+        overlay_html = ""
+
     card = f"""
 <div style="
     background:#1b1f27;
@@ -997,6 +1325,8 @@ def render_opportunity_section(
     ">
         {explanation}
     </div>
+
+    {overlay_html}
 </div>
 """
 
@@ -1006,3 +1336,5 @@ def render_opportunity_section(
         data,
         rating,
     )
+
+    _render_current_intelligence(data)

@@ -7,6 +7,7 @@ from modules.opportunity_score import (
     calculate_opportunity_breakdown,
     get_pe_valuation_class,
 )
+from utils.current_intelligence import get_current_intelligence
 
 def _is_distressed(data: dict) -> bool:
     distress_values = (
@@ -191,3 +192,72 @@ Investment-Urteil
 ).strip()
 
     st.html(html)
+
+    ticker = str(data.get("Ticker") or "").strip().upper()
+
+    current_intelligence = get_current_intelligence(ticker)
+    inra_fazit = (
+        current_intelligence.get("InRA_Fazit")
+        if isinstance(current_intelligence, dict)
+        else None
+    )
+
+    if isinstance(inra_fazit, dict):
+        kernaussage = str(
+            inra_fazit.get("Kernaussage") or ""
+        ).strip()
+        dafuer = str(
+            inra_fazit.get("Dafuer") or ""
+        ).strip()
+        dagegen = str(
+            inra_fazit.get("Dagegen") or ""
+        ).strip()
+        fazit_text = str(
+            inra_fazit.get("Text") or ""
+        ).strip()
+        worauf = str(
+            inra_fazit.get("Worauf_es_ankommt") or ""
+        ).strip()
+
+        if (
+            kernaussage
+            or dafuer
+            or dagegen
+            or fazit_text
+            or worauf
+        ):
+            st.markdown("#### InRA-Fazit")
+
+            if kernaussage:
+                st.markdown(f"**{kernaussage}**")
+
+            if dafuer:
+                st.markdown(
+                    '<span style="color:#9ca3af;'
+                    'font-size:0.9em;font-weight:600;">'
+                    'Was dafür spricht</span><br>'
+                    f'{dafuer}',
+                    unsafe_allow_html=True,
+                )
+
+            if dagegen:
+                st.markdown(
+                    '<span style="color:#9ca3af;'
+                    'font-size:0.9em;font-weight:600;">'
+                    'Was bremst</span><br>'
+                    f'{dagegen}',
+                    unsafe_allow_html=True,
+                )
+
+            # Fallback für ältere gespeicherte Analysen.
+            if fazit_text and not (dafuer or dagegen):
+                st.write(fazit_text)
+
+            if worauf:
+                st.markdown(
+                    '<span style="color:#9ca3af;'
+                    'font-size:0.9em;font-weight:600;">'
+                    'Worauf es jetzt ankommt</span><br>'
+                    f'{worauf}',
+                    unsafe_allow_html=True,
+                )

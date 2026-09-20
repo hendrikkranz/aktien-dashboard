@@ -21,3 +21,6 @@ data/damodaran_pe.xls
 
 # Local raw market-risk source files
 data/market_risk/shiller_ie_data.xls
+
+# Lokale Current-Intelligence-Recherche
+/data/current_intelligence.json
