@@ -140,6 +140,7 @@ def load_momentum_metrics(ticker: str) -> dict:
         "Momentum 6M": None,
         "Momentum 12M": None,
         "RSI 14": None,
+        "Pressure Balance": None,
         "CM MACD": None,
         "CM Signal": None,
         "CM Histogram": None,
@@ -171,6 +172,7 @@ def load_momentum_metrics(ticker: str) -> dict:
         return empty_result
 
     rsi_14 = None
+    pressure_balance = None
     cm_macd = None
     cm_signal = None
     cm_histogram = None
@@ -211,6 +213,75 @@ def load_momentum_metrics(ticker: str) -> dict:
             rsi_14 = 100 - (
                 100 / (1 + relative_strength)
             )
+
+    # Pressure Balance V0.1
+    #
+    # Misst den Kauf-/Verkaufsdruck der letzten 20 Handelstage.
+    # Tagesdruck = Tagesrendite in % * relatives Handelsvolumen.
+    # Die Balance liegt zwischen -1 (Distribution) und
+    # +1 (Akkumulation).
+    if "Volume" in history.columns:
+        pressure_data = history[["Close", "Volume"]].copy()
+
+        pressure_data["Close"] = pd.to_numeric(
+            pressure_data["Close"],
+            errors="coerce",
+        )
+        pressure_data["Volume"] = pd.to_numeric(
+            pressure_data["Volume"],
+            errors="coerce",
+        )
+
+        valid_volume_days = (
+            pressure_data["Volume"].notna()
+            & (pressure_data["Volume"] > 0)
+        ).sum()
+
+        if len(pressure_data) >= 40 and valid_volume_days >= 40:
+            pressure_data["ReturnPct"] = (
+                pressure_data["Close"]
+                .pct_change(fill_method=None)
+                * 100
+            )
+
+            pressure_data["AvgVolume20"] = (
+                pressure_data["Volume"]
+                .rolling(20)
+                .mean()
+            )
+
+            pressure_data["RelativeVolume"] = (
+                pressure_data["Volume"]
+                / pressure_data["AvgVolume20"]
+            )
+
+            pressure_data["Pressure"] = (
+                pressure_data["ReturnPct"]
+                * pressure_data["RelativeVolume"]
+            )
+
+            pressure_last20 = pressure_data.tail(20)
+
+            positive_pressure = pressure_last20.loc[
+                pressure_last20["Pressure"] > 0,
+                "Pressure",
+            ].sum()
+
+            negative_pressure = abs(
+                pressure_last20.loc[
+                    pressure_last20["Pressure"] < 0,
+                    "Pressure",
+                ].sum()
+            )
+
+            total_pressure = (
+                positive_pressure + negative_pressure
+            )
+
+            if total_pressure > 0:
+                pressure_balance = (
+                    positive_pressure - negative_pressure
+                ) / total_pressure
 
     if len(close_prices) >= 35:
         ema_12 = close_prices.ewm(
@@ -278,6 +349,7 @@ def load_momentum_metrics(ticker: str) -> dict:
             251,
         ),
         "RSI 14": rsi_14,
+        "Pressure Balance": pressure_balance,
         "CM MACD": cm_macd,
         "CM Signal": cm_signal,
         "CM Histogram": cm_histogram,
@@ -1152,6 +1224,7 @@ def load_company_snapshot(ticker: str) -> dict:
         "Momentum 6M": momentum["Momentum 6M"],
         "Momentum 12M": momentum["Momentum 12M"],
         "RSI 14": momentum["RSI 14"],
+        "Pressure Balance": momentum["Pressure Balance"],
         "CM MACD": momentum["CM MACD"],
         "CM Signal": momentum["CM Signal"],
         "CM Histogram": momentum["CM Histogram"],

@@ -867,6 +867,39 @@ def _render_opportunity_breakdown(
                         )
                     )
 
+            elif criterion == "Pressure Balance":
+                pressure_balance = data.get("Pressure Balance")
+
+                if pressure_balance is not None:
+                    if pressure_balance >= 0.40:
+                        label = "Sehr starker Kaufdruck"
+                    elif pressure_balance >= 0.20:
+                        label = "Starker Kaufdruck"
+                    elif pressure_balance >= 0.05:
+                        label = "Leichter Kaufdruck"
+                    elif pressure_balance >= -0.10:
+                        label = "Ausgeglichen"
+                    elif pressure_balance >= -0.30:
+                        label = "Leichter Verkaufsdruck"
+                    elif pressure_balance >= -0.50:
+                        label = "Starker Verkaufsdruck"
+                    else:
+                        label = "Sehr starker Verkaufsdruck"
+
+                    st.caption(
+                        "Kurs-/Volumendruck der letzten "
+                        "20 Handelstage"
+                    )
+                    st.markdown(
+                        f"**Pressure Balance: "
+                        f"{pressure_balance:+.2f} · {label}**"
+                    )
+                    st.caption(
+                        "Positive Werte zeigen überwiegenden "
+                        "Kaufdruck, negative Werte überwiegenden "
+                        "Verkaufsdruck. Kursbewegungen mit höherem "
+                        "Handelsvolumen erhalten mehr Gewicht."
+                    )
             st.divider()        
 
         fundamental_total = sum(
@@ -975,6 +1008,9 @@ def _render_current_intelligence(data: dict) -> None:
                     "RSI 14": data.get("RSI 14"),
                     "Abstand 52W Hoch Prozent": data.get(
                         "Abstand 52W Hoch"
+                    ),
+                    "Pressure Balance": data.get(
+                        "Pressure Balance"
                     ),
                     "Kaufchance Breakdown": opportunity_breakdown,
                     "Charttechnik Breakdown": chart_breakdown,
