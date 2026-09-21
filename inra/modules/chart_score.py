@@ -362,9 +362,11 @@ def calculate_chart_score(data: dict):
         else 0
     )
 
-    # Unter 70 % Datenabdeckung derzeit keine Scoreberechnung.
+    # Unter 70 % Datenabdeckung ist die Charttechnik
+    # nicht ausreichend bewertbar. None unterscheidet fehlende
+    # Bewertbarkeit ausdrücklich von einem echten Score von 0.
     if coverage < 0.70:
-        return 0
+        return None
 
     raw_score = sum(
         item["Punkte"]
@@ -397,3 +399,31 @@ def calculate_chart_score(data: dict):
         max(0, min(45, final_score))
     )
 
+
+
+def calculate_chart_available_maximum(data: dict) -> int:
+    """Verfügbares Chart-Maximum für die Kaufchance.
+
+    Ab 70 % Rohdatenabdeckung gilt die Charttechnik als bewertbar
+    und wird intern auf die vollen 45 Punkte normalisiert.
+    Unter 70 % gilt der gesamte Chartblock als nicht ausreichend
+    bewertbar.
+    """
+    breakdown = calculate_chart_breakdown(data)
+
+    score_items = [
+        item
+        for item in breakdown
+        if item["Kriterium"] != "Überhitzungsgefahr"
+    ]
+
+    available_maximum = sum(
+        item["Maximum"]
+        for item in score_items
+        if item["Punkte"] is not None
+    )
+
+    if available_maximum / 45 < 0.70:
+        return 0
+
+    return 45

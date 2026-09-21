@@ -1132,6 +1132,33 @@ def load_company_snapshot(ticker: str) -> dict:
         auto_adjust=True,
     )
 
+    price_history_start = None
+    price_history_end = None
+    price_history_days = None
+
+    if not history_5y.empty:
+        valid_history = history_5y.dropna(
+            subset=["Close"]
+        )
+
+        if not valid_history.empty:
+            price_history_start = valid_history.index.min()
+            price_history_end = valid_history.index.max()
+            price_history_days = (
+                price_history_end - price_history_start
+            ).days
+
+    # Ein 52W-Signal ist nur belastbar, wenn nahezu ein volles
+    # Börsenjahr Kurshistorie vorhanden ist. Yahoo kann bei jungen
+    # Listings bereits ein "52W High" liefern, obwohl tatsächlich
+    # nur wenige Wochen oder Monate Kursdaten existieren.
+    if (
+        price_history_days is None
+        or price_history_days < 350
+    ):
+        week_52_high = None
+        distance_to_52w_high = None
+
     long_term_trend = analyze_trend_structure(
         history_5y,
         periods_per_year=52,
@@ -1220,6 +1247,9 @@ def load_company_snapshot(ticker: str) -> dict:
         "Dividendenstrategie Score vor Begrenzung": dividend_strategy_score_raw,
         "Dividendenstrategie Score": dividend_strategy_score,
         "Marktkapitalisierung": market_cap,
+        "Kurshistorie Start": price_history_start,
+        "Kurshistorie Ende": price_history_end,
+        "Kurshistorie Tage": price_history_days,
         "Momentum 3M": momentum["Momentum 3M"],
         "Momentum 6M": momentum["Momentum 6M"],
         "Momentum 12M": momentum["Momentum 12M"],

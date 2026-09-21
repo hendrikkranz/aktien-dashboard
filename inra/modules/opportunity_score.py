@@ -169,13 +169,30 @@ def calculate_opportunity_breakdown(data: dict) -> list:
 def calculate_opportunity_score(data: dict) -> int:
     breakdown = calculate_opportunity_breakdown(data)
 
-    score = sum(
+    fundamental_score = sum(
         item["Punkte"]
         for item in breakdown
         if item["Punkte"] is not None
     )
 
-    score += calculate_chart_score(data)
+    fundamental_maximum = sum(
+        item["Maximum"]
+        for item in breakdown
+        if item["Punkte"] is not None
+    )
+
+    chart_score = calculate_chart_score(data)
+
+    if chart_score is None:
+        # Die Charttechnik ist als kompletter Bewertungsblock nicht
+        # ausreichend bewertbar. Für die vergleichbare Kaufchance
+        # wird der fehlende 45-Punkte-Block neutral mit 50 % seines
+        # Maximums angesetzt. Das ist kein gemessener Chartscore.
+        neutral_chart_score = 22
+        score = fundamental_score + neutral_chart_score
+        return min(score, 100)
+
+    score = fundamental_score + chart_score
 
     return min(score, 100)
 

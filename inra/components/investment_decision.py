@@ -2,7 +2,10 @@ import textwrap
 
 import streamlit as st
 
-from modules.chart_score import calculate_chart_breakdown
+from modules.chart_score import (
+    calculate_chart_breakdown,
+    calculate_chart_score,
+)
 from modules.opportunity_score import (
     calculate_opportunity_breakdown,
     get_pe_valuation_class,
@@ -44,7 +47,23 @@ def render_investment_decision(data: dict) -> None:
         )
     )
 
-    opportunity_data_complete = available_maximum == 100
+    chart_score = calculate_chart_score(data)
+
+    fundamental_available_maximum = sum(
+        item["Maximum"]
+        for item in opportunity_breakdown
+        if item["Punkte"] is not None
+    )
+
+    chart_only_missing = (
+        chart_score is None
+        and fundamental_available_maximum == 55
+    )
+
+    opportunity_data_complete = (
+        available_maximum == 100
+        or chart_only_missing
+    )
 
     investment_score = (
         0.60 * buy_score
@@ -141,7 +160,19 @@ def render_investment_decision(data: dict) -> None:
             "nicht attraktiv genug."
         )
 
-    if title == "Klarer Kauf":
+    if chart_only_missing and title not in {
+        "Kein Investment",
+        "Sonderfall",
+        "Eingeschränkt bewertbar",
+    }:
+        title = f"{title} – unter Vorbehalt"
+        text += (
+            " Die Charttechnik ist wegen unzureichender "
+            "Kurshistorie noch nicht belastbar bewertbar und "
+            "wird in der Kaufchance neutral angesetzt."
+        )
+
+    if title.startswith("Klarer Kauf"):
         icon_html = (
             '<span style="color:#20C77A;">★</span>'
         )

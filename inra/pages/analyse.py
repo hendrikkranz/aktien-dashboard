@@ -251,7 +251,13 @@ if ticker:
         )
         y_max = maximum_price + axis_padding
 
-        if period == "5J":
+        history_start = price_history["Datum"].min()
+        history_end = price_history["Datum"].max()
+        history_days = (
+            history_end - history_start
+        ).days
+
+        if history_days >= 730:
             x_axis = alt.Axis(
                 format="%Y",
                 tickMinStep=365 * 24 * 60 * 60 * 1000,
@@ -260,7 +266,7 @@ if ticker:
                 gridColor="#5b6575",
                 gridOpacity=0.25,
             )
-        elif period == "1J":
+        elif history_days >= 180:
             x_axis = alt.Axis(
                 format="%m/%Y",
                 tickCount="month",
@@ -312,6 +318,22 @@ if ticker:
             chart,
             use_container_width=True,
         )
+
+        requested_days = {
+            "1M": 30,
+            "3M": 90,
+            "6M": 180,
+            "1J": 365,
+            "5J": 1825,
+        }[period]
+
+        if history_days < requested_days * 0.80:
+            st.caption(
+                "ℹ️ Für diesen Titel ist nur eine kürzere "
+                "Kurshistorie verfügbar: "
+                f"{history_start:%d.%m.%Y} bis "
+                f"{history_end:%d.%m.%Y}."
+            )
     else:
         st.info(
             "Für den gewählten Zeitraum liegen keine Kursdaten vor."

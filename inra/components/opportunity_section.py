@@ -40,7 +40,11 @@ from modules.opportunity_score import (
     get_pe_valuation_class,
 )
 
-from modules.chart_score import calculate_chart_breakdown
+from modules.chart_score import (
+    calculate_chart_breakdown,
+    calculate_chart_available_maximum,
+    calculate_chart_score,
+)
 from utils.current_intelligence import (
     get_current_intelligence,
     research_current_intelligence_with_gemini,
@@ -190,11 +194,7 @@ def _render_opportunity_breakdown(
             for item in breakdown
             if item["Punkte"] is not None
         )
-        + sum(
-            item["Maximum"]
-            for item in chart_breakdown
-            if item["Punkte"] is not None
-        )
+        + calculate_chart_available_maximum(data)
     )
     base_buy_score = data.get(
         "Kaufchance Basis",
@@ -204,7 +204,20 @@ def _render_opportunity_breakdown(
     display_buy_score = round(data["Kaufchance"])
     event_impact = data.get("Event Impact", 0)
 
-    if available_maximum == 100:
+    chart_available_maximum = (
+        calculate_chart_available_maximum(data)
+    )
+    fundamental_available_maximum = sum(
+        item["Maximum"]
+        for item in breakdown
+        if item["Punkte"] is not None
+    )
+    chart_only_missing = (
+        chart_available_maximum == 0
+        and fundamental_available_maximum == 55
+    )
+
+    if available_maximum == 100 or chart_only_missing:
         expander_title = (
             f"Warum {display_base_score} von "
             f"100 Basispunkten?"
@@ -216,6 +229,25 @@ def _render_opportunity_breakdown(
         )
 
     with st.expander(expander_title):
+
+        if chart_only_missing:
+            fundamental_score = sum(
+                item["Punkte"]
+                for item in breakdown
+                if item["Punkte"] is not None
+            )
+            st.markdown(
+                f"**Basisbewertung:** "
+                f"{round(fundamental_score)} / 55 Fundamentpunkte "
+                f"+ 22 / 45 neutraler Chart-Ersatzwert "
+                f"= **{display_base_score} / 100**"
+            )
+            st.caption(
+                "Die 22 Chartpunkte sind kein gemessener Chartscore. "
+                "Sie werden neutral angesetzt, solange die "
+                "Kurshistorie für eine belastbare Chartbewertung "
+                "nicht ausreicht."
+            )
 
         if event_impact:
             impact_display = (
@@ -680,25 +712,35 @@ def _render_opportunity_breakdown(
 
             st.divider()
 
-        chart_total = sum(
-            item["Punkte"]
-            for item in chart_breakdown
-            if item["Punkte"] is not None
-        )
-
-        chart_maximum = sum(
+        chart_score = calculate_chart_score(data)
+        chart_raw_maximum = sum(
             item["Maximum"]
             for item in chart_breakdown
-            if item["Punkte"] is not None
+            if item["Kriterium"] != "Überhitzungsgefahr"
+            and item["Punkte"] is not None
         )
+
+        if chart_score is None:
+            chart_header_value = "⚪ Nicht ausreichend bewertbar"
+        else:
+            chart_header_value = f"{chart_score} / 45"
 
         st.markdown(
             f"##### 📊 Charttechnik"
             f"<span style='float:right'>"
-            f"{chart_total} / {chart_maximum}"
+            f"{chart_header_value}"
             f"</span>",
             unsafe_allow_html=True,
         )
+
+        if chart_score is None:
+            st.caption(
+                f"Nur {chart_raw_maximum} von 45 technischen "
+                "Rohpunkten sind derzeit verfügbar. "
+                "Die Charttechnik ist deshalb noch nicht belastbar "
+                "bewertbar. In der Basis-Kaufchance wird der "
+                "Chartblock neutral mit 22 von 45 Punkten angesetzt."
+            )
 
         for item in chart_breakdown:
 
@@ -908,23 +950,17 @@ def _render_opportunity_breakdown(
             if item["Punkte"] is not None
         )
 
-        chart_total = sum(
-            item["Punkte"]
-            for item in chart_breakdown
-            if item["Punkte"] is not None
-        )
+        chart_score = calculate_chart_score(data)
 
-        total = fundamental_total + chart_total
+        total = fundamental_total
+        if chart_score is not None:
+            total += chart_score
 
         available_maximum = sum(
             item["Maximum"]
             for item in breakdown
             if item["Punkte"] is not None
-        ) + sum(
-            item["Maximum"]
-            for item in chart_breakdown
-            if item["Punkte"] is not None
-        )
+        ) + calculate_chart_available_maximum(data)
 
         coverage = round(
             available_maximum / 100 * 100
@@ -932,13 +968,24 @@ def _render_opportunity_breakdown(
 
         st.divider()
 
-        st.markdown(
-            f"**Aktuell bewertet: {round(total)} von {available_maximum} verfügbaren Punkten**"
-        )
-
-        st.caption(
-            f"Datenabdeckung: {coverage} %"
-        )
+        if chart_only_missing:
+            st.markdown(
+                f"**Tatsächlich bewertet: "
+                f"{round(fundamental_total)} / 55 Fundamentpunkte**"
+            )
+            st.caption(
+                "Charttechnik: noch nicht belastbar bewertbar · "
+                "neutraler Ersatzwert 22 / 45 · "
+                f"Basis-Kaufchance {display_base_score} / 100"
+            )
+        else:
+            st.markdown(
+                f"**Aktuell bewertet: {round(total)} von "
+                f"{available_maximum} verfügbaren Punkten**"
+            )
+            st.caption(
+                f"Datenabdeckung: {coverage} %"
+            )
 
 def _render_current_intelligence(data: dict) -> None:
     ticker = data.get("Ticker")
@@ -1224,14 +1271,23 @@ def render_opportunity_section(
         item["Maximum"]
         for item in opportunity_breakdown
         if item["Punkte"] is not None
-    ) + sum(
-        item["Maximum"]
-        for item in chart_breakdown
-        if item["Punkte"] is not None
-    )
+    ) + calculate_chart_available_maximum(data)
 
     coverage = round(
         available_maximum / 100 * 100
+    )
+
+    chart_available = (
+        calculate_chart_available_maximum(data) > 0
+    )
+    fundamental_available_maximum = sum(
+        item["Maximum"]
+        for item in opportunity_breakdown
+        if item["Punkte"] is not None
+    )
+    chart_only_missing = (
+        not chart_available
+        and fundamental_available_maximum == 55
     )
 
     if (
@@ -1248,7 +1304,7 @@ def render_opportunity_section(
             f"{available_maximum} statt 100 möglichen Punkten."
         )
 
-    elif coverage < 100:
+    elif coverage < 100 and not chart_only_missing:
         rating = "Eingeschränkt bewertbar"
         icon = "⚪"
         border = "#8b949e"
@@ -1261,11 +1317,19 @@ def render_opportunity_section(
         rating = "Attraktiv"
         icon = "🟢"
         border = "#2EAD7B"
-        explanation = (
-            "Die aktuelle Einstiegssituation erscheint attraktiv. "
-            "Die Kaufchance berücksichtigt Bewertung, "
-            "Analystenpotenzial und Charttechnik."
-        )
+        if chart_only_missing:
+            explanation = (
+                "Die bewertbaren Faktoren ergeben eine attraktive "
+                "Einstiegssituation. Die Charttechnik ist wegen "
+                "unzureichender Kurshistorie noch nicht belastbar "
+                "bewertbar."
+            )
+        else:
+            explanation = (
+                "Die aktuelle Einstiegssituation erscheint attraktiv. "
+                "Die Kaufchance berücksichtigt Bewertung, "
+                "Analystenpotenzial und Charttechnik."
+            )
 
     elif buy_score >= 51:
         rating = "Neutral"
@@ -1286,8 +1350,16 @@ def render_opportunity_section(
             "derzeit nicht attraktiv."
         )
 
-    base_buy_score = data.get("Kaufchance Basis")
+    base_buy_score = data.get(
+        "Kaufchance Basis",
+        buy_score,
+    )
     event_impact = data.get("Event Impact")
+    chart_available = (
+        calculate_chart_available_maximum(data) > 0
+    )
+
+    display_score = f"{round(buy_score)} / 100"
 
     if (
         base_buy_score is not None
@@ -1317,6 +1389,19 @@ def render_opportunity_section(
     else:
         overlay_html = ""
 
+    if not chart_available:
+        overlay_html += """
+    <div style="
+        color:#8b949e;
+        font-size:13px;
+        margin-top:6px;
+    ">
+        Charttechnik noch nicht belastbar bewertbar.
+        Der fehlende 45-Punkte-Block wird für die Kaufchance
+        neutral mit 22 Punkten angesetzt.
+    </div>
+"""
+
     card = f"""
 <div style="
     background:#1b1f27;
@@ -1341,7 +1426,7 @@ def render_opportunity_section(
         font-weight:700;
         margin-top:10px;
     ">
-        {round(buy_score)} / {available_maximum}
+        {display_score}
     </div>
 
     <div style="
