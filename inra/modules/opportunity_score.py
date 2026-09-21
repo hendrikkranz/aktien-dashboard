@@ -183,6 +183,7 @@ def calculate_entry_setup_score(data: dict):
         "Pullback Recovery – bestätigt": 28.5,
         "Median Support – bestätigt": 27.0,
         "Median Reclaim – bestätigt": 25.5,
+        "30W Support/Reclaim – bestätigt": 25.5,
         "Breakout – bestätigt": 24.0,
         "Lower Channel Bounce": 22.5,
         "Median Reclaim": 21.0,

@@ -33,6 +33,7 @@ def render_investment_decision(data: dict) -> None:
         "Pullback Recovery – bestätigt",
         "Median Support – bestätigt",
         "Median Reclaim – bestätigt",
+        "30W Support/Reclaim – bestätigt",
         "Breakout – bestätigt",
         "Lower Channel Bounce",
         "Median Reclaim",

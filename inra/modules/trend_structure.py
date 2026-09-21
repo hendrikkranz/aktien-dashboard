@@ -379,6 +379,150 @@ def analyze_entry_confirmation(
     }
 
 
+
+def analyze_30w_support_reclaim(
+    weekly_close_prices,
+) -> dict:
+    """Diagnostiziert einen Test der 30-Wochen-Linie.
+
+    Reine Diagnose: kein Einfluss auf Score oder Entry Setup.
+    Ein positives Signal setzt voraus, dass die 30W-Linie bereits
+    beim Test gestiegen ist.
+    """
+    import pandas as pd
+
+    result = {
+        "signal": "Nicht bewertbar",
+        "test_weeks_ago": None,
+        "test_distance_pct": None,
+        "sma30_slope_at_test_pct": None,
+        "current_distance_pct": None,
+        "move_since_test_pct": None,
+    }
+
+    if weekly_close_prices is None:
+        return result
+
+    close = pd.Series(weekly_close_prices).copy()
+    close = pd.to_numeric(close, errors="coerce").dropna()
+
+    if len(close) < 40:
+        return result
+
+    sma30 = close.rolling(30).mean()
+
+    df = pd.DataFrame({
+        "close": close,
+        "sma30": sma30,
+    }).dropna()
+
+    if len(df) < 11:
+        return result
+
+    df["distance"] = (
+        df["close"] / df["sma30"] - 1
+    ) * 100
+
+    df["slope5"] = (
+        df["sma30"] / df["sma30"].shift(5) - 1
+    ) * 100
+
+    # Nur jüngere Tests sind für das heutige Entry Setup relevant.
+    recent = df.tail(13)
+
+    candidates = []
+
+    for pos in range(1, len(recent)):
+        current = recent.iloc[pos]
+        previous = recent.iloc[pos - 1]
+
+        # Die Linie muss bereits beim Test steigen.
+        if (
+            pd.isna(current["slope5"])
+            or current["slope5"] <= 0
+        ):
+            continue
+
+        # Tatsächliche Annäherung von oben:
+        # vorher oberhalb, danach nahe an/leicht unter der 30W-Linie.
+        approached_from_above = (
+            previous["distance"] > 3
+            and -5 <= current["distance"] <= 3
+        )
+
+        if approached_from_above:
+            candidates.append(recent.index[pos])
+
+    if not candidates:
+        result["signal"] = "Kein positives 30W-Signal"
+        result["current_distance_pct"] = round(
+            float(df["distance"].iloc[-1]),
+            2,
+        )
+        return result
+
+    test_idx = candidates[-1]
+    test_pos = df.index.get_loc(test_idx)
+    test = df.loc[test_idx]
+    current = df.iloc[-1]
+
+    weeks_ago = len(df) - 1 - test_pos
+
+    move_since = (
+        current["close"] / test["close"] - 1
+    ) * 100
+
+    current_distance = current["distance"]
+
+    # Test in der laufenden Woche: noch keine Bestätigung möglich.
+    if weeks_ago == 0:
+        signal = "30W Test läuft"
+
+    # Unterhalb getestet und anschließend zurück über die Linie.
+    elif (
+        test["distance"] < 0
+        and current_distance > 3
+        and move_since > 0
+    ):
+        signal = "30W Reclaim"
+
+    # Linie beim Test gehalten und anschließend klar wegbewegt.
+    elif (
+        test["distance"] >= 0
+        and current_distance > 3
+        and move_since > 0
+    ):
+        signal = "30W Support Bounce"
+
+    # Noch in unmittelbarer Nähe der steigenden Linie.
+    elif -3 <= current_distance <= 3:
+        signal = "30W Test läuft"
+
+    else:
+        signal = "Kein positives 30W-Signal"
+
+    return {
+        "signal": signal,
+        "test_weeks_ago": weeks_ago,
+        "test_distance_pct": round(
+            float(test["distance"]),
+            2,
+        ),
+        "sma30_slope_at_test_pct": round(
+            float(test["slope5"]),
+            2,
+        ),
+        "current_distance_pct": round(
+            float(current_distance),
+            2,
+        ),
+        "move_since_test_pct": round(
+            float(move_since),
+            2,
+        ),
+    }
+
+
 def classify_entry_setup(
     trend: dict,
     confirmation=None,
@@ -387,6 +531,7 @@ def classify_entry_setup(
     pullback_pct=None,
     recovery_pct=None,
     distance_to_previous_52w_high_pct=None,
+    support_30w_signal=None,
 ) -> dict:
     """Klassifiziert das aktuelle technische Entry-Setup.
 
@@ -669,6 +814,22 @@ def classify_entry_setup(
                 "detail": (
                     "Günstigere Kanalposition, aber "
                     "negative kurzfristige Bestätigung"
+                ),
+            }
+
+        if (
+            constructive_confirmation
+            and support_30w_signal in {
+                "30W Reclaim",
+                "30W Support Bounce",
+            }
+        ):
+            return {
+                "setup": "30W Support/Reclaim – bestätigt",
+                "detail": (
+                    "Günstigere Position im langfristigen "
+                    "Aufwärtstrend mit bestätigter Reaktion "
+                    "an der bereits steigenden 30-Wochen-Linie"
                 ),
             }
 

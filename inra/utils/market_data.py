@@ -22,6 +22,7 @@ from utils.qualitative_quality import (
     get_qualitative_quality_ratings,
 )
 from modules.trend_structure import (
+    analyze_30w_support_reclaim,
     analyze_entry_confirmation,
     analyze_trend_structure,
     calculate_long_term_trend_score,
@@ -1364,6 +1365,15 @@ def load_company_snapshot(ticker: str) -> dict:
         cm_histogram_weekly=momentum["CM Histogram Weekly"],
     )
 
+    weekly_close = (
+        history_5y["Close"]
+        if not history_5y.empty and "Close" in history_5y.columns
+        else None
+    )
+    support_30w = analyze_30w_support_reclaim(
+        weekly_close
+    )
+
     entry_setup = classify_entry_setup(
         long_term_trend,
         confirmation=entry_confirmation["confirmation"],
@@ -1374,6 +1384,7 @@ def load_company_snapshot(ticker: str) -> dict:
         distance_to_previous_52w_high_pct=momentum[
             "Abstand vorheriges 52W Hoch %"
         ],
+        support_30w_signal=support_30w["signal"],
     )
 
     snapshot = {
@@ -1486,6 +1497,12 @@ def load_company_snapshot(ticker: str) -> dict:
         ],
         "Entry Setup": entry_setup["setup"],
         "Entry Setup Erklärung": entry_setup["detail"],
+        "30W Signal": support_30w["signal"],
+        "30W Test Wochen": support_30w["test_weeks_ago"],
+        "30W Test Abstand %": support_30w["test_distance_pct"],
+        "30W Slope Test %": support_30w["sma30_slope_at_test_pct"],
+        "30W Abstand aktuell %": support_30w["current_distance_pct"],
+        "30W Bewegung seit Test %": support_30w["move_since_test_pct"],
         "Entry Confirmation": entry_confirmation["confirmation"],
         "Entry Confirmation Positive": entry_confirmation[
             "positive_signals"

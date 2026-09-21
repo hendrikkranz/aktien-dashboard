@@ -916,8 +916,9 @@ def _render_opportunity_breakdown(
             "Bewertet, ob die heutige technische Situation "
             "einen günstigen Einstieg unterstützt. "
             "Berücksichtigt werden insbesondere Trendkanal, "
-            "Pullback/Erholung, Medianlinie, kurzfristige "
-            "Bestätigung und die Lage zum vorherigen 52W-Hoch."
+            "Pullback/Erholung, Medianlinie, die 30-Wochen-Linie, "
+            "kurzfristige Bestätigung und die Lage zum vorherigen "
+            "52W-Hoch."
         )
 
         if v3_blocks["entry_neutral"]:
@@ -1290,6 +1291,7 @@ def render_opportunity_section(
             "Pullback Recovery – bestätigt",
             "Median Support – bestätigt",
             "Median Reclaim – bestätigt",
+        "30W Support/Reclaim – bestätigt",
             "Breakout – bestätigt",
             "Lower Channel Bounce",
             "Median Reclaim",
