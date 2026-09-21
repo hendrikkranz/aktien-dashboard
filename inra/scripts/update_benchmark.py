@@ -9,6 +9,7 @@ if str(INRA_ROOT) not in sys.path:
     sys.path.insert(0, str(INRA_ROOT))
 
 from utils.market_data import load_company_snapshot
+from utils.current_intelligence import apply_current_intelligence
 
 
 UNIVERSE_PATH = (
@@ -38,6 +39,7 @@ def update_benchmark() -> None:
 
         try:
             data = load_company_snapshot(ticker)
+            data = apply_current_intelligence(data)
 
             results.append(data)
 

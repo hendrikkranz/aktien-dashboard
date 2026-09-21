@@ -67,12 +67,14 @@ def add_stock_to_universe(
 
 def update_stock_in_benchmark_cache(ticker: str) -> dict:
     from utils.market_data import load_company_snapshot
+    from utils.current_intelligence import apply_current_intelligence
 
     if not ticker:
         raise ValueError("Ticker fehlt.")
 
     ticker = ticker.strip().upper()
     data = load_company_snapshot(ticker)
+    data = apply_current_intelligence(data)
 
     if BENCHMARK_CACHE_PATH.exists():
         cache = pd.read_csv(BENCHMARK_CACHE_PATH)

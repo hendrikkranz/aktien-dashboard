@@ -819,6 +819,52 @@ def get_current_intelligence(
     return result if isinstance(result, dict) else None
 
 
+def apply_current_intelligence(
+    data: dict,
+) -> dict:
+    """Persistierten Event Impact auf die Basis-Kaufchance anwenden."""
+    if not isinstance(data, dict):
+        return data
+
+    base_buy_score = data.get(
+        "Kaufchance Basis",
+        data.get("Kaufchance"),
+    )
+
+    ticker = str(
+        data.get("Ticker") or ""
+    ).strip().upper()
+
+    current_intelligence = get_current_intelligence(
+        ticker
+    )
+
+    event_impact = 0
+
+    if isinstance(current_intelligence, dict):
+        proposed_impact = current_intelligence.get(
+            "Event_Impact_Vorschlag",
+            0,
+        )
+
+        if proposed_impact in {-10, -5, -2, 0, 2, 5, 10}:
+            event_impact = proposed_impact
+
+    data["Kaufchance Basis"] = base_buy_score
+    data["Event Impact"] = event_impact
+
+    if base_buy_score is not None:
+        data["Kaufchance"] = max(
+            0,
+            min(
+                100,
+                base_buy_score + event_impact,
+            ),
+        )
+
+    return data
+
+
 def save_current_intelligence(
     research_result: dict,
 ) -> None:
