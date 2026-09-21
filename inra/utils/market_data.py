@@ -627,7 +627,10 @@ def load_company_snapshot(ticker: str) -> dict:
     eps_normalization_factor = None
 
     if (
-        forward_eps_reference is not None
+        info.get("currency")
+        and info.get("financialCurrency")
+        and info.get("currency") != info.get("financialCurrency")
+        and forward_eps_reference is not None
         and not pd.isna(forward_eps_reference)
         and forward_eps_reference > 0
         and eps_next_year is not None
