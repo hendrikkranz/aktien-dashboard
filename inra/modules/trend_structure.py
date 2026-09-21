@@ -277,6 +277,246 @@ def analyze_trend_structure(
         "channel_position_history": channel_position_history,
     }
 
+def analyze_entry_confirmation(
+    pressure_balance=None,
+    cm_macd_weekly=None,
+    cm_signal_weekly=None,
+    cm_histogram_weekly=None,
+) -> dict:
+    """Diagnostiziert die kurzfristige Bestätigung eines Entry-Setups.
+
+    Reine Diagnose: kein Einfluss auf Score oder Setup-Klassifikation.
+    """
+    signals = {
+        "pressure": None,
+        "macd_direction": None,
+        "histogram_direction": None,
+        "macd_above_signal": None,
+    }
+
+    # Kurzfristiger Kauf-/Verkaufsdruck.
+    if pressure_balance is not None:
+        if pressure_balance > 0.05:
+            signals["pressure"] = "positiv"
+        elif pressure_balance < -0.10:
+            signals["pressure"] = "negativ"
+        else:
+            signals["pressure"] = "neutral"
+
+    # MACD-Dynamik: steigt oder fällt der MACD aktuell?
+    if (
+        cm_macd_weekly is not None
+        and len(cm_macd_weekly) >= 2
+    ):
+        if cm_macd_weekly[-1] > cm_macd_weekly[-2]:
+            signals["macd_direction"] = "positiv"
+        elif cm_macd_weekly[-1] < cm_macd_weekly[-2]:
+            signals["macd_direction"] = "negativ"
+        else:
+            signals["macd_direction"] = "neutral"
+
+    # Histogramm-Dynamik: verbessert oder verschlechtert
+    # sich der Abstand zwischen MACD und Signallinie?
+    if (
+        cm_histogram_weekly is not None
+        and len(cm_histogram_weekly) >= 2
+    ):
+        if (
+            cm_histogram_weekly[-1]
+            > cm_histogram_weekly[-2]
+        ):
+            signals["histogram_direction"] = "positiv"
+        elif (
+            cm_histogram_weekly[-1]
+            < cm_histogram_weekly[-2]
+        ):
+            signals["histogram_direction"] = "negativ"
+        else:
+            signals["histogram_direction"] = "neutral"
+
+    # MACD relativ zur Signallinie ist ein Zustand,
+    # keine eigenständige Trendwende-Bestätigung.
+    if (
+        cm_macd_weekly is not None
+        and cm_signal_weekly is not None
+        and len(cm_macd_weekly) >= 1
+        and len(cm_signal_weekly) >= 1
+    ):
+        signals["macd_above_signal"] = (
+            cm_macd_weekly[-1]
+            > cm_signal_weekly[-1]
+        )
+
+    directional = [
+        signals["pressure"],
+        signals["macd_direction"],
+        signals["histogram_direction"],
+    ]
+
+    available = [
+        value
+        for value in directional
+        if value is not None
+    ]
+
+    positive = available.count("positiv")
+    negative = available.count("negativ")
+
+    if len(available) < 2:
+        confirmation = "Nicht bewertbar"
+    elif positive >= 2 and negative == 0:
+        confirmation = "Positiv"
+    elif negative >= 2 and positive == 0:
+        confirmation = "Negativ"
+    else:
+        confirmation = "Gemischt"
+
+    return {
+        "confirmation": confirmation,
+        "positive_signals": positive,
+        "negative_signals": negative,
+        **signals,
+    }
+
+
+def classify_entry_setup(
+    trend: dict,
+    pressure_balance=None,
+    cm_macd_weekly=None,
+    cm_signal_weekly=None,
+    cm_histogram_weekly=None,
+) -> dict:
+    """Klassifiziert das aktuelle technische Entry-Setup.
+
+    Nutzt die jüngste Entwicklung der normalisierten Position
+    innerhalb des langfristigen Trendkanals.
+
+    Reine Diagnose: noch kein Einfluss auf einen Score.
+    """
+    result = {
+        "setup": "Nicht bewertbar",
+        "detail": None,
+    }
+
+    if (
+        trend.get("status") != "Belastbar"
+        or trend.get("direction") != "Aufwärtstrend"
+    ):
+        result["detail"] = (
+            "Kein belastbarer langfristiger Aufwärtstrend"
+        )
+        return result
+
+    history = trend.get(
+        "channel_position_history"
+    ) or []
+
+    if len(history) < 6:
+        result["detail"] = (
+            "Zu wenig Kanalhistorie für Entry-Klassifikation"
+        )
+        return result
+
+    recent = history[-8:]
+    current = recent[-1]
+
+    # Für Reaktionen betrachten wir bewusst mehrere Perioden.
+    previous = recent[:-1]
+
+    recent_min = min(previous)
+    recent_max = max(previous)
+
+    # 1. Möglicher Bruch der unteren Kanalunterstützung:
+    # deutlich unter -2 und bislang keine erkennbare Rückkehr.
+    if (
+        current <= -2.20
+        and min(recent[-3:]) <= -2.20
+    ):
+        return {
+            "setup": "Support Breakdown",
+            "detail": (
+                "Kurs liegt deutlich unter der unteren "
+                "Trendkanalgrenze"
+            ),
+        }
+
+    # 2. Bounce aus der unteren Unterstützungszone.
+    # Mindestens etwa -1.6 erreicht und inzwischen klar erholt.
+    if (
+        recent_min <= -1.60
+        and current >= recent_min + 0.50
+        and current > -1.60
+    ):
+        return {
+            "setup": "Lower Channel Bounce",
+            "detail": (
+                "Erholung aus der unteren "
+                "Trendkanal-Unterstützungszone"
+            ),
+        }
+
+    # 3. Median Reclaim:
+    # deutlich von unterhalb der Mittellinie gekommen,
+    # Mittellinie anschließend erreicht/überschritten und
+    # aktuell weiterhin in ihrer unmittelbaren Zone.
+    if (
+        recent_min <= -0.40
+        and max(recent[-5:]) >= 0.0
+        and current >= -0.20
+    ):
+        return {
+            "setup": "Median Reclaim",
+            "detail": (
+                "Mittellinie nach vorheriger Schwäche "
+                "zurückerobert"
+            ),
+        }
+
+    # 4. Median Support:
+    # von oberhalb der Mittellinie kommend,
+    # aktuell nahe der Mittellinie, aber nicht klar darunter.
+    if (
+        recent_max >= 0.35
+        and -0.15 <= current <= 0.25
+        and min(recent[-3:]) >= -0.15
+    ):
+        return {
+            "setup": "Median Test – unbestätigt",
+            "detail": (
+                "Kurs testet die Mittellinie aus einem "
+                "bestehenden Aufwärtstrend; eine positive "
+                "Reaktion ist noch nicht bestätigt"
+            ),
+        }
+
+    # 5. Günstige Position, aber noch keine bestätigte Reaktion.
+    if -1.60 < current <= -0.50:
+        return {
+            "setup": "Untere Kanalhälfte – unbestätigt",
+            "detail": (
+                "Günstigere Kanalposition, aber noch kein "
+                "bestätigter Support-Bounce"
+            ),
+        }
+
+    # 6. Obere Widerstands-/Überdehnungszone.
+    if current >= 1.60:
+        return {
+            "setup": "Obere Widerstandszone",
+            "detail": (
+                "Kurs befindet sich an oder oberhalb der "
+                "oberen Trendkanalzone"
+            ),
+        }
+
+    return {
+        "setup": "Neutral",
+        "detail": (
+            "Kein ausgeprägtes Entry-Signal im Trendkanal"
+        ),
+    }
+
+
 def calculate_long_term_trend_score(
     trend: dict,
 ) -> tuple[int, str]:

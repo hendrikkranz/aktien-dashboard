@@ -22,8 +22,10 @@ from utils.qualitative_quality import (
     get_qualitative_quality_ratings,
 )
 from modules.trend_structure import (
+    analyze_entry_confirmation,
     analyze_trend_structure,
     calculate_long_term_trend_score,
+    classify_entry_setup,
 )
 
 MANUAL_OVERRIDES_PATH = Path(__file__).resolve().parents[1] / "data" / "manual_overrides.csv"
@@ -1324,6 +1326,21 @@ def load_company_snapshot(ticker: str) -> dict:
         )
     )
 
+    entry_setup = classify_entry_setup(
+        long_term_trend,
+        pressure_balance=momentum["Pressure Balance"],
+        cm_macd_weekly=momentum["CM MACD Weekly"],
+        cm_signal_weekly=momentum["CM Signal Weekly"],
+        cm_histogram_weekly=momentum["CM Histogram Weekly"],
+    )
+
+    entry_confirmation = analyze_entry_confirmation(
+        pressure_balance=momentum["Pressure Balance"],
+        cm_macd_weekly=momentum["CM MACD Weekly"],
+        cm_signal_weekly=momentum["CM Signal Weekly"],
+        cm_histogram_weekly=momentum["CM Histogram Weekly"],
+    )
+
     snapshot = {
         "Ticker": ticker,
         "Name": (
@@ -1427,6 +1444,23 @@ def load_company_snapshot(ticker: str) -> dict:
         "Trendkanal Position Normalisiert": long_term_trend["normalized_position"],
         "Trendkanal Historie": long_term_trend[
             "channel_position_history"
+        ],
+        "Entry Setup": entry_setup["setup"],
+        "Entry Setup Erklärung": entry_setup["detail"],
+        "Entry Confirmation": entry_confirmation["confirmation"],
+        "Entry Confirmation Positive": entry_confirmation[
+            "positive_signals"
+        ],
+        "Entry Confirmation Negative": entry_confirmation[
+            "negative_signals"
+        ],
+        "Entry Pressure Signal": entry_confirmation["pressure"],
+        "Entry MACD Direction": entry_confirmation["macd_direction"],
+        "Entry Histogram Direction": entry_confirmation[
+            "histogram_direction"
+        ],
+        "Entry MACD Above Signal": entry_confirmation[
+            "macd_above_signal"
         ],
         "Langfristiger Trend Status": long_term_trend["status"],
         "Langfristiger Trend Confidence": long_term_trend["confidence"],
