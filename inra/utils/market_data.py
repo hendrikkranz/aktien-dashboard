@@ -134,6 +134,131 @@ def _calculate_period_return(
     return ((end_price / start_price) - 1) * 100
 
 
+def _calculate_pullback_recovery(
+    close_prices: pd.Series,
+    lookback_days: int = 126,
+    min_pullback_pct: float = 5.0,
+) -> dict:
+    """Diagnose des aktuell noch offenen Pullback-Zyklus.
+
+    Ein Pullback beginnt an einem Hoch, wenn der Kurs danach
+    mindestens min_pullback_pct zurücksetzt.
+
+    Sobald das Ausgangshoch wieder erreicht oder überschritten wird,
+    gilt die Episode als abgeschlossen. Abgeschlossene historische
+    Pullbacks werden nicht als aktuelles Entry-Signal weitergeführt.
+
+    Noch kein Score.
+    """
+    result = {
+        "Pullback Hoch": None,
+        "Pullback Tief": None,
+        "Pullback %": None,
+        "Recovery %": None,
+        "Abstand Pullback-Hoch %": None,
+        "Tage seit Pullback-Tief": None,
+    }
+
+    prices = pd.to_numeric(
+        close_prices,
+        errors="coerce",
+    ).dropna()
+
+    if len(prices) < 20:
+        return result
+
+    window = prices.tail(
+        min(lookback_days, len(prices))
+    )
+
+    if len(window) < 20:
+        return result
+
+    values = window.to_numpy(dtype=float)
+
+    # Das höchste noch nicht zurückeroberte Hoch definiert
+    # den aktuell offenen Pullback-Zyklus.
+    high_position = 0
+    high_price = float(values[0])
+
+    low_position = None
+    low_price = None
+    max_drawdown = 0.0
+    pullback_active = False
+
+    for position in range(1, len(values)):
+        price = float(values[position])
+
+        # Neues Hoch: vorherige Episode ist abgeschlossen.
+        # Ab hier beginnt die Suche nach einem neuen Pullback.
+        if price >= high_price:
+            high_position = position
+            high_price = price
+            low_position = None
+            low_price = None
+            max_drawdown = 0.0
+            pullback_active = False
+            continue
+
+        drawdown = (
+            price / high_price - 1
+        ) * 100
+
+        if drawdown <= -min_pullback_pct:
+            pullback_active = True
+
+        if (
+            low_price is None
+            or price < low_price
+        ):
+            low_price = price
+            low_position = position
+            max_drawdown = drawdown
+
+    if (
+        not pullback_active
+        or low_position is None
+        or low_price is None
+        or high_price <= low_price
+    ):
+        return result
+
+    current_price = float(values[-1])
+
+    recovery_pct = (
+        (current_price - low_price)
+        / (high_price - low_price)
+        * 100
+    )
+
+    # Numerisch kann ein offener Zyklus maximal 100 % erholt sein.
+    recovery_pct = max(
+        0.0,
+        min(100.0, recovery_pct),
+    )
+
+    distance_from_high_pct = (
+        current_price / high_price - 1
+    ) * 100
+
+    days_since_low = (
+        len(values) - 1 - low_position
+    )
+
+    result.update(
+        {
+            "Pullback Hoch": high_price,
+            "Pullback Tief": low_price,
+            "Pullback %": max_drawdown,
+            "Recovery %": recovery_pct,
+            "Abstand Pullback-Hoch %": distance_from_high_pct,
+            "Tage seit Pullback-Tief": days_since_low,
+        }
+    )
+
+    return result
+
+
 def load_momentum_metrics(ticker: str) -> dict:
     empty_result = {
         "Momentum 3M": None,
@@ -335,6 +460,10 @@ def load_momentum_metrics(ticker: str) -> dict:
         cm_signal_weekly = weekly_signal_line
         cm_histogram_weekly = weekly_histogram        
 
+    pullback_recovery = _calculate_pullback_recovery(
+        close_prices
+    )
+
     return {
         "Momentum 3M": _calculate_period_return(
             close_prices,
@@ -350,6 +479,16 @@ def load_momentum_metrics(ticker: str) -> dict:
         ),
         "RSI 14": rsi_14,
         "Pressure Balance": pressure_balance,
+        "Pullback Hoch": pullback_recovery["Pullback Hoch"],
+        "Pullback Tief": pullback_recovery["Pullback Tief"],
+        "Pullback %": pullback_recovery["Pullback %"],
+        "Recovery %": pullback_recovery["Recovery %"],
+        "Abstand Pullback-Hoch %": pullback_recovery[
+            "Abstand Pullback-Hoch %"
+        ],
+        "Tage seit Pullback-Tief": pullback_recovery[
+            "Tage seit Pullback-Tief"
+        ],
         "CM MACD": cm_macd,
         "CM Signal": cm_signal,
         "CM Histogram": cm_histogram,
@@ -1270,12 +1409,25 @@ def load_company_snapshot(ticker: str) -> dict:
         "Momentum 12M": momentum["Momentum 12M"],
         "RSI 14": momentum["RSI 14"],
         "Pressure Balance": momentum["Pressure Balance"],
+        "Pullback Hoch": momentum["Pullback Hoch"],
+        "Pullback Tief": momentum["Pullback Tief"],
+        "Pullback %": momentum["Pullback %"],
+        "Recovery %": momentum["Recovery %"],
+        "Abstand Pullback-Hoch %": momentum[
+            "Abstand Pullback-Hoch %"
+        ],
+        "Tage seit Pullback-Tief": momentum[
+            "Tage seit Pullback-Tief"
+        ],
         "CM MACD": momentum["CM MACD"],
         "CM Signal": momentum["CM Signal"],
         "CM Histogram": momentum["CM Histogram"],
         "Langfristiger Trend": long_term_trend["direction"],
         "Trendkanal Position": long_term_trend["position"],
         "Trendkanal Position Normalisiert": long_term_trend["normalized_position"],
+        "Trendkanal Historie": long_term_trend[
+            "channel_position_history"
+        ],
         "Langfristiger Trend Status": long_term_trend["status"],
         "Langfristiger Trend Confidence": long_term_trend["confidence"],
         "Langfristiger Trend Score": long_term_trend_score,

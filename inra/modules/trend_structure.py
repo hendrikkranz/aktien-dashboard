@@ -101,6 +101,36 @@ def _calculate_channel_position(
     }
 
 
+def _calculate_channel_position_history(
+    regression: dict,
+    lookback_periods: int = 20,
+) -> list[float]:
+    """Historie der normalisierten Position im aktuellen Trendkanal.
+
+    0 = Regressionsmittellinie
+    -2 = untere Kanalgrenze
+    +2 = obere Kanalgrenze
+    """
+    residual_std = regression["residual_std"]
+
+    if residual_std <= 0:
+        return []
+
+    residuals = regression["residuals"]
+
+    normalized = (
+        residuals / residual_std
+    )
+
+    recent = normalized[
+        -min(lookback_periods, len(normalized)):
+    ]
+
+    return [
+        float(value)
+        for value in recent
+    ]
+
 def _calculate_market_respect(
     regression: dict,
 ) -> dict:
@@ -198,6 +228,13 @@ def analyze_trend_structure(
         regression
     )
 
+    channel_position_history = (
+        _calculate_channel_position_history(
+            regression,
+            lookback_periods=20,
+        )
+    )
+
     touch_score = min(
         (
             respect["lower_tests"]
@@ -237,6 +274,7 @@ def analyze_trend_structure(
         "lower_tests": respect["lower_tests"],
         "upper_tests": respect["upper_tests"],
         "midline_tests": respect["midline_tests"],
+        "channel_position_history": channel_position_history,
     }
 
 def calculate_long_term_trend_score(
