@@ -652,21 +652,33 @@ def load_company_snapshot(ticker: str) -> dict:
             eps_next_year * eps_normalization_factor
         )
 
+    # London-Aktien können bei Yahoo in Pence (GBp) notieren,
+    # während EPS-Daten in Pfund (GBP) angegeben werden. Für die
+    # KGV-Berechnung müssen Kurs und EPS dieselbe Einheit haben.
+    pe_price = current_price
+
     if (
-        current_price is not None
+        pe_price is not None
+        and info.get("currency") == "GBp"
+        and info.get("financialCurrency") == "GBP"
+    ):
+        pe_price = pe_price / 100
+
+    if (
+        pe_price is not None
         and eps_current_year is not None
         and not pd.isna(eps_current_year)
         and eps_current_year > 0
     ):
-        pe_current_year = current_price / eps_current_year
+        pe_current_year = pe_price / eps_current_year
 
     if (
-        current_price is not None
+        pe_price is not None
         and eps_next_year is not None
         and not pd.isna(eps_next_year)
         and eps_next_year > 0
     ):
-        pe_next_year = current_price / eps_next_year
+        pe_next_year = pe_price / eps_next_year
 
     forward_pe = info.get("forwardPE")
     forward_pe_manual = False
