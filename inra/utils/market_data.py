@@ -274,6 +274,8 @@ def load_momentum_metrics(ticker: str) -> dict:
         "CM MACD Weekly": None,
         "CM Signal Weekly": None,
         "CM Histogram Weekly": None,
+        "Vorheriges 52W Hoch": None,
+        "Abstand vorheriges 52W Hoch %": None,
     }
 
     try:
@@ -297,6 +299,31 @@ def load_momentum_metrics(ticker: str) -> dict:
 
     if close_prices.empty:
         return empty_result
+
+    previous_52w_high = None
+    distance_to_previous_52w_high_pct = None
+
+    # Vorheriges 52W-Hoch ohne die jüngsten 5 Handelstage.
+    # Damit lässt sich diagnostizieren, ob der aktuelle Kurs
+    # über ein bereits bestehendes Hoch ausgebrochen ist.
+    if len(close_prices) >= 257:
+        previous_window = close_prices.iloc[-257:-5]
+
+        if not previous_window.empty:
+            previous_52w_high = float(
+                previous_window.max()
+            )
+
+            current_close = float(
+                close_prices.iloc[-1]
+            )
+
+            if previous_52w_high > 0:
+                distance_to_previous_52w_high_pct = (
+                    current_close
+                    / previous_52w_high
+                    - 1
+                ) * 100
 
     rsi_14 = None
     pressure_balance = None
@@ -508,7 +535,11 @@ def load_momentum_metrics(ticker: str) -> dict:
             cm_histogram_weekly.tolist()
             if cm_histogram_weekly is not None
             else None
-        ),        
+        ),
+        "Vorheriges 52W Hoch": previous_52w_high,
+        "Abstand vorheriges 52W Hoch %": (
+            distance_to_previous_52w_high_pct
+        ),
     }
 
 
@@ -1326,19 +1357,23 @@ def load_company_snapshot(ticker: str) -> dict:
         )
     )
 
-    entry_setup = classify_entry_setup(
-        long_term_trend,
+    entry_confirmation = analyze_entry_confirmation(
         pressure_balance=momentum["Pressure Balance"],
         cm_macd_weekly=momentum["CM MACD Weekly"],
         cm_signal_weekly=momentum["CM Signal Weekly"],
         cm_histogram_weekly=momentum["CM Histogram Weekly"],
     )
 
-    entry_confirmation = analyze_entry_confirmation(
-        pressure_balance=momentum["Pressure Balance"],
-        cm_macd_weekly=momentum["CM MACD Weekly"],
-        cm_signal_weekly=momentum["CM Signal Weekly"],
-        cm_histogram_weekly=momentum["CM Histogram Weekly"],
+    entry_setup = classify_entry_setup(
+        long_term_trend,
+        confirmation=entry_confirmation["confirmation"],
+        positive_signals=entry_confirmation["positive_signals"],
+        negative_signals=entry_confirmation["negative_signals"],
+        pullback_pct=momentum["Pullback %"],
+        recovery_pct=momentum["Recovery %"],
+        distance_to_previous_52w_high_pct=momentum[
+            "Abstand vorheriges 52W Hoch %"
+        ],
     )
 
     snapshot = {
@@ -1426,6 +1461,10 @@ def load_company_snapshot(ticker: str) -> dict:
         "Momentum 12M": momentum["Momentum 12M"],
         "RSI 14": momentum["RSI 14"],
         "Pressure Balance": momentum["Pressure Balance"],
+        "Vorheriges 52W Hoch": momentum["Vorheriges 52W Hoch"],
+        "Abstand vorheriges 52W Hoch %": momentum[
+            "Abstand vorheriges 52W Hoch %"
+        ],
         "Pullback Hoch": momentum["Pullback Hoch"],
         "Pullback Tief": momentum["Pullback Tief"],
         "Pullback %": momentum["Pullback %"],

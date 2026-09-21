@@ -381,15 +381,21 @@ def analyze_entry_confirmation(
 
 def classify_entry_setup(
     trend: dict,
-    pressure_balance=None,
-    cm_macd_weekly=None,
-    cm_signal_weekly=None,
-    cm_histogram_weekly=None,
+    confirmation=None,
+    positive_signals=0,
+    negative_signals=0,
+    pullback_pct=None,
+    recovery_pct=None,
+    distance_to_previous_52w_high_pct=None,
 ) -> dict:
     """Klassifiziert das aktuelle technische Entry-Setup.
 
-    Nutzt die jüngste Entwicklung der normalisierten Position
-    innerhalb des langfristigen Trendkanals.
+    V1 kombiniert:
+    - belastbare langfristige Trendstruktur,
+    - Position und Reaktion im Trendkanal,
+    - laufenden Pullback und dessen Recovery,
+    - kurzfristige technische Bestätigung,
+    - Lage zum vorherigen 52W-Hoch.
 
     Reine Diagnose: noch kein Einfluss auf einen Score.
     """
@@ -419,15 +425,42 @@ def classify_entry_setup(
 
     recent = history[-8:]
     current = recent[-1]
-
-    # Für Reaktionen betrachten wir bewusst mehrere Perioden.
     previous = recent[:-1]
 
     recent_min = min(previous)
     recent_max = max(previous)
 
-    # 1. Möglicher Bruch der unteren Kanalunterstützung:
-    # deutlich unter -2 und bislang keine erkennbare Rückkehr.
+    # Sehr tiefe laufende Pullbacks sind kein klassisches
+    # Pullback-Entry-Setup. Sie verlangen zunächst Stabilisierung.
+    deep_pullback = (
+        pullback_pct is not None
+        and pullback_pct <= -30.0
+    )
+
+    healthy_pullback = (
+        pullback_pct is not None
+        and -25.0 <= pullback_pct <= -5.0
+    )
+
+    recovery_established = (
+        recovery_pct is not None
+        and recovery_pct >= 40.0
+    )
+
+    # Eine gemischte Gesamtbestätigung kann trotzdem
+    # konstruktiv sein, wenn mindestens zwei der drei
+    # Richtungssignale positiv und höchstens eines negativ ist.
+    constructive_confirmation = (
+        confirmation == "Positiv"
+        or (
+            confirmation == "Gemischt"
+            and positive_signals >= 2
+            and negative_signals <= 1
+        )
+    )
+
+    # 1. Bruch der unteren Trendkanal-Unterstützung.
+    # Hat Vorrang vor kurzfristig positiven Einzelsignalen.
     if (
         current <= -2.20
         and min(recent[-3:]) <= -2.20
@@ -436,50 +469,124 @@ def classify_entry_setup(
             "setup": "Support Breakdown",
             "detail": (
                 "Kurs liegt deutlich unter der unteren "
-                "Trendkanalgrenze"
+                "Trendkanalgrenze; kurzfristige Signale "
+                "heben den strukturellen Bruch nicht auf"
             ),
         }
 
-    # 2. Bounce aus der unteren Unterstützungszone.
-    # Mindestens etwa -1.6 erreicht und inzwischen klar erholt.
-    if (
+    # 2. Untere Kanalzone mit erkennbarer Aufwärtsreaktion.
+    lower_channel_bounce = (
         recent_min <= -1.60
         and current >= recent_min + 0.50
         and current > -1.60
-    ):
+    )
+
+    if lower_channel_bounce:
+        if (
+            healthy_pullback
+            and recovery_established
+            and constructive_confirmation
+        ):
+            return {
+                "setup": "Lower Channel Bounce – bestätigt",
+                "detail": (
+                    "Erholung aus der unteren Kanalzone nach "
+                    "gesundem Pullback mit positiver "
+                    "kurzfristiger Bestätigung"
+                ),
+            }
+
+        if deep_pullback:
+            return {
+                "setup": "Lower Channel Recovery – vorsichtig",
+                "detail": (
+                    "Erholung aus der unteren Kanalzone, "
+                    "aber nach sehr tiefem Pullback"
+                ),
+            }
+
         return {
             "setup": "Lower Channel Bounce",
             "detail": (
                 "Erholung aus der unteren "
-                "Trendkanal-Unterstützungszone"
+                "Trendkanal-Unterstützungszone; "
+                "Bestätigung noch nicht vollständig"
             ),
         }
 
-    # 3. Median Reclaim:
-    # deutlich von unterhalb der Mittellinie gekommen,
-    # Mittellinie anschließend erreicht/überschritten und
-    # aktuell weiterhin in ihrer unmittelbaren Zone.
-    if (
+    # 3. Rückeroberung der Medianlinie.
+    median_reclaim = (
         recent_min <= -0.40
         and max(recent[-5:]) >= 0.0
         and current >= -0.20
-    ):
+    )
+
+    if median_reclaim:
+        if constructive_confirmation:
+            if deep_pullback:
+                return {
+                    "setup": "Median Reclaim – vorsichtig",
+                    "detail": (
+                        "Mittellinie positiv zurückerobert, "
+                        "aber nach sehr tiefem Pullback"
+                    ),
+                }
+
+            return {
+                "setup": "Median Reclaim – bestätigt",
+                "detail": (
+                    "Mittellinie nach vorheriger Schwäche "
+                    "mit positiver kurzfristiger "
+                    "Bestätigung zurückerobert"
+                ),
+            }
+
+        if confirmation == "Negativ":
+            return {
+                "setup": "Median Reclaim – schwach",
+                "detail": (
+                    "Mittellinie zurückerobert, aber "
+                    "kurzfristige Signale bestätigen "
+                    "die Bewegung derzeit nicht"
+                ),
+            }
+
         return {
             "setup": "Median Reclaim",
             "detail": (
                 "Mittellinie nach vorheriger Schwäche "
-                "zurückerobert"
+                "zurückerobert; Bestätigung ist gemischt"
             ),
         }
 
-    # 4. Median Support:
-    # von oberhalb der Mittellinie kommend,
-    # aktuell nahe der Mittellinie, aber nicht klar darunter.
-    if (
+    # 4. Test der Medianlinie von oben.
+    median_test = (
         recent_max >= 0.35
         and -0.15 <= current <= 0.25
         and min(recent[-3:]) >= -0.15
-    ):
+    )
+
+    if median_test:
+        if confirmation == "Positiv":
+            return {
+                "setup": "Median Support – bestätigt",
+                "detail": (
+                    "Mittellinie wird von oben getestet "
+                    "und die kurzfristigen Signale "
+                    "bestätigen eine positive Reaktion"
+                ),
+            }
+
+        if confirmation == "Negativ":
+            return {
+                "setup": "Median Test – schwach",
+                "detail": (
+                    "Kurs testet die Mittellinie von oben, "
+                    "aber die kurzfristigen Signale sind "
+                    "derzeit negativ"
+                ),
+            }
+
         return {
             "setup": "Median Test – unbestätigt",
             "detail": (
@@ -489,23 +596,132 @@ def classify_entry_setup(
             ),
         }
 
-    # 5. Günstige Position, aber noch keine bestätigte Reaktion.
+    # 5. Untere Kanalhälfte ohne strukturell erkannten Bounce.
     if -1.60 < current <= -0.50:
+        if (
+            healthy_pullback
+            and recovery_established
+            and constructive_confirmation
+        ):
+            return {
+                "setup": "Pullback Recovery – bestätigt",
+                "detail": (
+                    "Gesunder Pullback in der unteren "
+                    "Kanalhälfte mit deutlicher Erholung "
+                    "und positiver Bestätigung"
+                ),
+            }
+
+        if deep_pullback:
+            return {
+                "setup": "Tiefe Korrektur – Stabilisierung abwarten",
+                "detail": (
+                    "Kurs liegt günstig im Trendkanal, "
+                    "der laufende Pullback ist jedoch "
+                    "außergewöhnlich tief"
+                ),
+            }
+
+        if confirmation == "Negativ":
+            return {
+                "setup": "Untere Kanalhälfte – schwach",
+                "detail": (
+                    "Günstigere Kanalposition, aber "
+                    "negative kurzfristige Bestätigung"
+                ),
+            }
+
         return {
             "setup": "Untere Kanalhälfte – unbestätigt",
             "detail": (
-                "Günstigere Kanalposition, aber noch kein "
-                "bestätigter Support-Bounce"
+                "Günstigere Kanalposition, aber noch "
+                "kein ausreichend bestätigter Einstieg"
             ),
         }
 
-    # 6. Obere Widerstands-/Überdehnungszone.
+    # 6. Obere Kanalzone.
+    # Sie ist nicht automatisch negativ: zunächst unterscheiden,
+    # ob gleichzeitig das vorherige 52W-Hoch angegriffen oder
+    # bereits überschritten wird.
     if current >= 1.60:
+        near_previous_high = (
+            distance_to_previous_52w_high_pct is not None
+            and -5.0
+            <= distance_to_previous_52w_high_pct
+            <= 0.0
+        )
+
+        breakout = (
+            distance_to_previous_52w_high_pct is not None
+            and distance_to_previous_52w_high_pct > 0.0
+        )
+
+        if breakout:
+            if confirmation == "Positiv":
+                return {
+                    "setup": "Breakout – bestätigt",
+                    "detail": (
+                        "Kurs liegt über dem vorherigen "
+                        "52W-Hoch und der Ausbruch wird "
+                        "kurzfristig positiv bestätigt"
+                    ),
+                }
+
+            if confirmation == "Negativ":
+                return {
+                    "setup": "Breakout – fragil",
+                    "detail": (
+                        "Kurs liegt über dem vorherigen "
+                        "52W-Hoch, die kurzfristige "
+                        "Bestätigung ist jedoch negativ"
+                    ),
+                }
+
+            return {
+                "setup": "Breakout – unbestätigt",
+                "detail": (
+                    "Kurs liegt über dem vorherigen "
+                    "52W-Hoch; die kurzfristige "
+                    "Bestätigung ist noch gemischt"
+                ),
+            }
+
+        if near_previous_high:
+            if confirmation == "Positiv":
+                return {
+                    "setup": "Widerstands-Anlauf – positiv",
+                    "detail": (
+                        "Kurs nähert sich in der oberen "
+                        "Kanalzone dem vorherigen 52W-Hoch "
+                        "mit positiver Dynamik"
+                    ),
+                }
+
+            if confirmation == "Negativ":
+                return {
+                    "setup": "Widerstands-Anlauf – schwach",
+                    "detail": (
+                        "Kurs nähert sich in der oberen "
+                        "Kanalzone dem vorherigen 52W-Hoch, "
+                        "aber die kurzfristigen Signale "
+                        "sind negativ"
+                    ),
+                }
+
+            return {
+                "setup": "Widerstands-Anlauf – unbestätigt",
+                "detail": (
+                    "Kurs nähert sich in der oberen "
+                    "Kanalzone dem vorherigen 52W-Hoch"
+                ),
+            }
+
         return {
-            "setup": "Obere Widerstandszone",
+            "setup": "Obere Kanalzone",
             "detail": (
-                "Kurs befindet sich an oder oberhalb der "
-                "oberen Trendkanalzone"
+                "Kurs liegt relativ zum langfristigen "
+                "Trend weit oben, ohne unmittelbaren "
+                "52W-Breakout"
             ),
         }
 
@@ -515,7 +731,6 @@ def classify_entry_setup(
             "Kein ausgeprägtes Entry-Signal im Trendkanal"
         ),
     }
-
 
 def calculate_long_term_trend_score(
     trend: dict,
