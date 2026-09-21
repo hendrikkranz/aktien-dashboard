@@ -29,6 +29,7 @@ def _is_manual_data_stale(
 import streamlit as st
 
 from utils.market_data import save_manual_override
+from utils.data_loader import update_stock_in_benchmark_cache
 
 from utils.fundamental_interpreter import (
     interpret_momentum,
@@ -1254,6 +1255,7 @@ def _render_current_intelligence(data: dict) -> None:
             type="primary",
         ):
             save_current_intelligence(result)
+            update_stock_in_benchmark_cache(ticker)
             del st.session_state[preview_key]
             st.rerun()
 
