@@ -61,6 +61,31 @@ def _score_icon(
     return "🔴"
 
 
+def _score_rating(
+    score: Optional[float],
+    maximum: Optional[float],
+) -> dict:
+    if score is None or maximum is None or maximum <= 0:
+        return {
+            "level": "neutral",
+            "label": "Nicht bewertbar",
+        }
+
+    ratio = score / maximum
+
+    if ratio >= 0.8:
+        level = "good"
+    elif ratio >= 0.5:
+        level = "solid"
+    else:
+        level = "poor"
+
+    return {
+        "level": level,
+        "label": f"{score:.0f} / {maximum:.0f}",
+    }
+
+
 def _format_percentage(
     value: Optional[float],
 ) -> str:
@@ -652,20 +677,10 @@ def render_quality_section(data: dict) -> None:
         _render_metric_row(
             "Kapitalrendite (ROC)",
             _format_percentage(return_on_capital),
-            {
-                "level": "neutral",
-                "label": (
-                    (
-                        f"{profitability_breakdown['roc_score']:.0f} / "
-                        f"{profitability_breakdown['roc_max']:.0f}"
-                    )
-                    if (
-                        profitability_breakdown["roc_score"] is not None
-                        and profitability_breakdown["roc_max"] is not None
-                    )
-                    else "Nicht bewertbar"
-                ),
-            },
+            _score_rating(
+                profitability_breakdown["roc_score"],
+                profitability_breakdown["roc_max"],
+            ),
             (
                 "Misst die Rendite auf das im operativen Geschäft "
                 "eingesetzte Kapital. Sie ist die wichtigste "
@@ -683,24 +698,18 @@ def render_quality_section(data: dict) -> None:
                 if not profitability_breakdown["margin_fallback_used"]
                 else "Ersatzbewertung Margen"
             ),
-            {
-                "level": "neutral",
-                "label": (
-                    (
-                        f"{profitability_breakdown['roe_score']:.0f} / "
-                        f"{profitability_breakdown['roe_max']:.0f}"
-                    )
-                    if (
-                        profitability_breakdown["roe_score"] is not None
-                        and profitability_breakdown["roe_max"] is not None
-                    )
-                    else (
-                        f"{profitability_breakdown['margin_fallback_score']:.0f} / 15"
-                        if profitability_breakdown["margin_fallback_used"]
-                        else "Nicht bewertbar"
-                    )
+            _score_rating(
+                (
+                    profitability_breakdown["margin_fallback_score"]
+                    if profitability_breakdown["margin_fallback_used"]
+                    else profitability_breakdown["roe_score"]
                 ),
-            },
+                (
+                    15
+                    if profitability_breakdown["margin_fallback_used"]
+                    else profitability_breakdown["roe_max"]
+                ),
+            ),
             (
                 "Eigenkapitalrendite: Zeigt, wie viel Gewinn "
                 "mit dem eingesetzten Eigenkapital erzielt wird. "
@@ -749,15 +758,10 @@ def render_quality_section(data: dict) -> None:
             _format_percentage(
                 growth_breakdown["revenue_growth"]
             ),
-            {
-                "level": "neutral",
-                "label": (
-                    f"{growth_breakdown['revenue_points']:.0f} / "
-                    f"{growth_breakdown['revenue_max']:.0f}"
-                )
-                if growth_breakdown["revenue_points"] is not None
-                else "Nicht bewertbar",
-            },
+            _score_rating(
+                growth_breakdown["revenue_points"],
+                growth_breakdown["revenue_max"],
+            ),
             (
                 "Bewertet wird die geglättete Umsatzentwicklung. "
                 "Wenn eine belastbare 3-Jahres-Historie vorliegt, "
@@ -771,15 +775,10 @@ def render_quality_section(data: dict) -> None:
             _format_percentage(
                 growth_breakdown["earnings_growth"]
             ),
-            {
-                "level": "neutral",
-                "label": (
-                    f"{growth_breakdown['earnings_points']:.0f} / "
-                    f"{growth_breakdown['earnings_max']:.0f}"
-                )
-                if growth_breakdown["earnings_points"] is not None
-                else "Nicht bewertbar",
-            },
+            _score_rating(
+                growth_breakdown["earnings_points"],
+                growth_breakdown["earnings_max"],
+            ),
             (
                 (
                     "Trendbruch: Das jüngste Geschäftsjahr liegt bei "
