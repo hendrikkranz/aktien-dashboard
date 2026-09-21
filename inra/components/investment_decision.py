@@ -2,12 +2,8 @@ import textwrap
 
 import streamlit as st
 
-from modules.chart_score import (
-    calculate_chart_breakdown,
-    calculate_chart_score,
-)
 from modules.opportunity_score import (
-    calculate_opportunity_breakdown,
+    calculate_opportunity_v3_blocks,
     get_pe_valuation_class,
 )
 from utils.current_intelligence import get_current_intelligence
@@ -30,39 +26,37 @@ def _is_distressed(data: dict) -> bool:
 def render_investment_decision(data: dict) -> None:
     buy_score = data["Kaufchance"]
     quality_score = data["Unternehmensqualität"]
+    entry_setup = data.get("Entry Setup")
 
-    opportunity_breakdown = calculate_opportunity_breakdown(data)
-    chart_breakdown = calculate_chart_breakdown(data)
+    entry_ready_setups = {
+        "Lower Channel Bounce – bestätigt",
+        "Pullback Recovery – bestätigt",
+        "Median Support – bestätigt",
+        "Median Reclaim – bestätigt",
+        "Breakout – bestätigt",
+        "Lower Channel Bounce",
+        "Median Reclaim",
+        "Widerstands-Anlauf – positiv",
+    }
+    entry_ready = entry_setup in entry_ready_setups
 
-    available_maximum = (
-        sum(
-            item["Maximum"]
-            for item in opportunity_breakdown
-            if item["Punkte"] is not None
-        )
-        + sum(
-            item["Maximum"]
-            for item in chart_breakdown
-            if item["Punkte"] is not None
-        )
+    v3_blocks = calculate_opportunity_v3_blocks(data)
+
+    available_maximum = v3_blocks["available_maximum"]
+    fundamental_complete = (
+        v3_blocks["fundamental_available"] == 45
     )
-
-    chart_score = calculate_chart_score(data)
-
-    fundamental_available_maximum = sum(
-        item["Maximum"]
-        for item in opportunity_breakdown
-        if item["Punkte"] is not None
-    )
-
-    chart_only_missing = (
-        chart_score is None
-        and fundamental_available_maximum == 55
+    technical_context_missing = (
+        v3_blocks["technical_neutral"]
+        or v3_blocks["entry_neutral"]
     )
 
     opportunity_data_complete = (
         available_maximum == 100
-        or chart_only_missing
+        or (
+            fundamental_complete
+            and technical_context_missing
+        )
     )
 
     investment_score = (
@@ -106,17 +100,26 @@ def render_investment_decision(data: dict) -> None:
             "wesentliche Daten zur Kaufchance."
         )
 
-    elif investment_score >= 80 and buy_score >= 70:
+    elif (
+        investment_score >= 80
+        and buy_score >= 70
+        and entry_ready
+    ):
         title = "Klarer Kauf"
         icon = "★"
         background = "#E4F8EE"
         border = "#20C77A"
         text = (
             "Kaufchance und Unternehmensqualität ergeben zusammen "
-            "eine besonders überzeugende Investment-Konstellation."
+            "eine besonders überzeugende Investment-Konstellation. "
+            "Auch das aktuelle Entry Setup unterstützt den Einstieg."
         )
 
-    elif investment_score >= 70 and buy_score >= 60:
+    elif (
+        investment_score >= 70
+        and buy_score >= 60
+        and entry_ready
+    ):
         title = "Erste Position aufbauen"
         icon = "🟢"
         background = "#EAF7F2"
@@ -125,6 +128,22 @@ def render_investment_decision(data: dict) -> None:
             "Die Kombination aus Einstiegschance und "
             "Unternehmensqualität spricht derzeit für den Aufbau "
             "einer ersten Position."
+        )
+
+    elif (
+        investment_score >= 70
+        and buy_score >= 60
+        and not entry_ready
+    ):
+        title = "Kaufenswert – Einstieg abwarten"
+        icon = "🟢"
+        background = "#F2FAF6"
+        border = "#86CFAE"
+        text = (
+            "Die Aktie erscheint grundsätzlich kaufenswert. "
+            "Das aktuelle Entry Setup ist jedoch noch nicht "
+            "ausreichend überzeugend für einen unmittelbaren "
+            "Positionsaufbau."
         )
 
     elif buy_score >= 75 and investment_score < 70:
@@ -160,16 +179,32 @@ def render_investment_decision(data: dict) -> None:
             "nicht attraktiv genug."
         )
 
-    if chart_only_missing and title not in {
+    if technical_context_missing and title not in {
         "Kein Investment",
         "Sonderfall",
         "Eingeschränkt bewertbar",
     }:
         title = f"{title} – unter Vorbehalt"
+
+        missing_parts = []
+
+        if v3_blocks["technical_neutral"]:
+            missing_parts.append(
+                "die technische Verfassung"
+            )
+
+        if v3_blocks["entry_neutral"]:
+            missing_parts.append(
+                "das Entry Setup"
+            )
+
+        missing_text = " und ".join(missing_parts)
+
         text += (
-            " Die Charttechnik ist wegen unzureichender "
-            "Kurshistorie noch nicht belastbar bewertbar und "
-            "wird in der Kaufchance neutral angesetzt."
+            f" {missing_text.capitalize()} "
+            "ist wegen unzureichender Kurshistorie noch nicht "
+            "belastbar bewertbar und wird in der Kaufchance "
+            "neutral angesetzt."
         )
 
     if title.startswith("Klarer Kauf"):

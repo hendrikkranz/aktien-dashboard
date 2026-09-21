@@ -1,6 +1,6 @@
 from config.scoring import OPPORTUNITY_WEIGHTS
 from config.industry_mapping import get_pe_benchmark_for_yahoo_industry
-from modules.chart_score import calculate_chart_score
+from modules.chart_score import calculate_technical_condition_v3_score
 
 
 def calculate_opportunity_breakdown(data: dict) -> list:
@@ -29,13 +29,21 @@ def calculate_opportunity_breakdown(data: dict) -> list:
                 "analystenpotenzial"
             ]
 
+    # Kaufchance V3:
+    # Analystenpotenzial bisher max. 25 -> künftig max. 15.
+    if analyst_points is not None:
+        analyst_points = round(
+            analyst_points
+            / OPPORTUNITY_WEIGHTS["analystenpotenzial"]
+            * 15,
+            1,
+        )
+
     breakdown.append(
         {
             "Kriterium": "Analystenpotenzial",
             "Punkte": analyst_points,
-            "Maximum": OPPORTUNITY_WEIGHTS[
-                "analystenpotenzial"
-            ],
+            "Maximum": 15,
         }
     )
 
@@ -166,35 +174,126 @@ def calculate_opportunity_breakdown(data: dict) -> list:
     return breakdown
 
 
-def calculate_opportunity_score(data: dict) -> int:
-    breakdown = calculate_opportunity_breakdown(data)
+def calculate_entry_setup_score(data: dict):
+    """Bewertet das aktuelle Entry Setup mit maximal 30 Punkten."""
+    setup = data.get("Entry Setup")
 
-    fundamental_score = sum(
+    points = {
+        "Lower Channel Bounce – bestätigt": 30.0,
+        "Pullback Recovery – bestätigt": 28.5,
+        "Median Support – bestätigt": 27.0,
+        "Median Reclaim – bestätigt": 25.5,
+        "Breakout – bestätigt": 24.0,
+        "Lower Channel Bounce": 22.5,
+        "Median Reclaim": 21.0,
+        "Widerstands-Anlauf – positiv": 19.5,
+        "Untere Kanalhälfte – unbestätigt": 18.0,
+        "Median Test – unbestätigt": 16.5,
+        "Neutral": 15.0,
+        "Median Reclaim – vorsichtig": 13.5,
+        "Obere Kanalzone": 12.0,
+        "Lower Channel Recovery – vorsichtig": 10.5,
+        "Median Reclaim – schwach": 9.0,
+        "Untere Kanalhälfte – schwach": 9.0,
+        "Seitwärtstrend – kein Entry Setup": 9.0,
+        "Median Test – schwach": 7.5,
+        "Breakout – unbestätigt": 7.5,
+        "Widerstands-Anlauf – unbestätigt": 7.5,
+        "Widerstands-Anlauf – schwach": 6.0,
+        "Kein belastbares Entry Setup": 6.0,
+        "Tiefe Korrektur – Stabilisierung abwarten": 4.5,
+        "Breakout – fragil": 4.5,
+        "Abwärtstrend – kein Entry Setup": 3.0,
+        "Support Breakdown": 0.0,
+    }
+
+    if setup in points:
+        return points[setup]
+
+    # Echter Datenmangel wird neutral behandelt.
+    if setup in (None, "Nicht bewertbar"):
+        return 15.0
+
+    # Neue/unbekannte Setup-Klassen dürfen nicht still
+    # als neutral in die Kaufchance eingehen.
+    return None
+
+
+def calculate_opportunity_v3_blocks(data: dict) -> dict:
+    """Zentrale V3-Blöcke für Score, UI und Coverage."""
+    fundamental_breakdown = calculate_opportunity_breakdown(data)
+
+    fundamental_points = sum(
         item["Punkte"]
-        for item in breakdown
+        for item in fundamental_breakdown
         if item["Punkte"] is not None
     )
-
-    fundamental_maximum = sum(
+    fundamental_available = sum(
         item["Maximum"]
-        for item in breakdown
+        for item in fundamental_breakdown
         if item["Punkte"] is not None
     )
 
-    chart_score = calculate_chart_score(data)
+    technical_score_35 = calculate_technical_condition_v3_score(data)
 
-    if chart_score is None:
-        # Die Charttechnik ist als kompletter Bewertungsblock nicht
-        # ausreichend bewertbar. Für die vergleichbare Kaufchance
-        # wird der fehlende 45-Punkte-Block neutral mit 50 % seines
-        # Maximums angesetzt. Das ist kein gemessener Chartscore.
-        neutral_chart_score = 22
-        score = fundamental_score + neutral_chart_score
-        return min(score, 100)
+    if technical_score_35 is None:
+        technical_points = 12.5
+        technical_available = 0
+        technical_neutral = True
+    else:
+        technical_points = technical_score_35 / 35 * 25
+        technical_available = 25
+        technical_neutral = False
 
-    score = fundamental_score + chart_score
+    entry_points = calculate_entry_setup_score(data)
+    entry_setup = data.get("Entry Setup")
 
-    return min(score, 100)
+    if entry_points is None:
+        entry_available = 0
+        entry_neutral = False
+    elif entry_setup in (None, "Nicht bewertbar"):
+        entry_available = 0
+        entry_neutral = True
+    else:
+        entry_available = 30
+        entry_neutral = False
+
+    return {
+        "fundamental_points": fundamental_points,
+        "fundamental_available": fundamental_available,
+        "fundamental_maximum": 45,
+        "technical_points": technical_points,
+        "technical_available": technical_available,
+        "technical_maximum": 25,
+        "technical_neutral": technical_neutral,
+        "entry_points": entry_points,
+        "entry_available": entry_available,
+        "entry_maximum": 30,
+        "entry_neutral": entry_neutral,
+        "entry_setup": entry_setup,
+        "available_maximum": (
+            fundamental_available
+            + technical_available
+            + entry_available
+        ),
+    }
+
+
+def calculate_opportunity_score(data: dict):
+    """Kaufchance V3: 45 fundamental + 25 Technik + 30 Entry."""
+    blocks = calculate_opportunity_v3_blocks(data)
+
+    if blocks["entry_points"] is None:
+        return None
+
+    score = (
+        blocks["fundamental_points"]
+        + blocks["technical_points"]
+        + blocks["entry_points"]
+    )
+
+    return min(round(score), 100)
+
 
 LOW_PE_INDUSTRIES = {
     "Banks - Diversified",

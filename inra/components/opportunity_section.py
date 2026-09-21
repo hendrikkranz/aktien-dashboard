@@ -38,13 +38,12 @@ from utils.fundamental_interpreter import (
 
 from modules.opportunity_score import (
     calculate_opportunity_breakdown,
+    calculate_opportunity_v3_blocks,
     get_pe_valuation_class,
 )
 
 from modules.chart_score import (
-    calculate_chart_breakdown,
-    calculate_chart_available_maximum,
-    calculate_chart_score,
+    calculate_technical_condition_v3_breakdown,
 )
 from utils.current_intelligence import (
     get_current_intelligence,
@@ -118,8 +117,6 @@ def _render_opportunity_breakdown(
         [],
     )
 
-    chart_breakdown = calculate_chart_breakdown(data)
-
     analyst_target_missing = (
         data.get("Analystenziel") is None
     )
@@ -158,10 +155,12 @@ def _render_opportunity_breakdown(
 
     explanations = {
         "Analystenpotenzial": (
-            "Bewertet den Abstand zum durchschnittlichen Analystenziel: "
-            "unter 0 % = 0, ab 0 % = 3, ab 5 % = 7, "
-            "ab 10 % = 12, ab 15 % = 17, ab 20 % = 21 "
-            "und ab 30 % = 25 Punkte."
+            "Bewertet den Abstand zum durchschnittlichen Analystenziel. "
+            "In Kaufchance V3 wird die Analystenlogik proportional auf "
+            "maximal 15 Punkte skaliert: unter 0 % = 0, "
+            "ab 0 % = 1,8, ab 5 % = 4,2, ab 10 % = 7,2, "
+            "ab 15 % = 10,2, ab 20 % = 12,6 und "
+            "ab 30 % = 15 Punkte."
         ),
         "Forward KGV": (
             "Bewertet die KGVs der beiden nächsten verfügbaren "
@@ -189,14 +188,9 @@ def _render_opportunity_breakdown(
         ),
     }
 
-    available_maximum = (
-        sum(
-            item["Maximum"]
-            for item in breakdown
-            if item["Punkte"] is not None
-        )
-        + calculate_chart_available_maximum(data)
-    )
+    v3_blocks = calculate_opportunity_v3_blocks(data)
+    available_maximum = v3_blocks["available_maximum"]
+
     base_buy_score = data.get(
         "Kaufchance Basis",
         data.get("Kaufchance"),
@@ -205,20 +199,22 @@ def _render_opportunity_breakdown(
     display_buy_score = round(data["Kaufchance"])
     event_impact = data.get("Event Impact", 0)
 
-    chart_available_maximum = (
-        calculate_chart_available_maximum(data)
+    fundamental_available_maximum = (
+        v3_blocks["fundamental_available"]
     )
-    fundamental_available_maximum = sum(
-        item["Maximum"]
-        for item in breakdown
-        if item["Punkte"] is not None
+    technical_missing = (
+        v3_blocks["technical_available"] == 0
     )
-    chart_only_missing = (
-        chart_available_maximum == 0
-        and fundamental_available_maximum == 55
+    entry_missing = (
+        v3_blocks["entry_available"] == 0
+    )
+    technical_only_missing = (
+        technical_missing
+        and not entry_missing
+        and fundamental_available_maximum == 45
     )
 
-    if available_maximum == 100 or chart_only_missing:
+    if available_maximum == 100 or technical_only_missing:
         expander_title = (
             f"Warum {display_base_score} von "
             f"100 Basispunkten?"
@@ -231,24 +227,29 @@ def _render_opportunity_breakdown(
 
     with st.expander(expander_title):
 
-        if chart_only_missing:
-            fundamental_score = sum(
-                item["Punkte"]
-                for item in breakdown
-                if item["Punkte"] is not None
-            )
-            st.markdown(
-                f"**Basisbewertung:** "
-                f"{round(fundamental_score)} / 55 Fundamentpunkte "
-                f"+ 22 / 45 neutraler Chart-Ersatzwert "
-                f"= **{display_base_score} / 100**"
-            )
-            st.caption(
-                "Die 22 Chartpunkte sind kein gemessener Chartscore. "
-                "Sie werden neutral angesetzt, solange die "
-                "Kurshistorie für eine belastbare Chartbewertung "
-                "nicht ausreicht."
-            )
+        if available_maximum < 100:
+            neutral_parts = []
+
+            if v3_blocks["technical_neutral"]:
+                neutral_parts.append(
+                    "Technische Verfassung 12,5 / 25 neutral"
+                )
+
+            if v3_blocks["entry_neutral"]:
+                neutral_parts.append(
+                    "Entry Setup 15 / 30 neutral"
+                )
+
+            if neutral_parts:
+                st.markdown(
+                    f"**Basis-Kaufchance: "
+                    f"{display_base_score} / 100**"
+                )
+                st.caption(
+                    "Neutral angesetzte, nicht ausreichend "
+                    "bewertbare Blöcke: "
+                    + " · ".join(neutral_parts)
+                )
 
         if event_impact:
             impact_display = (
@@ -713,132 +714,75 @@ def _render_opportunity_breakdown(
 
             st.divider()
 
-        chart_score = calculate_chart_score(data)
-        chart_raw_maximum = sum(
-            item["Maximum"]
-            for item in chart_breakdown
-            if item["Kriterium"] != "Überhitzungsgefahr"
-            and item["Punkte"] is not None
+        # -----------------------------------------------------
+        # Technische Verfassung V3 – 25 Punkte
+        # -----------------------------------------------------
+        technical_breakdown = (
+            calculate_technical_condition_v3_breakdown(data)
         )
+        technical_points = v3_blocks["technical_points"]
 
-        if chart_score is None:
-            chart_header_value = "⚪ Nicht ausreichend bewertbar"
+        if v3_blocks["technical_neutral"]:
+            technical_header = "⚪ Nicht ausreichend bewertbar"
         else:
-            chart_header_value = f"{chart_score} / 45"
+            technical_header = f"{technical_points:.1f} / 25"
 
         st.markdown(
-            f"##### 📊 Charttechnik"
+            f"##### 📈 Technische Verfassung"
             f"<span style='float:right'>"
-            f"{chart_header_value}"
+            f"{technical_header}"
             f"</span>",
             unsafe_allow_html=True,
         )
 
-        if chart_score is None:
+        st.caption(
+            "Bewertet den übergeordneten technischen Zustand "
+            "der Aktie. Das konkrete Einstiegstiming wird "
+            "separat im Entry Setup beurteilt."
+        )
+
+        if v3_blocks["technical_neutral"]:
             st.caption(
-                f"Nur {chart_raw_maximum} von 45 technischen "
-                "Rohpunkten sind derzeit verfügbar. "
-                "Die Charttechnik ist deshalb noch nicht belastbar "
-                "bewertbar. In der Basis-Kaufchance wird der "
-                "Chartblock neutral mit 22 von 45 Punkten angesetzt."
+                "Die technischen Daten reichen derzeit nicht "
+                "für eine belastbare Bewertung. In der "
+                "Basis-Kaufchance wird dieser Block neutral "
+                "mit 12,5 von 25 Punkten angesetzt."
             )
 
-        for item in chart_breakdown:
-
+        for item in technical_breakdown:
             criterion = item["Kriterium"]
             points = item["Punkte"]
             maximum = item["Maximum"]
 
-            placeholder_criteria = set()
+            st.markdown(f"###### {criterion}")
 
-            st.markdown(
-                f"###### {criterion}"
-            )
-
-            if criterion in placeholder_criteria:
-                st.markdown(
-                    "⚪ **Noch nicht bewertet**"
-                )
-                st.caption(
-                    "Dieser Baustein wird in V2 ergänzt."
-                )
-
-            elif criterion == "Überhitzungsgefahr":
-                if points == 0:
+            if points is None:
+                st.markdown("⚪ **Nicht bewertbar**")
+            else:
+                if points >= maximum:
                     icon = "🟢"
-                    label = "Keine Überhitzungsgefahr"
-                elif points == -2:
+                elif points > 0:
                     icon = "🟡"
-                    label = "Leicht erhöht"
-                elif points == -4:
-                    icon = "🟠"
-                    label = "Erhöht"
                 else:
                     icon = "🔴"
-                    label = "Sehr hoch"
 
-                if points == 0:
-                    st.markdown(
-                        f"{icon} **{label} · kein Punktabzug**"
-                    )
-                else:
-                    st.markdown(
-                        f"{icon} **{label} · {points} Punkte**"
-                    )
-                st.caption(
-                    "Bewertung aus RSI, Abstand zum 52W-Hoch "
-                    "und Momentum 3M / 6M / 12M."
+                st.markdown(
+                    f"{icon} **{points} von "
+                    f"{maximum} Punkten**"
                 )
-            else:
-                if points is None:
-                    st.markdown(
-                        "⚪ **Nicht bewertbar**"
-                    )
-                else:
-                    if points >= maximum:
-                        icon = "🟢"
-                    elif points > 0:
-                        icon = "🟡"
-                    else:
-                        icon = "🔴"
-
-                    if points < 0:
-                        st.markdown(
-                            f"{icon} **{points} Punkte**"
-                        )
-                    else:
-                        st.markdown(
-                            f"{icon} **{points} von "
-                            f"{maximum} Punkten**"
-                        )
 
             if criterion == "Langfristiger Trend":
                 st.caption("Trendanalyse")
-
                 st.markdown(
                     f"**Trend: "
                     f"{data.get('Langfristiger Trend', 'Keine Daten')}**"
                 )
-
                 st.markdown(
                     f"**Validität: "
-                    f"{data.get('Langfristiger Trend Confidence', 'Keine Daten')}**"
+                    f"{data.get('Langfristiger Trend Status', 'Keine Daten')}**"
                 )
 
-                st.caption(
-                    data.get(
-                        "Langfristiger Trend Erklärung",
-                        "",
-                    )
-                )
-
-                st.caption(
-                    f"Kanalposition: "
-                    f"{data.get('Trendkanal Position', 'Keine Daten')} · "
-                    f"{data.get('Trendkanal Position Normalisiert', 'Keine Daten')}"
-                )
-
-            if criterion == "Momentum":
+            elif criterion == "Momentum":
                 momentum_3m = data.get("Momentum 3M")
                 momentum_6m = data.get("Momentum 6M")
                 momentum_12m = data.get("Momentum 12M")
@@ -878,12 +822,12 @@ def _render_opportunity_breakdown(
                     else:
                         label = "Überverkauft"
 
-                    st.caption("Grunddaten Relative Stärke")
+                    st.caption("Relative Stärke")
                     st.markdown(
                         f"**RSI (14): {rsi:.1f} · {label}**"
                     )
 
-            elif criterion == "Abstand 52W-Hoch":
+            elif criterion == "52W-Kontext":
                 high_52w = data.get("52W Hoch")
                 distance_52w = data.get("Abstand 52W Hoch")
                 currency = data.get("Währung", "")
@@ -937,56 +881,77 @@ def _render_opportunity_breakdown(
                         f"**Pressure Balance: "
                         f"{pressure_balance:+.2f} · {label}**"
                     )
-                    st.caption(
-                        "Positive Werte zeigen überwiegenden "
-                        "Kaufdruck, negative Werte überwiegenden "
-                        "Verkaufsdruck. Kursbewegungen mit höherem "
-                        "Handelsvolumen erhalten mehr Gewicht."
-                    )
-            st.divider()        
 
-        fundamental_total = sum(
-            item["Punkte"]
-            for item in breakdown
-            if item["Punkte"] is not None
+            st.divider()
+
+        # -----------------------------------------------------
+        # Entry Setup heute – 30 Punkte
+        # -----------------------------------------------------
+        entry_points = v3_blocks["entry_points"]
+        entry_setup = (
+            v3_blocks["entry_setup"]
+            or "Nicht bewertbar"
         )
 
-        chart_score = calculate_chart_score(data)
+        if entry_points is None:
+            entry_header = "⚪ Nicht bewertbar"
+        else:
+            entry_header = f"{entry_points:.1f} / 30"
 
-        total = fundamental_total
-        if chart_score is not None:
-            total += chart_score
-
-        available_maximum = sum(
-            item["Maximum"]
-            for item in breakdown
-            if item["Punkte"] is not None
-        ) + calculate_chart_available_maximum(data)
-
-        coverage = round(
-            available_maximum / 100 * 100
+        st.markdown(
+            f"##### 🎯 Entry Setup heute"
+            f"<span style='float:right'>"
+            f"{entry_header}"
+            f"</span>",
+            unsafe_allow_html=True,
         )
+
+        st.markdown(f"**{entry_setup}**")
+
+        entry_detail = data.get("Entry Setup Erklärung")
+        if entry_detail:
+            st.caption(entry_detail)
+
+        st.caption(
+            "Bewertet, ob die heutige technische Situation "
+            "einen günstigen Einstieg unterstützt. "
+            "Berücksichtigt werden insbesondere Trendkanal, "
+            "Pullback/Erholung, Medianlinie, kurzfristige "
+            "Bestätigung und die Lage zum vorherigen 52W-Hoch."
+        )
+
+        if v3_blocks["entry_neutral"]:
+            st.caption(
+                "Das Entry Setup ist derzeit nicht ausreichend "
+                "bewertbar. In der Basis-Kaufchance wird der "
+                "Block neutral mit 15 von 30 Punkten angesetzt."
+            )
 
         st.divider()
 
-        if chart_only_missing:
+        # -----------------------------------------------------
+        # Datenabdeckung V3
+        # -----------------------------------------------------
+        coverage = round(available_maximum)
+
+        if available_maximum == 100:
             st.markdown(
-                f"**Tatsächlich bewertet: "
-                f"{round(fundamental_total)} / 55 Fundamentpunkte**"
+                f"**Aktuell bewertet: "
+                f"{display_base_score} / 100 Punkte**"
             )
-            st.caption(
-                "Charttechnik: noch nicht belastbar bewertbar · "
-                "neutraler Ersatzwert 22 / 45 · "
-                f"Basis-Kaufchance {display_base_score} / 100"
-            )
+            st.caption("Datenabdeckung: 100 %")
         else:
             st.markdown(
-                f"**Aktuell bewertet: {round(total)} von "
-                f"{available_maximum} verfügbaren Punkten**"
+                f"**Basis-Kaufchance: "
+                f"{display_base_score} / 100 Punkte**"
             )
             st.caption(
-                f"Datenabdeckung: {coverage} %"
+                f"Bewertbare Datenabdeckung: {coverage} % · "
+                "fehlende technische Blöcke werden nur dort "
+                "neutral ersetzt, wo keine belastbare "
+                "Bewertung möglich ist."
             )
+
 
 def _render_current_intelligence(data: dict) -> None:
     ticker = data.get("Ticker")
@@ -1019,19 +984,10 @@ def _render_current_intelligence(data: dict) -> None:
                 opportunity_breakdown = (
                     calculate_opportunity_breakdown(data)
                 )
-                chart_breakdown = calculate_chart_breakdown(data)
-
-                chart_points = sum(
-                    item["Punkte"]
-                    for item in chart_breakdown
-                    if item.get("Punkte") is not None
+                technical_breakdown = (
+                    calculate_technical_condition_v3_breakdown(data)
                 )
-
-                chart_maximum = sum(
-                    item["Maximum"]
-                    for item in chart_breakdown
-                    if item.get("Maximum") is not None
-                )
+                v3_blocks = calculate_opportunity_v3_blocks(data)
 
                 inra_context = {
                     "Unternehmensqualität": data.get(
@@ -1048,8 +1004,13 @@ def _render_current_intelligence(data: dict) -> None:
                         "Analystenpotenzial"
                     ),
                     "Forward KGV": data.get("Forward KGV"),
-                    "Charttechnik Punkte": chart_points,
-                    "Charttechnik Maximum": chart_maximum,
+                    "Technische Verfassung Punkte": (
+                        v3_blocks["technical_points"]
+                    ),
+                    "Technische Verfassung Maximum": 25,
+                    "Entry Setup": v3_blocks["entry_setup"],
+                    "Entry Setup Punkte": v3_blocks["entry_points"],
+                    "Entry Setup Maximum": 30,
                     "Momentum 3M Prozent": data.get("Momentum 3M"),
                     "Momentum 6M Prozent": data.get("Momentum 6M"),
                     "Momentum 12M Prozent": data.get("Momentum 12M"),
@@ -1061,7 +1022,12 @@ def _render_current_intelligence(data: dict) -> None:
                         "Pressure Balance"
                     ),
                     "Kaufchance Breakdown": opportunity_breakdown,
-                    "Charttechnik Breakdown": chart_breakdown,
+                    "Technische Verfassung Breakdown": (
+                        technical_breakdown
+                    ),
+                    "Entry Setup Erklärung": data.get(
+                        "Entry Setup Erklärung"
+                    ),
                 }
 
                 result = research_current_intelligence_with_gemini(
@@ -1267,29 +1233,30 @@ def render_opportunity_section(
     buy_score = data["Kaufchance"]
     opportunity_breakdown = calculate_opportunity_breakdown(data)
 
-    chart_breakdown = calculate_chart_breakdown(data)
+    v3_blocks = calculate_opportunity_v3_blocks(data)
 
-    available_maximum = sum(
-        item["Maximum"]
-        for item in opportunity_breakdown
-        if item["Punkte"] is not None
-    ) + calculate_chart_available_maximum(data)
-
-    coverage = round(
-        available_maximum / 100 * 100
+    technical_context_missing = (
+        v3_blocks["technical_neutral"]
+        or v3_blocks["entry_neutral"]
     )
 
-    chart_available = (
-        calculate_chart_available_maximum(data) > 0
+    available_maximum = v3_blocks["available_maximum"]
+    coverage = round(available_maximum)
+
+    technical_available = (
+        v3_blocks["technical_available"] > 0
     )
-    fundamental_available_maximum = sum(
-        item["Maximum"]
-        for item in opportunity_breakdown
-        if item["Punkte"] is not None
+    entry_available = (
+        v3_blocks["entry_available"] > 0
     )
-    chart_only_missing = (
-        not chart_available
-        and fundamental_available_maximum == 55
+    fundamental_available_maximum = (
+        v3_blocks["fundamental_available"]
+    )
+
+    technical_only_missing = (
+        not technical_available
+        and entry_available
+        and fundamental_available_maximum == 45
     )
 
     if (
@@ -1306,7 +1273,7 @@ def render_opportunity_section(
             f"{available_maximum} statt 100 möglichen Punkten."
         )
 
-    elif coverage < 100 and not chart_only_missing:
+    elif coverage < 100 and not technical_only_missing:
         rating = "Eingeschränkt bewertbar"
         icon = "⚪"
         border = "#8b949e"
@@ -1316,21 +1283,44 @@ def render_opportunity_section(
         )
 
     elif buy_score >= 68:
-        rating = "Attraktiv"
+        entry_setup = data.get("Entry Setup")
+
+        entry_ready_setups = {
+            "Lower Channel Bounce – bestätigt",
+            "Pullback Recovery – bestätigt",
+            "Median Support – bestätigt",
+            "Median Reclaim – bestätigt",
+            "Breakout – bestätigt",
+            "Lower Channel Bounce",
+            "Median Reclaim",
+            "Widerstands-Anlauf – positiv",
+        }
+
+        entry_ready = entry_setup in entry_ready_setups
+
         icon = "🟢"
         border = "#2EAD7B"
-        if chart_only_missing:
+
+        if technical_context_missing:
+            rating = "Attraktiv – technische Bestätigung offen"
             explanation = (
-                "Die bewertbaren Faktoren ergeben eine attraktive "
-                "Einstiegssituation. Die Charttechnik ist wegen "
-                "unzureichender Kurshistorie noch nicht belastbar "
-                "bewertbar."
+                "Die bewertbaren Faktoren ergeben insgesamt eine "
+                "attraktive Kaufkonstellation. Teile der technischen "
+                "Einordnung sind wegen unzureichender Kurshistorie "
+                "noch nicht belastbar bewertbar."
+            )
+        elif entry_ready:
+            rating = "Attraktiv"
+            explanation = (
+                "Die aktuelle Kaufkonstellation erscheint attraktiv. "
+                "Das Entry Setup unterstützt einen Einstieg."
             )
         else:
+            rating = "Attraktiv – Einstieg noch unbestätigt"
             explanation = (
-                "Die aktuelle Einstiegssituation erscheint attraktiv. "
-                "Die Kaufchance berücksichtigt Bewertung, "
-                "Analystenpotenzial und Charttechnik."
+                "Die Aktie weist insgesamt eine attraktive "
+                "Kaufkonstellation auf. Das aktuelle Entry Setup ist "
+                "jedoch noch nicht ausreichend bestätigt."
             )
 
     elif buy_score >= 51:
@@ -1357,8 +1347,8 @@ def render_opportunity_section(
         buy_score,
     )
     event_impact = data.get("Event Impact")
-    chart_available = (
-        calculate_chart_available_maximum(data) > 0
+    technical_available = (
+        v3_blocks["technical_available"] > 0
     )
 
     display_score = f"{round(buy_score)} / 100"
@@ -1391,16 +1381,16 @@ def render_opportunity_section(
     else:
         overlay_html = ""
 
-    if not chart_available:
+    if not technical_available:
         overlay_html += """
     <div style="
         color:#8b949e;
         font-size:13px;
         margin-top:6px;
     ">
-        Charttechnik noch nicht belastbar bewertbar.
-        Der fehlende 45-Punkte-Block wird für die Kaufchance
-        neutral mit 22 Punkten angesetzt.
+        Technische Verfassung noch nicht belastbar bewertbar.
+        Der 25-Punkte-Block wird neutral mit 12,5 Punkten
+        angesetzt.
     </div>
 """
 

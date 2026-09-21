@@ -404,13 +404,54 @@ def classify_entry_setup(
         "detail": None,
     }
 
+    trend_status = trend.get("status")
+    trend_direction = trend.get("direction")
+
+    # Echter Datenmangel: keine Trendstruktur berechenbar.
+    # Dieser Fall darf später neutral behandelt werden.
     if (
-        trend.get("status") != "Belastbar"
-        or trend.get("direction") != "Aufwärtstrend"
+        trend_status == "Nicht bewertbar"
+        or trend_direction is None
     ):
         result["detail"] = (
-            "Kein belastbarer langfristiger Aufwärtstrend"
+            "Zu wenig Daten für eine belastbare "
+            "Entry-Klassifikation"
         )
+        return result
+
+    # Eine Trendrichtung ist berechenbar, die Struktur erfüllt
+    # aber nicht die Mindestanforderungen an die Belastbarkeit.
+    # Das ist kein Datenmangel und daher kein neutraler Entry-Fall.
+    if trend_status != "Belastbar":
+        return {
+            "setup": "Kein belastbares Entry Setup",
+            "detail": (
+                "Trendrichtung ist berechenbar, die langfristige "
+                "Trendstruktur ist jedoch nicht belastbar"
+            ),
+        }
+
+    # Belastbarer Seitwärts- oder Abwärtstrend:
+    # kein klassisches Pullback-/Support-Entry im Aufwärtstrend.
+    if trend_direction == "Seitwärtstrend":
+        return {
+            "setup": "Seitwärtstrend – kein Entry Setup",
+            "detail": (
+                "Belastbarer Seitwärtstrend ohne strukturellen "
+                "Aufwärtstrend für ein bevorzugtes Entry Setup"
+            ),
+        }
+
+    if trend_direction == "Abwärtstrend":
+        return {
+            "setup": "Abwärtstrend – kein Entry Setup",
+            "detail": (
+                "Belastbarer Abwärtstrend; ein günstiger "
+                "Kanalstand allein ist kein Kaufsignal"
+            ),
+        }
+
+    if trend_direction != "Aufwärtstrend":
         return result
 
     history = trend.get(

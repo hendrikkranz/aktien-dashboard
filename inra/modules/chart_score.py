@@ -427,3 +427,254 @@ def calculate_chart_available_maximum(data: dict) -> int:
         return 0
 
     return 45
+
+
+# =========================================================
+# Technische Verfassung V3 – Diagnose
+# Noch nicht produktiv in der Kaufchance verwendet.
+# Maximum: 35 Punkte
+# =========================================================
+
+def calculate_momentum_v3_score(
+    momentum_3m,
+    momentum_6m,
+    momentum_12m,
+):
+    """
+    Bewertet die Nachhaltigkeit des Momentums, nicht dessen
+    absolute Stärke. Extrem hohe Renditen erhalten keinen
+    zusätzlichen Bonus.
+    """
+    if momentum_3m is None or momentum_6m is None:
+        return None
+
+    if (
+        momentum_12m is not None
+        and momentum_3m > 5
+        and momentum_6m > 5
+        and momentum_12m > 0
+    ):
+        return 8
+
+    if momentum_3m > 5 and momentum_6m > 5:
+        return 7
+
+    if (
+        momentum_12m is not None
+        and momentum_3m > 0
+        and momentum_6m > 0
+        and momentum_12m >= 0
+    ):
+        return 6
+
+    if momentum_3m > 0 and momentum_6m > 0:
+        return 5
+
+    if momentum_3m > 0 or momentum_6m > 0:
+        return 4
+
+    if momentum_3m < -10 and momentum_6m < -10:
+        return 0
+
+    if momentum_3m < 0 and momentum_6m < 0:
+        return 2
+
+    return 3
+
+
+def calculate_technical_condition_v3_breakdown(data: dict) -> list:
+    """
+    Technische Verfassung V3.
+
+    Beantwortet:
+    Ist der übergeordnete technische Zustand der Aktie gesund?
+
+    Entry-Timing / Trendkanal-Position wird bewusst NICHT
+    hier bewertet. Das gehört in den separaten Entry-Setup-Block.
+    """
+    breakdown = []
+
+    # ---------------------------------------------------------
+    # Langfristiger Trend – 7
+    # ---------------------------------------------------------
+    trend_status = data.get("Langfristiger Trend Status")
+    trend = data.get("Langfristiger Trend")
+
+    trend_points = None
+
+    if trend_status == "Belastbar":
+        if trend == "Aufwärtstrend":
+            trend_points = 7
+        elif trend == "Seitwärtstrend":
+            trend_points = 3
+        elif trend == "Abwärtstrend":
+            trend_points = 0
+
+    breakdown.append(
+        {
+            "Kriterium": "Langfristiger Trend",
+            "Punkte": trend_points,
+            "Maximum": 7,
+        }
+    )
+
+    # ---------------------------------------------------------
+    # Momentum – 8
+    # ---------------------------------------------------------
+    momentum_points = calculate_momentum_v3_score(
+        data.get("Momentum 3M"),
+        data.get("Momentum 6M"),
+        data.get("Momentum 12M"),
+    )
+
+    breakdown.append(
+        {
+            "Kriterium": "Momentum",
+            "Punkte": momentum_points,
+            "Maximum": 8,
+        }
+    )
+
+    # ---------------------------------------------------------
+    # RSI – 7
+    # ---------------------------------------------------------
+    rsi = data.get("RSI 14")
+    rsi_points = None
+
+    if rsi is not None:
+        if 40 <= rsi <= 60:
+            rsi_points = 7
+        elif 60 < rsi <= 70:
+            rsi_points = 6
+        elif 30 <= rsi < 40:
+            rsi_points = 5
+        elif 70 < rsi <= 80:
+            rsi_points = 3
+        elif 20 <= rsi < 30:
+            rsi_points = 2
+        else:
+            rsi_points = 0
+
+    breakdown.append(
+        {
+            "Kriterium": "RSI",
+            "Punkte": rsi_points,
+            "Maximum": 7,
+        }
+    )
+
+    # ---------------------------------------------------------
+    # 52W-Kontext – 5
+    # Nähe zum Hoch zeigt relative Stärke, wird aber nicht
+    # überproportional als Kaufargument belohnt.
+    # ---------------------------------------------------------
+    distance_52w = data.get("Abstand 52W Hoch")
+    distance_points = None
+
+    if distance_52w is not None:
+        if distance_52w >= -10:
+            distance_points = 5
+        elif distance_52w >= -20:
+            distance_points = 4
+        elif distance_52w >= -30:
+            distance_points = 3
+        elif distance_52w >= -40:
+            distance_points = 2
+        else:
+            distance_points = 1
+
+    breakdown.append(
+        {
+            "Kriterium": "52W-Kontext",
+            "Punkte": distance_points,
+            "Maximum": 5,
+        }
+    )
+
+    # ---------------------------------------------------------
+    # CM MACD – bestehende Logik, Gewicht 7 -> 4
+    # ---------------------------------------------------------
+    old_breakdown = {
+        item["Kriterium"]: item
+        for item in calculate_chart_breakdown(data)
+    }
+
+    old_macd = old_breakdown.get("CM MACD Refined", {})
+    old_macd_points = old_macd.get("Punkte")
+
+    if old_macd_points is None:
+        macd_points = None
+    else:
+        macd_points = round(
+            old_macd_points / 7 * 4,
+            1,
+        )
+
+    breakdown.append(
+        {
+            "Kriterium": "CM MACD",
+            "Punkte": macd_points,
+            "Maximum": 4,
+        }
+    )
+
+    # ---------------------------------------------------------
+    # Pressure Balance – bestehende Logik, Gewicht 6 -> 4
+    # ---------------------------------------------------------
+    old_pressure = old_breakdown.get("Pressure Balance", {})
+    old_pressure_points = old_pressure.get("Punkte")
+
+    if old_pressure_points is None:
+        pressure_points = None
+    else:
+        pressure_points = round(
+            old_pressure_points / 6 * 4,
+            1,
+        )
+
+    breakdown.append(
+        {
+            "Kriterium": "Pressure Balance",
+            "Punkte": pressure_points,
+            "Maximum": 4,
+        }
+    )
+
+    return breakdown
+
+
+def calculate_technical_condition_v3_score(data: dict):
+    """
+    Diagnose-Score 0–35.
+
+    Einzelne fehlende Signale werden über die verfügbaren
+    Punkte normalisiert. Unter 70 % Coverage ist der Block
+    nicht belastbar.
+    """
+    breakdown = calculate_technical_condition_v3_breakdown(data)
+
+    available = [
+        item
+        for item in breakdown
+        if item["Punkte"] is not None
+    ]
+
+    available_maximum = sum(
+        item["Maximum"]
+        for item in available
+    )
+
+    if available_maximum < 35 * 0.70:
+        return None
+
+    raw_score = sum(
+        item["Punkte"]
+        for item in available
+    )
+
+    normalized_score = raw_score / available_maximum * 35
+
+    return round(
+        max(0, min(normalized_score, 35)),
+        1,
+    )
