@@ -444,6 +444,11 @@ def _build_tavily_queries(
         "strategic review ongoing"
     )
 
+    external_query = (
+        f'"{company_name}" {ticker} '
+        "political regulatory legal government"
+    )
+
     return [
         {
             "Bereich": "Aktuell/operativ",
@@ -453,6 +458,12 @@ def _build_tavily_queries(
             "Bereich": "Strategisch",
             "Query": strategic_query,
         },
+        {
+            "Bereich": "Extern/Regulatorisch",
+            "Query": external_query,
+            "Topic": "news",
+            "TimeRange": "month",
+        },
     ]
 
 
@@ -460,6 +471,8 @@ def _run_tavily_search(
     api_key: str,
     query: str,
     max_results: int,
+    topic: Optional[str] = None,
+    time_range: Optional[str] = None,
 ) -> list:
     payload = {
         "query": query,
@@ -468,6 +481,12 @@ def _run_tavily_search(
         "include_answer": False,
         "include_raw_content": False,
     }
+
+    if topic:
+        payload["topic"] = topic
+
+    if time_range:
+        payload["time_range"] = time_range
 
     request = urllib.request.Request(
         "https://api.tavily.com/search",
@@ -511,6 +530,8 @@ def _search_current_intelligence_with_tavily(
             api_key=api_key,
             query=query,
             max_results=max_results_per_query,
+            topic=query_info.get("Topic"),
+            time_range=query_info.get("TimeRange"),
         )
 
         for item in results:
