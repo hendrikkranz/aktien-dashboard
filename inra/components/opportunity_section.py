@@ -777,12 +777,6 @@ def _render_opportunity_breakdown(
             unsafe_allow_html=True,
         )
 
-        st.caption(
-            "Bewertet den übergeordneten technischen Zustand "
-            "der Aktie. Das konkrete Einstiegstiming wird "
-            "separat im Entry Setup beurteilt."
-        )
-
         if not v3_blocks["technical_neutral"]:
             technical_raw_points = sum(
                 item["Punkte"]
@@ -795,12 +789,43 @@ def _render_opportunity_breakdown(
                 if item["Punkte"] is not None
             )
 
-            st.caption(
-                f"Komponentenscore: "
-                f"{technical_raw_points:.1f} / "
-                f"{technical_raw_maximum} → "
-                f"{technical_points:.1f} / 25 Kaufchance-Punkte"
-            )
+        technical_method_spacer, technical_method_col = st.columns(
+            [1, 1.45],
+            vertical_alignment="center",
+        )
+
+        with technical_method_col:
+            with st.container(key="technical_method"):
+                st.markdown(
+                    """
+                    <style>
+                    div.st-key-technical_method details summary,
+                    div.st-key-technical_method details summary * {
+                        font-size: 0.78rem;
+                        color: rgba(250, 250, 250, 0.58);
+                    }
+                    div.st-key-technical_method details {
+                        border: 0;
+                    }
+                    </style>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                with st.expander("›  ⓘ Berechnung anzeigen"):
+                    st.caption(
+                        "Bewertet den übergeordneten technischen Zustand "
+                        "der Aktie anhand von langfristigem Trend, Momentum, "
+                        "RSI, 52W-Kontext, CM MACD und Pressure Balance. "
+                        "Das konkrete Einstiegstiming wird separat im "
+                        "Entry Setup beurteilt."
+                    )
+                    if not v3_blocks["technical_neutral"]:
+                        st.caption(
+                            f"Komponentenscore: "
+                            f"{technical_raw_points:.1f} / "
+                            f"{technical_raw_maximum} → "
+                            f"{technical_points:.1f} / 25 Kaufchance-Punkte"
+                        )
 
         if v3_blocks["technical_neutral"]:
             st.caption(
@@ -969,20 +994,44 @@ def _render_opportunity_breakdown(
             unsafe_allow_html=True,
         )
 
-        st.markdown(f"**{entry_setup}**")
+        entry_setup_col, entry_method_col = st.columns(
+            [1, 1.45],
+            vertical_alignment="center",
+        )
+
+        with entry_setup_col:
+            st.markdown(f"**{entry_setup}**")
+
+        with entry_method_col:
+            with st.container(key="entry_method"):
+                st.markdown(
+                    """
+                    <style>
+                    div.st-key-entry_method details summary,
+                    div.st-key-entry_method details summary * {
+                        font-size: 0.78rem;
+                        color: rgba(250, 250, 250, 0.58);
+                    }
+                    div.st-key-entry_method details {
+                        border: 0;
+                    }
+                    </style>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                with st.expander("›  ⓘ Berechnung anzeigen"):
+                    st.caption(
+                        "Bewertet, ob die heutige technische Situation "
+                        "einen günstigen Einstieg unterstützt. "
+                        "Berücksichtigt werden insbesondere Trendkanal, "
+                        "Pullback/Erholung, Medianlinie, die 30-Wochen-Linie, "
+                        "kurzfristige Bestätigung und die Lage zum vorherigen "
+                        "52W-Hoch."
+                    )
 
         entry_detail = data.get("Entry Setup Erklärung")
         if entry_detail:
             st.caption(entry_detail)
-
-        st.caption(
-            "Bewertet, ob die heutige technische Situation "
-            "einen günstigen Einstieg unterstützt. "
-            "Berücksichtigt werden insbesondere Trendkanal, "
-            "Pullback/Erholung, Medianlinie, die 30-Wochen-Linie, "
-            "kurzfristige Bestätigung und die Lage zum vorherigen "
-            "52W-Hoch."
-        )
 
         if v3_blocks["entry_neutral"]:
             st.caption(
