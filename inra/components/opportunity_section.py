@@ -336,19 +336,75 @@ def _render_opportunity_breakdown(
                 f"###### {display_criterion}"
             )
 
-            if points is None:
-                st.markdown(
-                    f"{icon} **Nicht bewertbar**"
-                )
-            elif points < 0:
-                st.markdown(
-                    f"{icon} **{points} Punkte**"
+            valuation_class = item.get("Bewertungsklasse")
+
+            if (
+                criterion == "Forward KGV"
+                and valuation_class == "SONDERFALL"
+            ):
+                explanation = (
+                    "Die KGVs der verfügbaren Geschäftsjahre "
+                    "werden zur Information angezeigt. Für diesen "
+                    "Sonderfall erfolgt jedoch keine KGV-Bewertung "
+                    "und keine 60/40-Gewichtung."
                 )
             else:
-                display_points = round(points)
-                st.markdown(
-                    f"{icon} **{display_points} von {maximum} Punkten**"
+                explanation = explanations.get(
+                    criterion,
+                    "",
+                )
+
+            score_col, method_col = st.columns(
+                [1, 1.45],
+                vertical_alignment="center",
             )
+
+            with score_col:
+                if points is None:
+                    st.markdown(
+                        f"{icon} **Nicht bewertbar**"
+                    )
+                elif points < 0:
+                    st.markdown(
+                        f"{icon} **{points} Punkte**"
+                    )
+                else:
+                    display_points = round(points)
+                    st.markdown(
+                        f"{icon} **{display_points} von {maximum} Punkten**"
+                    )
+
+            if explanation:
+                method_key = (
+                    "valuation_method_"
+                    + criterion.lower()
+                    .replace(" ", "_")
+                    .replace(".", "")
+                )
+                with method_col:
+                    with st.container(key=method_key):
+                        st.markdown(
+                            """
+                            <style>
+                            div[class*="st-key-valuation_method_"] details summary {
+                                padding-top: 0.2rem;
+                                padding-bottom: 0.2rem;
+                                font-size: 0.78rem;
+                                color: rgba(250, 250, 250, 0.58);
+                            }
+                            div[class*="st-key-valuation_method_"] details summary * {
+                                font-size: 0.78rem;
+                                color: rgba(250, 250, 250, 0.58);
+                            }
+                            div[class*="st-key-valuation_method_"] details {
+                                border: 0;
+                            }
+                            </style>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+                        with st.expander("›  ⓘ Berechnung anzeigen"):
+                            st.caption(explanation)
 
             if criterion == "Langfristiger Trend":
                 st.caption("Trendanalyse")
@@ -697,24 +753,6 @@ def _render_opportunity_breakdown(
                             )
 
                             st.rerun()
-
-            if (
-                criterion == "Forward KGV"
-                and valuation_class == "SONDERFALL"
-            ):
-                explanation = (
-                    "Die KGVs der verfügbaren Geschäftsjahre "
-                    "werden zur Information angezeigt. Für diesen "
-                    "Sonderfall erfolgt jedoch keine KGV-Bewertung "
-                    "und keine 60/40-Gewichtung."
-                )
-            else:
-                explanation = explanations.get(
-                    criterion,
-                    "",
-                )
-
-            st.caption(explanation)
 
             st.divider()
 
