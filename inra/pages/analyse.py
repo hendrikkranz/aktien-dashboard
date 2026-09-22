@@ -255,13 +255,6 @@ if ticker:
         ),
     ]
 
-    st.caption(
-        " · ".join(
-            str(value)
-            for value in header_details
-            if value
-        )
-    )
 
     watchlist_message = st.session_state.pop(
         "watchlist_message",
@@ -308,6 +301,29 @@ if ticker:
                     )
 
                 st.rerun()
+
+    meta_spacer, meta_col = st.columns([2.45, 2])
+
+    with meta_col:
+        st.markdown(
+            f"""
+            <div style="
+                text-align:center;
+                color:#9ca3af;
+                font-size:0.875rem;
+                margin-top:-22px;
+                margin-bottom:2px;
+                white-space:nowrap;
+            ">
+                {" · ".join(
+                    str(value)
+                    for value in header_details
+                    if value
+                )}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     col_title, col_period = st.columns([3, 2])
 
