@@ -1033,6 +1033,25 @@ def _render_opportunity_breakdown(
         if entry_detail:
             st.caption(entry_detail)
 
+        channel_position = data.get("Trendkanal Position")
+        channel_position_normalized = data.get(
+            "Trendkanal Position Normalisiert"
+        )
+
+        if (
+            channel_position
+            and channel_position_normalized is not None
+        ):
+            st.markdown(
+                f"**{channel_position} · "
+                f"Position {channel_position_normalized:+.2f}**"
+            )
+            st.caption(
+                "−2 untere Kanalgrenze · "
+                "0 Mittellinie · "
+                "+2 obere Kanalgrenze"
+            )
+
         if v3_blocks["entry_neutral"]:
             st.caption(
                 "Das Entry Setup ist derzeit nicht ausreichend "
