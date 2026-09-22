@@ -1116,6 +1116,10 @@ def _render_current_intelligence(data: dict) -> None:
     positive = result.get("Positive_Entwicklungen") or []
     negative = result.get("Negative_Entwicklungen") or []
 
+    def _safe_intelligence_text(value):
+        return str(value).replace("$", r"\$")
+
+
     col_positive, col_negative = st.columns(2)
 
     with col_positive:
@@ -1132,7 +1136,7 @@ def _render_current_intelligence(data: dict) -> None:
             )
 
             if item.get("Beschreibung"):
-                st.write(item["Beschreibung"])
+                st.markdown(_safe_intelligence_text(item["Beschreibung"]))
 
     with col_negative:
         st.markdown("#### 🔴 Gegenwind")
@@ -1148,7 +1152,7 @@ def _render_current_intelligence(data: dict) -> None:
             )
 
             if item.get("Beschreibung"):
-                st.write(item["Beschreibung"])
+                st.markdown(_safe_intelligence_text(item["Beschreibung"]))
 
     open_factors = result.get("Offene_Faktoren") or []
 
@@ -1165,7 +1169,7 @@ def _render_current_intelligence(data: dict) -> None:
             st.markdown(f"**{index}. {title}**")
 
             if description:
-                st.write(description)
+                st.markdown(_safe_intelligence_text(description))
 
     impact = result.get("Event_Impact_Vorschlag", 0)
 
@@ -1191,7 +1195,7 @@ def _render_current_intelligence(data: dict) -> None:
         )
 
         if result.get("Event_Impact_Begruendung"):
-            st.write(result["Event_Impact_Begruendung"])
+            st.markdown(_safe_intelligence_text(result["Event_Impact_Begruendung"]))
 
     source_count = result.get("Verwendbare_Quellen")
     strong_count = result.get("Starke_Quellen")
