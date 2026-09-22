@@ -189,9 +189,20 @@ if ticker:
         if logo_domain.startswith("www."):
             logo_domain = logo_domain[4:]
 
+    company_profile = [
+        data.get("Sektor"),
+        data.get("Branche"),
+    ]
+    company_profile_text = " · ".join(
+        str(value)
+        for value in company_profile
+        if value
+    )
+
     if logo_domain:
         logo_col, title_col = st.columns(
-            [0.08, 0.92],
+            [0.055, 0.945],
+            gap="small",
             vertical_alignment="center",
         )
         with logo_col:
@@ -202,31 +213,53 @@ if ticker:
                 width=40,
             )
         with title_col:
-            st.title(data["Name"])
+            st.markdown(
+                f"""
+                <div style="display:flex; flex-direction:column; justify-content:center;">
+                    <h1 style="margin:0; padding:0;">{data["Name"]}</h1>
+                    {
+                        f'<div style="margin-top:2px; color:#9ca3af; font-size:0.875rem;">{company_profile_text}</div>'
+                        if company_profile_text
+                        else ""
+                    }
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
     else:
-        st.title(data["Name"])
+        st.markdown(
+            f"""
+            <div style="display:flex; flex-direction:column;">
+                <h1 style="margin:0; padding:0;">{data["Name"]}</h1>
+                {
+                    f'<div style="margin-top:2px; color:#9ca3af; font-size:0.875rem;">{company_profile_text}</div>'
+                    if company_profile_text
+                    else ""
+                }
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     header_details = [
         data["Ticker"],
+        data.get("Börse"),
         data["Währung"],
         data.get("Land"),
-        data.get("Sektor"),
-        data.get("Branche"),
+        (
+            "Market Cap: "
+            + format_market_cap(
+                data.get("Marktkapitalisierung"),
+                data.get("Währung"),
+            )
+        ),
     ]
 
     st.caption(
-        " • ".join(
+        " · ".join(
             str(value)
             for value in header_details
             if value
-        )
-    )
-
-    st.caption(
-        "🏢 Marktkapitalisierung: "
-        + format_market_cap(
-            data.get("Marktkapitalisierung"),
-            data.get("Währung"),
         )
     )
 
