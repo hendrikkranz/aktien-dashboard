@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 import altair as alt
 import streamlit as st
 
@@ -179,7 +181,30 @@ if ticker:
     st.session_state["last_analyzed_name"] = data["Name"]
     st.query_params["ticker"] = data["Ticker"]
 
-    st.title(data["Name"])
+    website = data.get("Website")
+    logo_domain = None
+
+    if website:
+        logo_domain = urlparse(website).netloc.lower()
+        if logo_domain.startswith("www."):
+            logo_domain = logo_domain[4:]
+
+    if logo_domain:
+        logo_col, title_col = st.columns(
+            [0.08, 0.92],
+            vertical_alignment="center",
+        )
+        with logo_col:
+            st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+            st.image(
+                "https://www.google.com/s2/favicons"
+                f"?domain={logo_domain}&sz=128",
+                width=40,
+            )
+        with title_col:
+            st.title(data["Name"])
+    else:
+        st.title(data["Name"])
 
     header_details = [
         data["Ticker"],
