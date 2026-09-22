@@ -745,6 +745,25 @@ def _render_opportunity_breakdown(
             "separat im Entry Setup beurteilt."
         )
 
+        if not v3_blocks["technical_neutral"]:
+            technical_raw_points = sum(
+                item["Punkte"]
+                for item in technical_breakdown
+                if item["Punkte"] is not None
+            )
+            technical_raw_maximum = sum(
+                item["Maximum"]
+                for item in technical_breakdown
+                if item["Punkte"] is not None
+            )
+
+            st.caption(
+                f"Komponentenscore: "
+                f"{technical_raw_points:.1f} / "
+                f"{technical_raw_maximum} → "
+                f"{technical_points:.1f} / 25 Kaufchance-Punkte"
+            )
+
         if v3_blocks["technical_neutral"]:
             st.caption(
                 "Die technischen Daten reichen derzeit nicht "
