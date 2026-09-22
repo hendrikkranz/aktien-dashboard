@@ -1267,7 +1267,12 @@ def _render_current_intelligence(data: dict) -> None:
             )
 
             if item.get("Beschreibung"):
-                st.markdown(_safe_intelligence_text(item["Beschreibung"]))
+                st.markdown(
+                    f'<div style="font-size:0.875rem; color:#9ca3af; margin-bottom:12px;">'
+                    f'{_safe_intelligence_text(item["Beschreibung"])}'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
 
     with col_negative:
         st.markdown("#### 🔴 Gegenwind")
@@ -1283,7 +1288,12 @@ def _render_current_intelligence(data: dict) -> None:
             )
 
             if item.get("Beschreibung"):
-                st.markdown(_safe_intelligence_text(item["Beschreibung"]))
+                st.markdown(
+                    f'<div style="font-size:0.875rem; color:#9ca3af; margin-bottom:12px;">'
+                    f'{_safe_intelligence_text(item["Beschreibung"])}'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
 
     open_factors = result.get("Offene_Faktoren") or []
 
@@ -1300,7 +1310,12 @@ def _render_current_intelligence(data: dict) -> None:
             st.markdown(f"**{index}. {title}**")
 
             if description:
-                st.markdown(_safe_intelligence_text(description))
+                st.markdown(
+                    f'<div style="font-size:0.875rem; color:#9ca3af; margin-bottom:12px;">'
+                    f'{_safe_intelligence_text(description)}'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
 
     impact = result.get("Event_Impact_Vorschlag", 0)
 
@@ -1326,7 +1341,12 @@ def _render_current_intelligence(data: dict) -> None:
         )
 
         if result.get("Event_Impact_Begruendung"):
-            st.markdown(_safe_intelligence_text(result["Event_Impact_Begruendung"]))
+            st.markdown(
+                f'<div style="font-size:0.875rem; color:#9ca3af;">'
+                f'{_safe_intelligence_text(result["Event_Impact_Begruendung"])}'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
     source_count = result.get("Verwendbare_Quellen")
     strong_count = result.get("Starke_Quellen")
