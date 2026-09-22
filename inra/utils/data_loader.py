@@ -111,6 +111,169 @@ def load_benchmark_cache() -> pd.DataFrame:
 
     return pd.read_csv(BENCHMARK_CACHE_PATH)
 
+def search_stock_candidates(
+    search_text: str,
+    max_results: int = 8,
+) -> list:
+    if not search_text:
+        return []
+
+    query = search_text.strip()
+    query_normalized = query.casefold()
+
+    if len(query_normalized) < 2:
+        return []
+
+    candidates = []
+    seen_tickers = set()
+
+    def add_candidate(
+        name,
+        ticker,
+        source,
+        exchange=None,
+        alias_match=False,
+    ):
+        ticker = str(ticker or "").strip()
+        name = str(name or ticker).strip()
+
+        if not ticker:
+            return
+
+        ticker_key = ticker.upper()
+
+        if ticker_key in seen_tickers:
+            return
+
+        seen_tickers.add(ticker_key)
+        candidates.append(
+            {
+                "Name": name,
+                "Ticker": ticker,
+                "Source": source,
+                "Exchange": exchange,
+                "AliasMatch": alias_match,
+            }
+        )
+
+    universe = load_universe()
+
+    search_aliases = {
+        "bmw": "BMW.DE",
+        "basf": "BAS.DE",
+        "vw": "VOW3.DE",
+    }
+
+    alias_ticker = search_aliases.get(query_normalized)
+
+    if alias_ticker:
+        alias_rows = universe[
+            universe["Ticker"]
+            .astype(str)
+            .str.upper()
+            .eq(alias_ticker.upper())
+        ]
+
+        for _, row in alias_rows.iterrows():
+            add_candidate(
+                row.get("Name"),
+                row.get("Ticker"),
+                "Universe",
+                alias_match=True,
+            )
+
+    for _, row in universe.iterrows():
+        name = str(row.get("Name") or "")
+        ticker = str(row.get("Ticker") or "")
+        name_normalized = name.casefold()
+        ticker_normalized = ticker.casefold()
+
+        if (
+            query_normalized in name_normalized
+            or query_normalized in ticker_normalized
+        ):
+            add_candidate(
+                name,
+                ticker,
+                "Universe",
+            )
+
+    try:
+        search_result = yf.Search(
+            query,
+            max_results=10,
+            news_count=0,
+        )
+
+        for quote in search_result.quotes or []:
+            if quote.get("quoteType") != "EQUITY":
+                continue
+
+            add_candidate(
+                quote.get("longname")
+                or quote.get("shortname")
+                or quote.get("symbol"),
+                quote.get("symbol"),
+                "Yahoo",
+                quote.get("exchDisp"),
+            )
+    except Exception:
+        pass
+
+    def rank(candidate):
+        name = candidate["Name"].strip().casefold()
+        ticker = candidate["Ticker"].strip().casefold()
+        words = name.split()
+
+        if candidate.get("AliasMatch"):
+            return 0
+        if ticker == query_normalized:
+            return 0
+        if name == query_normalized:
+            return 1
+        if query_normalized in words:
+            return 2
+        if ticker.startswith(query_normalized):
+            return 3
+        if name.startswith(query_normalized):
+            return 4
+        if any(
+            word.startswith(query_normalized)
+            for word in words
+        ):
+            return 5
+        if query_normalized in ticker:
+            return 6
+        if query_normalized in name:
+            return 7
+
+        return 8
+
+    best_rank = min(
+        (rank(candidate) for candidate in candidates),
+        default=None,
+    )
+
+    relevant_candidates = [
+        candidate
+        for candidate in candidates
+        if (
+            best_rank is not None
+            and rank(candidate) <= best_rank + 1
+        )
+    ]
+
+    return sorted(
+        relevant_candidates,
+        key=lambda candidate: (
+            rank(candidate),
+            0 if candidate["Source"] == "Universe" else 1,
+            candidate["Name"].casefold(),
+            candidate["Ticker"].casefold(),
+        ),
+    )[:max_results]
+
+
 def find_ticker_in_universe(
     search_text: str,
 ) -> Optional[str]:

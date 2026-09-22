@@ -22,11 +22,36 @@ from utils.data_loader import (
     add_stock_to_universe,
     find_ticker,
     is_ticker_in_universe,
+    search_stock_candidates,
     update_stock_in_benchmark_cache,
 )
 from utils.market_data import (
     load_company_snapshot,
     load_price_history,
+)
+
+
+st.markdown(
+    """
+    <style>
+    /* Analyse: Trefferliste der Aktiensuche klar hervorheben */
+    div[data-baseweb="popover"] ul {
+        background: #f4f6f8 !important;
+    }
+
+    div[data-baseweb="popover"] li {
+        color: #111827 !important;
+        background: #f4f6f8 !important;
+    }
+
+    div[data-baseweb="popover"] li:hover,
+    div[data-baseweb="popover"] li[aria-selected="true"] {
+        color: #111827 !important;
+        background: #dbeafe !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 
@@ -87,17 +112,50 @@ search_text = st.text_input(
 ticker = None
 
 if search_text:
-    ticker = find_ticker(search_text)
+    candidates = search_stock_candidates(search_text)
 
-    if ticker is None:
-        direct_ticker = search_text.upper()
+    exact_candidates = [
+        candidate
+        for candidate in candidates
+        if candidate["Ticker"].casefold() == search_text.casefold()
+    ]
 
-        if " " not in direct_ticker:
-            ticker = direct_ticker
-        else:
+    explicit_exchange_ticker = "." in search_text
+
+    if exact_candidates and explicit_exchange_ticker:
+        ticker = exact_candidates[0]["Ticker"]
+
+    elif len(candidates) == 1:
+        ticker = candidates[0]["Ticker"]
+
+    elif candidates:
+        candidate_options = {
+            (
+                f'{candidate["Name"]} ({candidate["Ticker"]})'
+                + (
+                    f' · {candidate["Exchange"]}'
+                    if candidate.get("Exchange")
+                    else ""
+                )
+            ): candidate["Ticker"]
+            for candidate in candidates
+        }
+
+        selected_candidate = st.selectbox(
+            "Passende Aktie auswählen",
+            options=list(candidate_options.keys()),
+            key="analyse_search_candidate",
+        )
+
+        ticker = candidate_options[selected_candidate]
+
+    else:
+        ticker = find_ticker(search_text)
+
+        if ticker is None:
             st.warning(
-                "Der Unternehmensname wurde nicht gefunden. "
-                "Bitte den Yahoo-Ticker eingeben."
+                "Keine passende Aktie gefunden. "
+                "Bitte Unternehmensname oder Yahoo-Ticker prüfen."
             )
 
 if ticker:
