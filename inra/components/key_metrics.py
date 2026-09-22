@@ -33,6 +33,7 @@ def _label(result: Optional[dict]) -> str:
         "excellent": "Exzellent",
         "good": "Stark",
         "solid": "Solide",
+        "neutral": "Neutral",
         "weak": "Schwach",
         "poor": "Kritisch",
     }

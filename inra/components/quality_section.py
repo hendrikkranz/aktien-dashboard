@@ -140,6 +140,7 @@ def _rating_label(
         "excellent": "Exzellent",
         "good": "Stark",
         "solid": "Solide",
+        "neutral": "Neutral",
         "weak": "Schwach",
         "poor": "Kritisch",
         "low": "Niedrig",

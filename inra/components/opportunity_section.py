@@ -84,6 +84,9 @@ def _momentum_icon(
     if level == "solid":
         return "🟡"
 
+    if level == "neutral":
+        return "⚪"
+
     return "🔴"
 
 
@@ -97,6 +100,7 @@ def _momentum_label(
         "excellent": "Sehr stark",
         "good": "Stark",
         "solid": "Positiv",
+        "neutral": "Neutral",
         "weak": "Schwach",
         "poor": "Sehr schwach",
     }
