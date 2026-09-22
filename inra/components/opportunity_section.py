@@ -763,9 +763,11 @@ def _render_opportunity_breakdown(
             if points is None:
                 st.markdown("⚪ **Nicht bewertbar**")
             else:
-                if points >= maximum:
+                ratio = points / maximum if maximum > 0 else 0
+
+                if ratio >= 0.8:
                     icon = "🟢"
-                elif points > 0:
+                elif ratio >= 0.5:
                     icon = "🟡"
                 else:
                     icon = "🔴"
