@@ -889,6 +889,7 @@ def load_company_snapshot(ticker: str) -> dict:
         ) * 100
 
     return_on_equity = info.get("returnOnEquity")
+    return_on_assets = info.get("returnOnAssets")
     profit_margin = info.get("profitMargins")
     operating_margin = info.get("operatingMargins")
     debt_to_equity = info.get("debtToEquity")
@@ -1400,6 +1401,9 @@ def load_company_snapshot(ticker: str) -> dict:
     if return_on_equity is not None:
         return_on_equity *= 100
 
+    if return_on_assets is not None:
+        return_on_assets *= 100
+
     if profit_margin is not None:
         profit_margin *= 100
 
@@ -1537,6 +1541,7 @@ def load_company_snapshot(ticker: str) -> dict:
         "52W Hoch": week_52_high,
         "Abstand 52W Hoch": distance_to_52w_high,
         "Eigenkapitalrendite": return_on_equity,
+        "Gesamtkapitalrendite": return_on_assets,
         "Kapitalrendite": return_on_capital,
         "Nettomarge": profit_margin,
         "Operative Marge": operating_margin,

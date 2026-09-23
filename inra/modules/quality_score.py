@@ -92,6 +92,270 @@ def calculate_margin_fallback_points(
 
     return (average_score / 5) * 10
 
+def calculate_banking_profitability_breakdown(
+    roe: Optional[float],
+    roa: Optional[float],
+    roe_benchmark: Optional[float],
+    roe_benchmark_count: Optional[int] = None,
+    max_points: int = 40,
+) -> dict:
+    """
+    Profitabilität für Banken.
+
+    Banken werden nicht über ROC bewertet, da klassische
+    Industriekapitalrenditen für Bankbilanzen wenig aussagekräftig sind.
+
+    V0.1:
+    - ROE: 60 %
+    - ROA: 40 %
+
+    ROE nutzt die bestehende absolute InRA-Skala und die vorhandene
+    Damodaran-Branchenkorrektur.
+
+    ROA wird banktypisch absolut bewertet.
+    """
+
+    # ---------------------------------------------------------
+    # ROE – 60 %
+    # ---------------------------------------------------------
+    roe_score = calculate_roe_base_points(roe)
+    roe_correction = 0.0
+
+    if (
+        roe_score is not None
+        and roe is not None
+        and roe_benchmark is not None
+        and roe_benchmark > 0
+        and roe_benchmark_count is not None
+        and roe_benchmark_count >= 5
+    ):
+        benchmark_percent = roe_benchmark * 100
+        relative = roe / benchmark_percent
+
+        roe_correction = max(
+            -3.0,
+            min(3.0, (relative - 1.0) * 3.0),
+        )
+
+        roe_score = max(
+            0.0,
+            min(15.0, roe_score + roe_correction),
+        )
+
+    roe_ratio = (
+        roe_score / 15.0
+        if roe_score is not None
+        else None
+    )
+
+    # ---------------------------------------------------------
+    # ROA – 40 %
+    # Banktypische Skala
+    # ---------------------------------------------------------
+    roa_ratio = None
+
+    if roa is not None:
+        roa_scale = [
+            (0.00, 0.15),
+            (0.40, 0.30),
+            (0.60, 0.50),
+            (0.80, 0.65),
+            (1.00, 0.80),
+            (1.20, 0.90),
+            (1.50, 1.00),
+        ]
+
+        if roa < 0:
+            roa_ratio = 0.00
+        elif roa >= roa_scale[-1][0]:
+            roa_ratio = roa_scale[-1][1]
+        else:
+            for (
+                lower_roa,
+                lower_ratio,
+            ), (
+                upper_roa,
+                upper_ratio,
+            ) in zip(
+                roa_scale,
+                roa_scale[1:],
+            ):
+                if lower_roa <= roa < upper_roa:
+                    position = (
+                        (roa - lower_roa)
+                        / (upper_roa - lower_roa)
+                    )
+
+                    roa_ratio = (
+                        lower_ratio
+                        + position
+                        * (upper_ratio - lower_ratio)
+                    )
+                    break
+
+    # ---------------------------------------------------------
+    # Fehlende Kennzahlen werden über verfügbare Gewichte
+    # normalisiert.
+    # ---------------------------------------------------------
+    weighted_scores = []
+
+    if roe_ratio is not None:
+        weighted_scores.append((roe_ratio, 0.60))
+
+    if roa_ratio is not None:
+        weighted_scores.append((roa_ratio, 0.40))
+
+    available_weight = sum(
+        weight
+        for _, weight in weighted_scores
+    )
+
+    if available_weight == 0:
+        normalized_score = 0.0
+    else:
+        normalized_score = (
+            sum(
+                score * weight
+                for score, weight in weighted_scores
+            )
+            / available_weight
+        )
+
+    score = round(
+        max_points * normalized_score
+    )
+
+    return {
+        "score": max(0, min(score, max_points)),
+        "roe_score": roe_score,
+        "roe_ratio": roe_ratio,
+        "roe_benchmark": (
+            roe_benchmark * 100
+            if roe_benchmark is not None
+            else None
+        ),
+        "roe_correction": roe_correction,
+        "roa": roa,
+        "roa_ratio": roa_ratio,
+        "available_weight": available_weight,
+    }
+
+
+def calculate_insurance_profitability_breakdown(
+    roe: Optional[float],
+    roe_benchmark: Optional[float],
+    roe_benchmark_count: Optional[int] = None,
+    max_points: int = 40,
+) -> dict:
+    """
+    Profitabilität für Versicherer.
+
+    V0.1:
+    - versicherungsspezifische absolute ROE-Skala
+    - moderate Branchenkorrektur bei belastbarem
+      Damodaran-Benchmark mit mindestens 5 Unternehmen
+    - keine Benchmarkkorrektur bei zu kleiner Stichprobe
+
+    ROA und Margen werden bewusst nicht gescort.
+    """
+
+    roe_ratio = None
+    roe_relative = None
+    roe_correction = 0.0
+    benchmark_used = False
+
+    if roe is not None:
+        roe_scale = [
+            (0.0, 0.00),
+            (10.0, 0.40),
+            (15.0, 0.60),
+            (20.0, 0.75),
+            (25.0, 0.85),
+            (30.0, 0.92),
+            (40.0, 1.00),
+        ]
+
+        if roe <= roe_scale[0][0]:
+            roe_ratio = roe_scale[0][1]
+        elif roe >= roe_scale[-1][0]:
+            roe_ratio = roe_scale[-1][1]
+        else:
+            for (
+                lower_roe,
+                lower_ratio,
+            ), (
+                upper_roe,
+                upper_ratio,
+            ) in zip(
+                roe_scale,
+                roe_scale[1:],
+            ):
+                if lower_roe <= roe < upper_roe:
+                    position = (
+                        (roe - lower_roe)
+                        / (upper_roe - lower_roe)
+                    )
+
+                    roe_ratio = (
+                        lower_ratio
+                        + position
+                        * (upper_ratio - lower_ratio)
+                    )
+                    break
+
+    if (
+        roe_ratio is not None
+        and roe is not None
+        and roe_benchmark is not None
+        and roe_benchmark > 0
+        and roe_benchmark_count is not None
+        and roe_benchmark_count >= 5
+    ):
+        benchmark_percent = roe_benchmark * 100
+        roe_relative = roe / benchmark_percent
+
+        roe_correction = max(
+            -0.10,
+            min(
+                0.10,
+                (roe_relative - 1.0) * 0.20,
+            ),
+        )
+
+        benchmark_used = True
+
+    if roe_ratio is None:
+        final_ratio = 0.0
+    else:
+        final_ratio = max(
+            0.0,
+            min(
+                1.0,
+                roe_ratio + roe_correction,
+            ),
+        )
+
+    score = round(
+        max_points * final_ratio
+    )
+
+    return {
+        "score": max(0, min(score, max_points)),
+        "roe": roe,
+        "roe_ratio": roe_ratio,
+        "roe_benchmark": (
+            roe_benchmark * 100
+            if roe_benchmark is not None
+            else None
+        ),
+        "roe_benchmark_count": roe_benchmark_count,
+        "roe_relative": roe_relative,
+        "roe_correction": roe_correction,
+        "benchmark_used": benchmark_used,
+        "final_ratio": final_ratio,
+    }
+
+
 def calculate_profitability_breakdown(
     return_on_capital: Optional[float],
     roe: Optional[float],
@@ -322,16 +586,10 @@ def calculate_growth_breakdown(
         earnings_growth = earnings_growth_annual
 
     if revenue_growth_median is not None:
-        if positive_revenue_years is None:
-            revenue_growth = revenue_growth_median
-        elif positive_revenue_years >= 2:
-            revenue_growth = revenue_growth_median
+        revenue_growth = revenue_growth_median
 
     if income_growth_median is not None:
-        if positive_income_years is None:
-            earnings_growth = income_growth_median
-        elif positive_income_years >= 2:
-            earnings_growth = income_growth_median
+        earnings_growth = income_growth_median
 
     revenue_ratio = calculate_revenue_growth_ratio(
         revenue_growth
@@ -621,8 +879,47 @@ def calculate_quality_breakdown(data: dict) -> dict:
             data.get("Branche"),
         )
 
-    return {
-        "Profitabilität": calculate_profitability_score(
+    if industry_model == "banking":
+        roe_benchmark_data = (
+            get_roe_benchmark_for_yahoo_industry(
+                data.get("Sektor"),
+                data.get("Branche"),
+            )
+        )
+
+        banking_profitability = (
+            calculate_banking_profitability_breakdown(
+                data.get("Eigenkapitalrendite"),
+                data.get("Gesamtkapitalrendite"),
+                roe_benchmark_data.get("ROE_Unadjusted"),
+                roe_benchmark_data.get("Anzahl_Unternehmen"),
+                profit_weight,
+            )
+        )
+
+        profitability_score = banking_profitability["score"]
+
+    elif industry_model == "insurance":
+        roe_benchmark_data = (
+            get_roe_benchmark_for_yahoo_industry(
+                data.get("Sektor"),
+                data.get("Branche"),
+            )
+        )
+
+        insurance_profitability = (
+            calculate_insurance_profitability_breakdown(
+                data.get("Eigenkapitalrendite"),
+                roe_benchmark_data.get("ROE_Unadjusted"),
+                roe_benchmark_data.get("Anzahl_Unternehmen"),
+                profit_weight,
+            )
+        )
+
+        profitability_score = insurance_profitability["score"]
+
+    else:
+        profitability_score = calculate_profitability_score(
             data.get("Kapitalrendite"),
             data.get("Eigenkapitalrendite"),
             data.get("Sektor"),
@@ -631,7 +928,10 @@ def calculate_quality_breakdown(data: dict) -> dict:
             data.get("Nettomarge"),
             data.get("Operative Marge"),
             data.get("Eigenkapital"),
-        ),
+        )
+
+    return {
+        "Profitabilität": profitability_score,
         "Wachstum": calculate_growth_score(
             data.get("Umsatzwachstum"),
             data.get("Gewinnwachstum"),
