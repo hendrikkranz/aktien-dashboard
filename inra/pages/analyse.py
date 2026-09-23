@@ -100,9 +100,10 @@ if "analyse_ticker" in st.session_state:
         "analyse_ticker"
     )
 elif "analyse_input" not in st.session_state:
-    st.session_state["analyse_input"] = st.query_params.get(
-        "ticker",
-        "MSFT",
+    st.session_state["analyse_input"] = (
+        st.query_params.get("ticker")
+        or st.session_state.get("last_analyzed_ticker")
+        or "MSFT"
     )
 
 search_text = st.text_input(
