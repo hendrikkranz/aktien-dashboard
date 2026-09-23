@@ -914,14 +914,22 @@ def _render_opportunity_breakdown(
                 )
 
             if criterion == "Langfristiger Trend":
-                st.caption("Trendanalyse")
-                st.markdown(
-                    f"**Trend: "
-                    f"{data.get('Langfristiger Trend', 'Keine Daten')}**"
+                trend = data.get(
+                    "Langfristiger Trend",
+                    "Keine Daten",
                 )
+                trend_status = data.get(
+                    "Langfristiger Trend Status",
+                    "Keine Daten",
+                )
+
+                if trend_status != "Keine Daten":
+                    trend_status = str(
+                        trend_status
+                    ).lower()
+
                 st.markdown(
-                    f"**Validität: "
-                    f"{data.get('Langfristiger Trend Status', 'Keine Daten')}**"
+                    f"**{trend} · {trend_status}**"
                 )
 
             elif criterion == "Momentum":
