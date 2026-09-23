@@ -1118,69 +1118,162 @@ def load_company_snapshot(ticker: str) -> dict:
             "Cash Cash Equivalents And Short Term Investments",
         ]
 
-        if (
-            operating_income is not None
-            and not pd.isna(operating_income)
-            and tax_rate is not None
-            and balance_sheet.shape[1] >= 2
-            and all(
+        roc_period = None
+        roc_operating_income = None
+        roc_tax_rate = None
+
+        if "Operating Income" in income_stmt.index:
+            for period in income_stmt.columns:
+                period_operating_income = income_stmt.at[
+                    "Operating Income",
+                    period,
+                ]
+
+                if pd.isna(period_operating_income):
+                    continue
+
+                period_tax_rate = None
+
+                if (
+                    "Tax Provision" in income_stmt.index
+                    and "Pretax Income" in income_stmt.index
+                ):
+                    period_tax_provision = income_stmt.at[
+                        "Tax Provision",
+                        period,
+                    ]
+                    period_pretax_income = income_stmt.at[
+                        "Pretax Income",
+                        period,
+                    ]
+
+                    if (
+                        pd.notna(period_tax_provision)
+                        and pd.notna(period_pretax_income)
+                        and period_pretax_income != 0
+                    ):
+                        period_tax_rate = (
+                            period_tax_provision
+                            / period_pretax_income
+                        )
+
+                if (
+                    period_tax_rate is None
+                    and "Tax Rate For Calcs" in income_stmt.index
+                ):
+                    period_tax_rate_for_calcs = income_stmt.at[
+                        "Tax Rate For Calcs",
+                        period,
+                    ]
+
+                    if pd.notna(period_tax_rate_for_calcs):
+                        period_tax_rate = period_tax_rate_for_calcs
+
+                if period_tax_rate is None:
+                    continue
+
+                if period not in balance_sheet.columns:
+                    continue
+
+                balance_position = balance_sheet.columns.get_loc(period)
+
+                if (
+                    not isinstance(balance_position, int)
+                    or balance_position + 1 >= balance_sheet.shape[1]
+                ):
+                    continue
+
+                roc_period = period
+                roc_operating_income = float(period_operating_income)
+                roc_tax_rate = max(
+                    0.0,
+                    min(float(period_tax_rate), 1.0),
+                )
+                break
+
+        if roc_period is not None:
+            current_position = balance_sheet.columns.get_loc(roc_period)
+            capital_positions = [
+                current_position,
+                current_position + 1,
+            ]
+
+            invested_capital_values = []
+            average_invested_capital = None
+
+            if all(
                 row in balance_sheet.index
                 for row in required_balance_rows
-            )
-        ):
-            invested_capital_values = []
+            ):
+                for column_position in capital_positions:
+                    debt = balance_sheet.loc[
+                        "Total Debt"
+                    ].iloc[column_position]
+                    equity = balance_sheet.loc[
+                        "Stockholders Equity"
+                    ].iloc[column_position]
+                    cash = balance_sheet.loc[
+                        "Cash Cash Equivalents And Short Term Investments"
+                    ].iloc[column_position]
 
-            for column_position in [0, 1]:
-                debt = balance_sheet.loc["Total Debt"].iloc[column_position]
-                equity = balance_sheet.loc["Stockholders Equity"].iloc[column_position]
-                cash = balance_sheet.loc[
-                    "Cash Cash Equivalents And Short Term Investments"
-                ].iloc[column_position]
+                    if any(
+                        pd.isna(value)
+                        for value in [debt, equity, cash]
+                    ):
+                        invested_capital_values = []
+                        break
 
-                if any(pd.isna(value) for value in [debt, equity, cash]):
-                    invested_capital_values = []
-                    break
-
-                invested_capital_values.append(
-                    float(debt) + float(equity) - float(cash)
-                )
+                    invested_capital_values.append(
+                        float(debt) + float(equity) - float(cash)
+                    )
 
             if len(invested_capital_values) == 2:
-                average_invested_capital = sum(invested_capital_values) / 2
+                average_invested_capital = (
+                    sum(invested_capital_values) / 2
+                )
 
-                if average_invested_capital <= 0:
-                    if (
-                        "Invested Capital" in balance_sheet.index
-                        and balance_sheet.shape[1] >= 2
+            if (
+                average_invested_capital is None
+                or average_invested_capital <= 0
+            ):
+                if "Invested Capital" in balance_sheet.index:
+                    yahoo_invested_capital_values = [
+                        balance_sheet.loc[
+                            "Invested Capital"
+                        ].iloc[column_position]
+                        for column_position in capital_positions
+                    ]
+
+                    if not any(
+                        pd.isna(value)
+                        for value in yahoo_invested_capital_values
                     ):
-                        yahoo_invested_capital_values = [
-                            balance_sheet.loc["Invested Capital"].iloc[0],
-                            balance_sheet.loc["Invested Capital"].iloc[1],
-                        ]
+                        yahoo_average_invested_capital = (
+                            sum(
+                                float(value)
+                                for value
+                                in yahoo_invested_capital_values
+                            )
+                            / 2
+                        )
 
-                        if not any(
-                            pd.isna(value)
-                            for value in yahoo_invested_capital_values
-                        ):
-                            yahoo_average_invested_capital = (
-                                sum(
-                                    float(value)
-                                    for value in yahoo_invested_capital_values
-                                )
-                                / 2
+                        if yahoo_average_invested_capital > 0:
+                            average_invested_capital = (
+                                yahoo_average_invested_capital
                             )
 
-                            if yahoo_average_invested_capital > 0:
-                                average_invested_capital = (
-                                    yahoo_average_invested_capital
-                                )
+            if (
+                average_invested_capital is not None
+                and average_invested_capital > 0
+            ):
+                nopat = (
+                    roc_operating_income
+                    * (1 - roc_tax_rate)
+                )
 
-                if average_invested_capital > 0:
-                    nopat = float(operating_income) * (1 - tax_rate)
-
-                    return_on_capital = (
-                        nopat / average_invested_capital
-                    ) * 100
+                return_on_capital = (
+                    nopat / average_invested_capital
+                ) * 100
 
         capital_allocation_points = None
 
