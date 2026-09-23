@@ -65,6 +65,88 @@ def add_stock_to_universe(
 
     return True
 
+def add_stock_to_list(
+    ticker: str,
+    list_name: str,
+) -> bool:
+    """
+    Fügt eine vorhandene Aktie einer Scout-Liste hinzu.
+
+    Mehrere Listen werden in universe.csv durch Semikolon getrennt.
+    Bestehende Listenzuordnungen bleiben erhalten.
+    """
+    if not ticker or not list_name:
+        return False
+
+    ticker = ticker.strip().upper()
+    list_name = list_name.strip()
+
+    if not list_name or ";" in list_name:
+        return False
+
+    universe = load_universe()
+
+    ticker_mask = (
+        universe["Ticker"]
+        .astype(str)
+        .str.upper()
+        .eq(ticker)
+    )
+
+    if not ticker_mask.any():
+        return False
+
+    current_value = universe.loc[
+        ticker_mask,
+        "Liste",
+    ].iloc[0]
+
+    current_lists = [
+        item.strip()
+        for item in (
+            ""
+            if pd.isna(current_value)
+            else str(current_value)
+        ).split(";")
+        if item.strip()
+    ]
+
+    if list_name in current_lists:
+        return False
+
+    current_lists.append(list_name)
+
+    universe.loc[
+        ticker_mask,
+        "Liste",
+    ] = ";".join(current_lists)
+
+    universe.to_csv(
+        UNIVERSE_PATH,
+        index=False,
+    )
+
+    return True
+
+
+def add_investment_decision_to_data(data: dict) -> dict:
+    """
+    Ergänzt das zentrale Investment-Urteil für die Cache-Nutzung.
+
+    Die Berechnung erfolgt vor der CSV-Serialisierung, solange
+    strukturierte Analysefelder noch ihre ursprünglichen Typen haben.
+    """
+    from components.investment_decision import (
+        get_investment_decision,
+    )
+
+    decision = get_investment_decision(data)
+
+    data["Investment-Urteil"] = decision["title"]
+
+    return data
+
+
 def update_stock_in_benchmark_cache(ticker: str) -> dict:
     from utils.market_data import load_company_snapshot
     from utils.current_intelligence import apply_current_intelligence
@@ -75,6 +157,7 @@ def update_stock_in_benchmark_cache(ticker: str) -> dict:
     ticker = ticker.strip().upper()
     data = load_company_snapshot(ticker)
     data = apply_current_intelligence(data)
+    data = add_investment_decision_to_data(data)
 
     if BENCHMARK_CACHE_PATH.exists():
         cache = pd.read_csv(BENCHMARK_CACHE_PATH)

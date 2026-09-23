@@ -23,7 +23,7 @@ def _is_distressed(data: dict) -> bool:
 
     return negative_signals >= 3
 
-def render_investment_decision(data: dict) -> None:
+def get_investment_decision(data: dict) -> dict:
     buy_score = data["Kaufchance"]
     quality_score = data["Unternehmensqualität"]
     entry_setup = data.get("Entry Setup")
@@ -228,6 +228,25 @@ def render_investment_decision(data: dict) -> None:
             "belastbar bewertbar und wird in der Kaufchance "
             "neutral angesetzt."
         )
+
+    return {
+        "title": title,
+        "icon": icon,
+        "background": background,
+        "border": border,
+        "text": text,
+        "investment_score": investment_score,
+    }
+
+
+def render_investment_decision(data: dict) -> None:
+    decision = get_investment_decision(data)
+
+    title = decision["title"]
+    icon = decision["icon"]
+    background = decision["background"]
+    border = decision["border"]
+    text = decision["text"]
 
     if title.startswith("Klarer Kauf"):
         icon_html = (

@@ -6,6 +6,7 @@ import streamlit as st
 import plotly.express as px
 
 from utils.data_loader import (
+    add_stock_to_list,
     load_benchmark_cache,
     get_benchmark_cache_timestamp,
     load_universe,
@@ -295,6 +296,51 @@ with st.container(border=True):
 
         selected_ticker = stock_options[selected_label]
 
+        with st.expander("📋 Zu Liste hinzufügen"):
+            existing_list = st.selectbox(
+                "Bestehende Liste",
+                options=["—"] + list_options,
+                key="scout_existing_list",
+            )
+
+            new_list = st.text_input(
+                "Oder neue Liste anlegen",
+                placeholder="z. B. KI-Infrastruktur",
+                key="scout_new_list",
+            )
+
+            if st.button(
+                "Zur Liste hinzufügen",
+                key="scout_add_to_list",
+                use_container_width=True,
+            ):
+                target_list = (
+                    new_list.strip()
+                    if new_list.strip()
+                    else existing_list
+                )
+
+                if target_list == "—":
+                    st.warning(
+                        "Bitte eine bestehende Liste auswählen "
+                        "oder einen neuen Listennamen eingeben."
+                    )
+                elif add_stock_to_list(
+                    selected_ticker,
+                    target_list,
+                ):
+                    st.success(
+                        f"{selected_ticker} wurde zur Liste "
+                        f"„{target_list}“ hinzugefügt."
+                    )
+                    st.rerun()
+                else:
+                    st.info(
+                        f"{selected_ticker} ist bereits in der Liste "
+                        f"„{target_list}“ oder konnte nicht "
+                        "hinzugefügt werden."
+                    )
+
         if st.button(
             "Aktie analysieren",
             type="primary",
@@ -327,6 +373,7 @@ display_universe = display_universe[
         "Ticker",
         "Unternehmensqualität",
         "Kaufchance",
+        "Investment-Urteil",
         "Sektor",
         "Branche",
         "Land",
@@ -348,6 +395,7 @@ with overview_container:
             "Ticker",
             "Unternehmensqualität",
             "Kaufchance",
+            "Investment-Urteil",
             "Sektor",
             "Branche",
             "Land",
@@ -356,6 +404,21 @@ with overview_container:
             "Favorit": st.column_config.CheckboxColumn(
                 "★",
                 help="Aktie als Favorit markieren",
+                width=55,
+            ),
+            "Unternehmensqualität": st.column_config.NumberColumn(
+                "Qualität",
+                width=80,
+                format="%.0f",
+            ),
+            "Kaufchance": st.column_config.NumberColumn(
+                "Kaufchance",
+                width=85,
+                format="%.0f",
+            ),
+            "Investment-Urteil": st.column_config.TextColumn(
+                "Investment-Urteil",
+                width="medium",
             ),
         },
         key="scout_favorites_editor",

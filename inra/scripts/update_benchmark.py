@@ -10,6 +10,7 @@ if str(INRA_ROOT) not in sys.path:
 
 from utils.market_data import load_company_snapshot
 from utils.current_intelligence import apply_current_intelligence
+from utils.data_loader import add_investment_decision_to_data
 
 
 UNIVERSE_PATH = (
@@ -51,6 +52,7 @@ def update_real_estate_benchmark() -> None:
                 continue
 
             data = apply_current_intelligence(data)
+            data = add_investment_decision_to_data(data)
             results.append(data)
 
         except Exception as error:
@@ -103,6 +105,7 @@ def update_benchmark() -> None:
         try:
             data = load_company_snapshot(ticker)
             data = apply_current_intelligence(data)
+            data = add_investment_decision_to_data(data)
 
             results.append(data)
 
