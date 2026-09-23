@@ -61,6 +61,179 @@ def _score_icon(
     return "🔴"
 
 
+
+def _render_real_estate_quantitative_quality(data: dict) -> None:
+    """
+    Rendert die quantitative Quality für Immobilienunternehmen.
+
+    Die reguläre Quality-V2-Darstellung bleibt davon vollständig getrennt.
+    """
+    quality = data.get("Real Estate Quality")
+
+    if not quality:
+        return
+
+    quantitative_quality = data.get("Quantitative Quality")
+    coverage_ratio = quality.get("coverage_ratio", 0)
+    metrics = data.get("Real Estate Quality Data") or {}
+
+    st.markdown("#### 📊 2. Kennzahlenbasierte Qualität (60%)")
+
+    if quantitative_quality is not None:
+        st.markdown(
+            f"**{quantitative_quality} / 100** · "
+            f"Datenabdeckung {coverage_ratio * 100:.0f}%"
+        )
+    else:
+        st.markdown(
+            "**Nicht ausreichend bewertbar** · "
+            f"Datenabdeckung {coverage_ratio * 100:.0f}%"
+        )
+
+    st.caption(
+        "Bei Immobilienunternehmen verwendet InRA ein eigenes "
+        "Kennzahlenmodell. Klassische Kennzahlen wie ROE oder "
+        "Nettomarge sind hier nur eingeschränkt aussagekräftig und "
+        "werden deshalb nicht für die quantitative Quality verwendet."
+    )
+
+    earnings_score = quality.get("earnings_growth_score")
+    portfolio = quality.get("portfolio") or {}
+    financing = quality.get("financing") or {}
+
+    portfolio_growth_score = portfolio.get("growth_score")
+    stability_score = portfolio.get("stability_score")
+    financing_score = financing.get("score")
+    financing_maximum = financing.get("available_maximum", 0)
+
+    st.markdown(
+        f"##### {_score_icon(earnings_score, 30)} "
+        "Operative Ertragsentwicklung"
+        f"<span style='float:right'>"
+        f"{earnings_score if earnings_score is not None else '–'} / 30"
+        "</span>",
+        unsafe_allow_html=True,
+    )
+    earnings_metric = metrics.get("earnings_metric")
+    earnings_growth = metrics.get("earnings_growth_pct")
+
+    if earnings_metric and earnings_growth is not None:
+        st.markdown(
+            f"**{earnings_metric}: "
+            f"{earnings_growth:+.1f} %**"
+        )
+
+    st.caption(
+        "Was zeigt das? Die Entwicklung der für das jeweilige "
+        "Immobilienunternehmen maßgeblichen operativen Ertragskennzahl, "
+        "zum Beispiel FFO, AFFO oder Adjusted EBT je Aktie. "
+        "Sie zeigt, ob die operative Ertragskraft wächst oder zurückgeht."
+    )
+
+    st.markdown(
+        f"##### {_score_icon(portfolio_growth_score, 20)} "
+        "Portfolio-Wachstum"
+        f"<span style='float:right'>"
+        f"{portfolio_growth_score if portfolio_growth_score is not None else '–'} / 20"
+        "</span>",
+        unsafe_allow_html=True,
+    )
+    portfolio_metric = metrics.get("portfolio_growth_metric")
+    portfolio_growth = metrics.get("portfolio_growth_pct")
+
+    if portfolio_metric and portfolio_growth is not None:
+        st.markdown(
+            f"**{portfolio_metric}: "
+            f"{portfolio_growth:+.1f} %**"
+        )
+
+    st.caption(
+        "Was zeigt das? Das organische Wachstum des bestehenden "
+        "Immobilienportfolios, zum Beispiel über Mieten, Same-Store NOI "
+        "oder eine vergleichbare operative Portfoliokennzahl."
+    )
+
+    st.markdown(
+        f"##### {_score_icon(stability_score, 20)} "
+        "Portfolio-Stabilität"
+        f"<span style='float:right'>"
+        f"{stability_score if stability_score is not None else '–'} / 20"
+        "</span>",
+        unsafe_allow_html=True,
+    )
+    stability_metric = metrics.get("stability_metric")
+    occupancy = metrics.get("occupancy_pct")
+    vacancy = metrics.get("vacancy_pct")
+
+    if stability_metric:
+        if "leerstand" in stability_metric.lower() and vacancy is not None:
+            stability_value = f"{vacancy:.1f} %"
+        elif occupancy is not None:
+            stability_value = f"{occupancy:.1f} %"
+        elif vacancy is not None:
+            stability_value = f"{vacancy:.1f} %"
+        else:
+            stability_value = None
+
+        if stability_value is not None:
+            st.markdown(
+                f"**{stability_metric}: {stability_value}**"
+            )
+
+    st.caption(
+        "Was zeigt das? Wie stabil und gut ausgelastet das bestehende "
+        "Portfolio ist. Je nach Immobilienart verwendet InRA dafür "
+        "Belegung, Leerstand oder eine fachlich vergleichbare Kennzahl."
+    )
+
+    st.markdown(
+        f"##### {_score_icon(financing_score, financing_maximum)} "
+        "Finanzierung"
+        f"<span style='float:right'>"
+        f"{financing_score if financing_score is not None else '–'}"
+        f" / {financing_maximum}"
+        "</span>",
+        unsafe_allow_html=True,
+    )
+    financing_metrics = []
+
+    ltv = metrics.get("ltv_pct")
+    net_debt_ebitda = metrics.get("net_debt_ebitda")
+    coverage = metrics.get("coverage_ratio")
+    coverage_metric = metrics.get("coverage_metric")
+
+    if ltv is not None:
+        financing_metrics.append(f"LTV {ltv:.1f} %")
+    elif net_debt_ebitda is not None:
+        financing_metrics.append(
+            f"Net Debt / EBITDA {net_debt_ebitda:.1f}x"
+        )
+
+    if coverage is not None:
+        financing_metrics.append(
+            f"{coverage_metric or 'Coverage'} {coverage:.1f}x"
+        )
+
+    if financing_metrics:
+        st.markdown(
+            "**" + " · ".join(financing_metrics) + "**"
+        )
+
+    st.caption(
+        "Was zeigt das? Verschuldung und finanzielle Tragfähigkeit. "
+        "Bevorzugt werden LTV sowie Zins- oder Fixed-Charge-Coverage; "
+        "wenn nötig dient Net Debt / EBITDA als Ersatzkennzahl. "
+        "Fehlende Kennzahlen werden nicht künstlich mit null Punkten bewertet."
+    )
+
+    st.caption(
+        "Die quantitative Immobilien-Quality bewertet die operative "
+        "Qualität des Unternehmens. Immobilienwert bzw. NAV/NTA im "
+        "Verhältnis zum Aktienkurs gehören dagegen zur Bewertung der Aktie "
+        "und fließen bewusst nicht in diesen Quality Score ein."
+    )
+
+
 def _score_rating(
     score: Optional[float],
     maximum: Optional[float],
@@ -244,9 +417,91 @@ def render_quality_section(data: dict) -> None:
     quantitative_quality = data.get("Quantitative Quality")
     qualitative_quality = data.get("Qualitative Quality")
 
-    summary = html.escape(
-        create_investment_summary(data)
-    )
+    if data.get("Real Estate Quality") is not None:
+        real_estate_quality = data["Real Estate Quality"]
+
+        earnings = real_estate_quality.get(
+            "earnings_growth_score"
+        )
+        portfolio = real_estate_quality.get("portfolio") or {}
+        financing = real_estate_quality.get("financing") or {}
+
+        strengths = []
+        weaknesses = []
+
+        portfolio_score = portfolio.get("score")
+        portfolio_maximum = portfolio.get("available_maximum")
+
+        if (
+            portfolio_score is not None
+            and portfolio_maximum
+            and portfolio_score / portfolio_maximum >= 0.8
+        ):
+            strengths.append(
+                "eine starke Entwicklung und Stabilität des Immobilienportfolios"
+            )
+
+        if earnings is not None:
+            if earnings >= 24:
+                strengths.append(
+                    "eine starke operative Ertragsentwicklung"
+                )
+            elif earnings < 15:
+                weaknesses.append(
+                    "eine schwache operative Ertragsentwicklung"
+                )
+
+        financing_score = financing.get("score")
+        financing_maximum = financing.get("available_maximum")
+
+        if (
+            financing_score is not None
+            and financing_maximum
+        ):
+            financing_ratio = (
+                financing_score / financing_maximum
+            )
+
+            if financing_ratio >= 0.8:
+                strengths.append(
+                    "eine solide Finanzierung"
+                )
+            elif financing_ratio < 0.5:
+                weaknesses.append(
+                    "eine belastete Finanzierung"
+                )
+
+        if strengths and weaknesses:
+            summary_text = (
+                "Zu den Stärken zählen "
+                + ", ".join(strengths)
+                + ". Zu beachten sind "
+                + ", ".join(weaknesses)
+                + "."
+            )
+        elif strengths:
+            summary_text = (
+                "Zu den Stärken zählen "
+                + ", ".join(strengths)
+                + "."
+            )
+        elif weaknesses:
+            summary_text = (
+                "Zu beachten sind "
+                + ", ".join(weaknesses)
+                + "."
+            )
+        else:
+            summary_text = (
+                "Die immobilienspezifischen Kennzahlen ergeben "
+                "derzeit ein gemischtes Qualitätsbild."
+            )
+
+        summary = html.escape(summary_text)
+    else:
+        summary = html.escape(
+            create_investment_summary(data)
+        )
 
     card = f"""
 <div style="
@@ -650,6 +905,10 @@ def render_quality_section(data: dict) -> None:
                 )
 
         st.divider()
+
+        if data.get("Real Estate Quality") is not None:
+            _render_real_estate_quantitative_quality(data)
+            return
 
         st.markdown("#### 📊 2. Kennzahlenbasierte Qualität (60%)")
 

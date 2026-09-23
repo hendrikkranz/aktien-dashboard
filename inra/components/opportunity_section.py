@@ -551,6 +551,26 @@ def _render_opportunity_breakdown(
                     else:
                         current_value = "Keine Daten"
 
+            elif criterion == "NTA/NAV-Bewertung":
+                price = data.get("Kurs")
+                nav_value = item.get("NTA/NAV je Aktie")
+                nav_metric = item.get("NTA/NAV-Kennzahl")
+                price_to_nav = item.get("Kurs/NTA-NAV")
+
+                if (
+                    price is not None
+                    and nav_value is not None
+                    and price_to_nav is not None
+                ):
+                    current_value = (
+                        f"Kurs {_format_value(price)} · "
+                        f"{nav_metric or 'NTA/NAV'} je Aktie "
+                        f"{_format_value(nav_value)} · "
+                        f"Kurs/{nav_metric or 'NTA/NAV'} "
+                        f"{price_to_nav:.2f}"
+                    )
+                else:
+                    current_value = "Nicht bewertbar"
             else:
                 current_value = values.get(
                     criterion,
@@ -560,12 +580,46 @@ def _render_opportunity_breakdown(
             value_label = (
                 "KGV-Bewertung"
                 if criterion == "Forward KGV"
-                else "Aktueller Wert"
+                else (
+                    "Immobilienbewertung"
+                    if criterion == "NTA/NAV-Bewertung"
+                    else "Aktueller Wert"
+                )
             )
 
             st.caption(
                 f"{value_label}: {current_value}"
             )
+
+            if (
+                criterion == "NTA/NAV-Bewertung"
+                and price_to_nav is not None
+            ):
+                difference_pct = (price_to_nav - 1) * 100
+
+                if difference_pct < -0.5:
+                    st.caption(
+                        f"Der Aktienkurs liegt rund "
+                        f"{abs(difference_pct):.0f} % unter dem "
+                        f"{nav_metric or 'NTA/NAV'} je Aktie. "
+                        "Der Markt bewertet das Unternehmen damit mit "
+                        "einem Abschlag auf den bilanziell abgeleiteten "
+                        "Nettoimmobilienwert."
+                    )
+                elif difference_pct > 0.5:
+                    st.caption(
+                        f"Der Aktienkurs liegt rund "
+                        f"{difference_pct:.0f} % über dem "
+                        f"{nav_metric or 'NTA/NAV'} je Aktie. "
+                        "Der Markt bewertet das Unternehmen damit mit "
+                        "einem Aufschlag auf den bilanziell abgeleiteten "
+                        "Nettoimmobilienwert."
+                    )
+                else:
+                    st.caption(
+                        f"Der Aktienkurs liegt ungefähr auf Höhe des "
+                        f"{nav_metric or 'NTA/NAV'} je Aktie."
+                    )
 
             if (
                 criterion == "Forward KGV"

@@ -3,6 +3,67 @@ from config.industry_mapping import get_pe_benchmark_for_yahoo_industry
 from modules.chart_score import calculate_technical_condition_v3_score
 
 
+def calculate_real_estate_nav_score(data: dict):
+    """
+    Bewertet Immobilienunternehmen anhand des Börsenkurses relativ
+    zum EPRA NTA bzw. NAV je Aktie.
+
+    Rückgabe:
+        (points, price_to_nav, nav_metric, nav_per_share)
+
+    Maximal 30 Punkte. Ein Abschlag auf den Nettovermögenswert wird
+    positiv, eine Prämie negativ bewertet.
+    """
+    real_estate_data = data.get("Real Estate Quality Data") or {}
+
+    price = data.get("Kurs")
+
+    epra_nta = real_estate_data.get("epra_nta_per_share")
+    nav = real_estate_data.get("nav_per_share")
+
+    if epra_nta is not None:
+        nav_per_share = epra_nta
+        nav_metric = "EPRA NTA"
+    elif nav is not None:
+        nav_per_share = nav
+        nav_metric = "NAV"
+    else:
+        return None, None, None, None
+
+    if (
+        price is None
+        or price <= 0
+        or nav_per_share <= 0
+    ):
+        return None, None, nav_metric, nav_per_share
+
+    price_to_nav = price / nav_per_share
+
+    thresholds = [
+        (0.70, 30),
+        (0.80, 27),
+        (0.90, 24),
+        (1.00, 20),
+        (1.10, 15),
+        (1.20, 9),
+        (1.35, 4),
+    ]
+
+    points = 0
+
+    for maximum, score in thresholds:
+        if price_to_nav <= maximum:
+            points = score
+            break
+
+    return (
+        points,
+        price_to_nav,
+        nav_metric,
+        nav_per_share,
+    )
+
+
 def calculate_opportunity_breakdown(data: dict) -> list:
     breakdown = []
 
@@ -120,56 +181,83 @@ def calculate_opportunity_breakdown(data: dict) -> list:
             historical_median,
         )
 
-    breakdown.append(
-        {
-            "Kriterium": "Forward KGV",
-            "Punkte": core_points,
-            "Maximum": 24,
-            "Bewertungsklasse": valuation_class,
-            "Geschäftsjahr +0": data.get("Geschäftsjahr +0"),
-            "KGV GJ +0": pe_current_year,
-            "EPS GJ +0": data.get("EPS GJ +0"),
-            "Analysten GJ +0": data.get(
-                "Analysten EPS GJ +0"
-            ),
-            "Punkte GJ +0": current_year_points,
-            "Gewicht GJ +0": 0.60,
-            "Geschäftsjahr +1": data.get("Geschäftsjahr +1"),
-            "KGV GJ +1": pe_next_year,
-            "EPS GJ +1": data.get("EPS GJ +1"),
-            "Analysten GJ +1": data.get(
-                "Analysten EPS GJ +1"
-            ),
-            "Punkte GJ +1": next_year_points,
-            "Gewicht GJ +1": 0.40,
-        }
-    )
+    if data.get("Real Estate Quality") is not None:
+        (
+            nav_points,
+            price_to_nav,
+            nav_metric,
+            nav_per_share,
+        ) = calculate_real_estate_nav_score(data)
 
-    breakdown.append(
-        {
-            "Kriterium": "KGV vs. Branche",
-            "Punkte": relative_points,
-            "Maximum": 3,
-            "Aktien KGV gewichtet": relative_forward_pe,
-            "Branchen KGV": industry_forward_pe,
-            "Damodaran Branche": pe_benchmark.get(
-                "damodaran_industry"
-            ),
-        }
-    )
+        nav_discount_pct = None
 
-    breakdown.append(
-        {
-            "Kriterium": "Branchenbewertung historisch",
-            "Punkte": regime_points,
-            "Maximum": 3,
-            "Branchen KGV": industry_forward_pe,
-            "Historischer Median": historical_median,
-            "Historische Jahre": pe_benchmark.get(
-                "historical_years"
-            ),
-        }
-    )
+        if price_to_nav is not None:
+            nav_discount_pct = (
+                1.0 - price_to_nav
+            ) * 100
+
+        breakdown.append(
+            {
+                "Kriterium": "NTA/NAV-Bewertung",
+                "Punkte": nav_points,
+                "Maximum": 30,
+                "NAV-Kennzahl": nav_metric,
+                "NAV je Aktie": nav_per_share,
+                "Kurs/NAV": price_to_nav,
+                "Abschlag/Prämie %": nav_discount_pct,
+            }
+        )
+    else:
+        breakdown.append(
+            {
+                "Kriterium": "Forward KGV",
+                "Punkte": core_points,
+                "Maximum": 24,
+                "Bewertungsklasse": valuation_class,
+                "Geschäftsjahr +0": data.get("Geschäftsjahr +0"),
+                "KGV GJ +0": pe_current_year,
+                "EPS GJ +0": data.get("EPS GJ +0"),
+                "Analysten GJ +0": data.get(
+                    "Analysten EPS GJ +0"
+                ),
+                "Punkte GJ +0": current_year_points,
+                "Gewicht GJ +0": 0.60,
+                "Geschäftsjahr +1": data.get("Geschäftsjahr +1"),
+                "KGV GJ +1": pe_next_year,
+                "EPS GJ +1": data.get("EPS GJ +1"),
+                "Analysten GJ +1": data.get(
+                    "Analysten EPS GJ +1"
+                ),
+                "Punkte GJ +1": next_year_points,
+                "Gewicht GJ +1": 0.40,
+            }
+        )
+
+        breakdown.append(
+            {
+                "Kriterium": "KGV vs. Branche",
+                "Punkte": relative_points,
+                "Maximum": 3,
+                "Aktien KGV gewichtet": relative_forward_pe,
+                "Branchen KGV": industry_forward_pe,
+                "Damodaran Branche": pe_benchmark.get(
+                    "damodaran_industry"
+                ),
+            }
+        )
+
+        breakdown.append(
+            {
+                "Kriterium": "Branchenbewertung historisch",
+                "Punkte": regime_points,
+                "Maximum": 3,
+                "Branchen KGV": industry_forward_pe,
+                "Historischer Median": historical_median,
+                "Historische Jahre": pe_benchmark.get(
+                    "historical_years"
+                ),
+            }
+        )
 
     return breakdown
 

@@ -14,6 +14,13 @@ from modules.quality_score import (
     calculate_quality_score,
     calculate_qualitative_quality_score,
 )
+from modules.real_estate_quality_score import (
+    calculate_real_estate_quality_score,
+)
+from utils.real_estate_quality_data import (
+    REAL_ESTATE_DATA_LOADERS,
+    load_real_estate_quality_data,
+)
 from utils.research_adjustments import (
     apply_research_adjustments,
 )
@@ -1534,13 +1541,28 @@ def load_company_snapshot(ticker: str) -> dict:
         ticker,
     )
 
-    snapshot["Kaufchance"] = calculate_opportunity_score(
-        snapshot
-    )
-    snapshot["Opportunity Breakdown"] = (
-        calculate_opportunity_breakdown(snapshot)
-    )
-    quantitative_quality = calculate_quality_score(snapshot)
+    real_estate_quality = None
+    real_estate_quality_data = None
+
+    if ticker in REAL_ESTATE_DATA_LOADERS:
+        real_estate_data = load_real_estate_quality_data(ticker)
+        real_estate_quality_data = real_estate_data.to_dict()
+
+        real_estate_quality = calculate_real_estate_quality_score(
+            growth_pct=real_estate_data.earnings_growth_pct,
+            portfolio_growth_pct=(
+                real_estate_data.portfolio_growth_pct
+            ),
+            occupancy_pct=real_estate_data.occupancy_pct,
+            vacancy_pct=real_estate_data.vacancy_pct,
+            ltv_pct=real_estate_data.ltv_pct,
+            net_debt_ebitda=real_estate_data.net_debt_ebitda,
+            coverage=real_estate_data.coverage_ratio,
+        )
+
+        quantitative_quality = real_estate_quality["score"]
+    else:
+        quantitative_quality = calculate_quality_score(snapshot)
 
     qualitative_quality_ratings = (
         get_qualitative_quality_ratings(ticker)
@@ -1562,6 +1584,16 @@ def load_company_snapshot(ticker: str) -> dict:
     )
 
     snapshot["Quantitative Quality"] = quantitative_quality
+    snapshot["Real Estate Quality"] = real_estate_quality
+    snapshot["Real Estate Quality Data"] = real_estate_quality_data
+
+    snapshot["Kaufchance"] = calculate_opportunity_score(
+        snapshot
+    )
+    snapshot["Opportunity Breakdown"] = (
+        calculate_opportunity_breakdown(snapshot)
+    )
+
     snapshot["Qualitative Quality"] = qualitative_quality["score"]
     snapshot["Qualitative Quality Details"] = qualitative_quality
     snapshot["Qualitative Quality Factor Details"] = qualitative_quality_details

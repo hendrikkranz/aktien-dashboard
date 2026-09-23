@@ -201,8 +201,13 @@ def render_investment_decision(data: dict) -> None:
 
         missing_text = " und ".join(missing_parts)
 
+        if missing_text == "das Entry Setup":
+            missing_text = "Das Entry Setup"
+        else:
+            missing_text = missing_text.capitalize()
+
         text += (
-            f" {missing_text.capitalize()} "
+            f" {missing_text} "
             "ist wegen unzureichender Kurshistorie noch nicht "
             "belastbar bewertbar und wird in der Kaufchance "
             "neutral angesetzt."
