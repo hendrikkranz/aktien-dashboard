@@ -263,10 +263,19 @@ def search_stock_candidates(
         )
     ]
 
+    def listing_preference(candidate):
+        ticker = candidate["Ticker"].strip()
+
+        # Bei gleich guten Namens-Treffern bevorzugen wir
+        # die typische Hauptnotierung ohne Börsensuffix.
+        # Exakte Tickereingaben bleiben durch rank() vorrangig.
+        return 0 if "." not in ticker else 1
+
     return sorted(
         relevant_candidates,
         key=lambda candidate: (
             rank(candidate),
+            listing_preference(candidate),
             0 if candidate["Source"] == "Universe" else 1,
             candidate["Name"].casefold(),
             candidate["Ticker"].casefold(),
