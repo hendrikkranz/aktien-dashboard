@@ -2,6 +2,7 @@ import streamlit as st
 
 from utils.market_environment_data import (
     load_market_risk_snapshot,
+    save_market_risk_snapshot,
 )
 
 
@@ -1061,7 +1062,26 @@ st.caption(
     "Marktverschlechterung attraktive Aktien mit nach unten zieht?"
 )
 
-snapshot = load_market_risk_snapshot()
+if st.button(
+    "🔄 Marktlage aktualisieren",
+    help=(
+        "Lädt die aktuellen Marktdaten neu, berechnet "
+        "den Market-Risk-Score und speichert den neuen Datenstand."
+    ),
+):
+    try:
+        with st.spinner("Marktlage wird aktualisiert ..."):
+            snapshot = save_market_risk_snapshot()
+
+        st.success("Marktlage wurde aktualisiert.")
+    except Exception as exc:
+        st.error(
+            "Die Marktlage konnte nicht aktualisiert werden: "
+            f"{exc}"
+        )
+        snapshot = load_market_risk_snapshot()
+else:
+    snapshot = load_market_risk_snapshot()
 
 if snapshot is None:
     st.warning(
