@@ -24,3 +24,6 @@ data/market_risk/shiller_ie_data.xls
 
 # Lokale Current-Intelligence-Recherche
 /data/current_intelligence.json
+
+# Lokale Market-Risk-Historie
+data/market_risk/market_risk_history.csv

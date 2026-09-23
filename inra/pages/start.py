@@ -1,6 +1,9 @@
+import altair as alt
+import pandas as pd
 import streamlit as st
 
 from utils.market_environment_data import (
+    load_market_risk_history,
     load_market_risk_snapshot,
     save_market_risk_snapshot,
 )
@@ -1253,7 +1256,16 @@ current = blocks["current_stress"]
 early = blocks["early_warning"]
 fall = blocks["fall_height"]
 
-def render_market_level(icon, title, block, question, description):
+market_risk_history = load_market_risk_history()
+
+
+def render_market_level(
+    icon,
+    title,
+    block,
+    question,
+    description,
+):
     score = block.get("score")
     max_points = block.get("max_points")
 
@@ -1324,6 +1336,7 @@ def render_market_level(icon, title, block, question, description):
             """,
             unsafe_allow_html=True,
         )
+
 
     with gauge_col:
         st.html(
@@ -1423,11 +1436,107 @@ st.divider()
 
 st.markdown("### Was steckt hinter dem Score?")
 
+
+def render_market_history_chart(history_column):
+    if (
+        market_risk_history.empty
+        or history_column not in market_risk_history.columns
+    ):
+        st.caption("📈 Noch keine Verlaufshistorie vorhanden.")
+        return
+
+    chart_data = market_risk_history[
+        ["Datum", history_column]
+    ].copy()
+
+    chart_data[history_column] = pd.to_numeric(
+        chart_data[history_column],
+        errors="coerce",
+    )
+
+    chart_data = chart_data.dropna(
+        subset=["Datum", history_column]
+    )
+
+    if not chart_data.empty:
+        cutoff = (
+            chart_data["Datum"].max()
+            - pd.DateOffset(months=12)
+        )
+        chart_data = chart_data[
+            chart_data["Datum"] >= cutoff
+        ]
+
+    if len(chart_data) < 2:
+        if not chart_data.empty:
+            first_date_text = (
+                chart_data["Datum"]
+                .min()
+                .strftime("%d.%m.%Y")
+            )
+            st.caption(
+                "📈 Historie wird seit "
+                f"{first_date_text} aufgebaut. "
+                "Der Verlauf erscheint ab dem zweiten Tageswert."
+            )
+        else:
+            st.caption("📈 Noch keine Verlaufshistorie vorhanden.")
+        return
+
+    chart = (
+        alt.Chart(chart_data)
+        .mark_line(
+            point=True,
+            strokeWidth=2,
+        )
+        .encode(
+            x=alt.X(
+                "Datum:T",
+                title=None,
+                axis=alt.Axis(
+                    format="%d.%m.",
+                    labelAngle=0,
+                ),
+            ),
+            y=alt.Y(
+                f"{history_column}:Q",
+                title="Risiko",
+                scale=alt.Scale(
+                    domain=[0, 100],
+                ),
+                axis=alt.Axis(
+                    values=[0, 25, 50, 75, 100],
+                ),
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "Datum:T",
+                    title="Datum",
+                    format="%d.%m.%Y",
+                ),
+                alt.Tooltip(
+                    f"{history_column}:Q",
+                    title="Risiko",
+                    format=".1f",
+                ),
+            ],
+        )
+        .properties(height=145)
+    )
+
+    st.altair_chart(
+        chart,
+        use_container_width=True,
+    )
+
+
 st.markdown("#### 🚨 Aktueller Marktstress")
 st.caption(
     "Zeigt, ob eine Marktverschlechterung bereits in "
     "wichtigen Finanzmarktindikatoren sichtbar wird."
 )
+
+render_market_history_chart("Aktueller Stress")
 
 render_indicator(
     "Markttrend",
@@ -1458,6 +1567,8 @@ st.caption(
     "Sucht nach Signalen, die einer breiteren "
     "Marktverschlechterung vorausgehen können."
 )
+
+render_market_history_chart("Frühwarnung")
 
 render_indicator(
     "Globale Liquidität",
@@ -1497,6 +1608,8 @@ st.caption(
     "Zeigt, wie verwundbar der Aktienmarkt bei "
     "negativen Überraschungen sein könnte."
 )
+
+render_market_history_chart("Fallhöhe")
 
 render_indicator(
     "CAPE / Marktbewertung",

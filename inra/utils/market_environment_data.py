@@ -2718,6 +2718,138 @@ def _prepare_market_risk_snapshot_for_json(value):
     return value
 
 
+def load_market_risk_history(
+    path="data/market_risk/market_risk_history.csv",
+) -> pd.DataFrame:
+    """
+    Lädt die lokal aufgebaute Market-Risk-Tageshistorie.
+    """
+    input_path = Path(path)
+
+    if not input_path.exists():
+        return pd.DataFrame()
+
+    try:
+        history = pd.read_csv(input_path)
+    except Exception:
+        return pd.DataFrame()
+
+    if "Datum" in history.columns:
+        history["Datum"] = pd.to_datetime(
+            history["Datum"],
+            errors="coerce",
+        )
+
+        history = (
+            history
+            .dropna(subset=["Datum"])
+            .sort_values("Datum")
+            .reset_index(drop=True)
+        )
+
+    return history
+
+
+def save_market_risk_history(
+    snapshot,
+    path="data/market_risk/market_risk_history.csv",
+):
+    """
+    Speichert pro Kalendertag genau einen Market-Risk-Historienwert.
+
+    Die drei Ebenen werden auf 0–100 normalisiert gespeichert.
+    Ein erneutes Update am selben Tag ersetzt den vorhandenen Tageswert.
+    """
+    from datetime import datetime
+
+    def normalize_block(block):
+        if not isinstance(block, dict):
+            return None
+
+        score = block.get("score")
+        max_points = block.get("max_points")
+
+        if (
+            score is None
+            or max_points is None
+            or max_points <= 0
+        ):
+            return None
+
+        return round(
+            float(score) / float(max_points) * 100,
+            2,
+        )
+
+    generated_at = snapshot.get("generated_at")
+
+    if generated_at:
+        timestamp = pd.Timestamp(generated_at)
+    else:
+        timestamp = pd.Timestamp(
+            datetime.now().astimezone()
+        )
+
+    blocks = snapshot.get("blocks", {})
+
+    row = {
+        "Datum": timestamp.date().isoformat(),
+        "Zeitpunkt": timestamp.isoformat(),
+        "Gesamt": snapshot.get("score"),
+        "Aktueller Stress": normalize_block(
+            blocks.get("current_stress")
+        ),
+        "Frühwarnung": normalize_block(
+            blocks.get("early_warning")
+        ),
+        "Fallhöhe": normalize_block(
+            blocks.get("fall_height")
+        ),
+        "Abdeckung Gesamt": snapshot.get("coverage"),
+        "Abdeckung Aktueller Stress": (
+            blocks.get("current_stress", {}).get("coverage")
+        ),
+        "Abdeckung Frühwarnung": (
+            blocks.get("early_warning", {}).get("coverage")
+        ),
+        "Abdeckung Fallhöhe": (
+            blocks.get("fall_height", {}).get("coverage")
+        ),
+    }
+
+    output_path = Path(path)
+    output_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    if output_path.exists():
+        history = pd.read_csv(output_path)
+    else:
+        history = pd.DataFrame()
+
+    new_row = pd.DataFrame([row])
+
+    if not history.empty and "Datum" in history.columns:
+        history = history[
+            history["Datum"].astype(str) != row["Datum"]
+        ]
+
+    history = pd.concat(
+        [history, new_row],
+        ignore_index=True,
+    )
+
+    history = history.sort_values("Datum")
+
+    history.to_csv(
+        output_path,
+        index=False,
+    )
+
+    return history
+
+
 def save_market_risk_snapshot(
     path="data/market_risk/latest_snapshot.json",
 ):
@@ -2736,6 +2868,8 @@ def save_market_risk_snapshot(
         timespec="seconds"
     )
     snapshot = _prepare_market_risk_snapshot_for_json(snapshot)
+
+    save_market_risk_history(snapshot)
 
     output_path = Path(path)
     output_path.parent.mkdir(
