@@ -8,6 +8,7 @@ Grundprinzipien:
 """
 
 from pathlib import Path
+from functools import lru_cache
 from typing import Dict, Optional
 import re
 
@@ -134,6 +135,7 @@ GLOBAL_LIQUIDITY_CENTRAL_BANKS = {
 }
 
 
+@lru_cache(maxsize=32)
 def load_fred_series(
     fred_id: str,
 ) -> pd.DataFrame:
@@ -189,6 +191,7 @@ def load_fred_series(
 
 
 
+@lru_cache(maxsize=32)
 def load_ecb_series(
     series_id: str,
 ) -> pd.DataFrame:
