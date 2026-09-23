@@ -106,6 +106,28 @@ elif "analyse_input" not in st.session_state:
         or "MSFT"
     )
 
+st.markdown(
+    """
+    <style>
+    div[data-testid="stTextInput"]:has(
+        input[aria-label="Aktie oder Ticker"]
+    ) input {
+        min-height: 52px;
+        font-size: 1.08rem;
+        font-weight: 500;
+    }
+
+    div[data-testid="stTextInput"]:has(
+        input[aria-label="Aktie oder Ticker"]
+    ) div[data-baseweb="input"] {
+        border: 1px solid rgba(255, 255, 255, 0.75);
+        border-radius: 8px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 search_text = st.text_input(
     "Aktie oder Ticker",
     key="analyse_input",
