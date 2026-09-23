@@ -201,9 +201,9 @@ def calculate_opportunity_breakdown(data: dict) -> list:
                 "Kriterium": "NTA/NAV-Bewertung",
                 "Punkte": nav_points,
                 "Maximum": 30,
-                "NAV-Kennzahl": nav_metric,
-                "NAV je Aktie": nav_per_share,
-                "Kurs/NAV": price_to_nav,
+                "NTA/NAV-Kennzahl": nav_metric,
+                "NTA/NAV je Aktie": nav_per_share,
+                "Kurs/NTA-NAV": price_to_nav,
                 "Abschlag/Prämie %": nav_discount_pct,
             }
         )

@@ -76,6 +76,10 @@ REAL_ESTATE_TEST_UNIVERSE = {
         "company_name": "American Tower",
         "real_estate_type": "Infrastructure / Tower REIT",
     },
+    "TEG.DE": {
+        "company_name": "TAG Immobilien",
+        "real_estate_type": "Residential",
+    },
 }
 
 
@@ -241,6 +245,13 @@ AMERICAN_TOWER_Q2_2026_URL = (
     "000105350726000131/pressreleaseq22026.htm"
 )
 
+TAG_H1_2026_URL = (
+    "https://www.tag-ag.com/news/pressemitteilungen/meldung/"
+    "stark-wachsende-ergebnisse-im-ersten-halbjahr-2026-"
+    "ffo-i-fuer-2026-am-oberen-ende-der-prognosespanne-"
+    "erwartet-465420316"
+)
+
 
 def load_prologis_q2_2026():
     return RealEstateQualityData(
@@ -360,12 +371,64 @@ def load_american_tower_q2_2026():
     )
 
 
+def load_tag_h1_2026():
+    # TAG besitzt wesentliche Wohnungsportfolios in Deutschland und Polen.
+    # Portfolio-Wachstum und Leerstand werden deshalb nach dem jeweiligen
+    # Immobilienwert (GAV) zum 30.06.2026 gewichtet:
+    # Deutschland EUR 5.506,9 Mio. / Polen EUR 2.271,0 Mio.
+    germany_weight = 5506.9 / 7777.9
+    poland_weight = 2271.0 / 7777.9
+
+    portfolio_growth_pct = (
+        3.0 * germany_weight
+        + 2.4 * poland_weight
+    )
+
+    vacancy_pct = (
+        3.8 * germany_weight
+        + 2.1 * poland_weight
+    )
+
+    return RealEstateQualityData(
+        ticker="TEG.DE",
+        company_name="TAG Immobilien",
+        real_estate_type="Residential",
+
+        earnings_metric="FFO I",
+        earnings_per_share=0.53,
+        earnings_period="H1 2026",
+        earnings_growth_pct=9.0,
+
+        portfolio_growth_metric=(
+            "Like-for-like Mietwachstum, GAV-gewichtet"
+        ),
+        portfolio_growth_pct=portfolio_growth_pct,
+
+        stability_metric=(
+            "Wohnungsleerstand, GAV-gewichtet"
+        ),
+        vacancy_pct=vacancy_pct,
+        occupancy_pct=100.0 - vacancy_pct,
+
+        ltv_pct=45.4,
+        coverage_ratio=None,
+        coverage_metric=None,
+
+        epra_nta_per_share=21.38,
+
+        source_name="TAG Immobilien H1 2026",
+        source_url=TAG_H1_2026_URL,
+        source_period="30.06.2026",
+    )
+
+
 REAL_ESTATE_DATA_LOADERS = {
     "VNA.DE": load_vonovia_h1_2026,
     "PLD": load_prologis_q2_2026,
     "O": load_realty_income_q2_2026,
     "SPG": load_simon_q2_2026,
     "AMT": load_american_tower_q2_2026,
+    "TEG.DE": load_tag_h1_2026,
 }
 
 

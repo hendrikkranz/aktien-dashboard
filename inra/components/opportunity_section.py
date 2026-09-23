@@ -602,9 +602,9 @@ def _render_opportunity_breakdown(
                         f"Der Aktienkurs liegt rund "
                         f"{abs(difference_pct):.0f} % unter dem "
                         f"{nav_metric or 'NTA/NAV'} je Aktie. "
-                        "Der Markt bewertet das Unternehmen damit mit "
-                        "einem Abschlag auf den bilanziell abgeleiteten "
-                        "Nettoimmobilienwert."
+                        "Die Aktie wird damit mit einem deutlichen "
+                        "Abschlag auf den ausgewiesenen Netto-Substanzwert "
+                        "gehandelt."
                     )
                 elif difference_pct > 0.5:
                     st.caption(

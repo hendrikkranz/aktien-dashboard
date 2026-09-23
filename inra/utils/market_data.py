@@ -1544,6 +1544,8 @@ def load_company_snapshot(ticker: str) -> dict:
     real_estate_quality = None
     real_estate_quality_data = None
 
+    is_real_estate = snapshot.get("Sektor") == "Real Estate"
+
     if ticker in REAL_ESTATE_DATA_LOADERS:
         real_estate_data = load_real_estate_quality_data(ticker)
         real_estate_quality_data = real_estate_data.to_dict()
@@ -1561,6 +1563,8 @@ def load_company_snapshot(ticker: str) -> dict:
         )
 
         quantitative_quality = real_estate_quality["score"]
+    elif is_real_estate:
+        quantitative_quality = None
     else:
         quantitative_quality = calculate_quality_score(snapshot)
 
