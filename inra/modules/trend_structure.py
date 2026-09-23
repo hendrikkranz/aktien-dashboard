@@ -211,6 +211,7 @@ def analyze_trend_structure(
             "lower_tests": None,
             "upper_tests": None,
             "midline_tests": None,
+            "channel_position_history": [],
         }
 
     regression = _calculate_regression(prices)
