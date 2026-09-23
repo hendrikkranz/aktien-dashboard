@@ -11,7 +11,10 @@ from utils.data_loader import (
     load_universe,
 )
 
-from scripts.update_benchmark import update_benchmark
+from scripts.update_benchmark import (
+    update_benchmark,
+    update_real_estate_benchmark,
+)
 
 
 FAVORITES_PATH = (
@@ -87,6 +90,10 @@ if cache_timestamp is not None:
     
     if st.button("Scout-Daten aktualisieren"):
         update_benchmark()
+        st.rerun()
+
+    if st.button("Immobilien-Daten aktualisieren"):
+        update_real_estate_benchmark()
         st.rerun()
 
 if not benchmark_cache.empty:

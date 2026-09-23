@@ -409,6 +409,20 @@ def _render_metric_row(
 
 def render_quality_section(data: dict) -> None:
     quality_score = data["Unternehmensqualität"]
+
+    if (
+        data.get("Sektor") == "Real Estate"
+        and quality_score is None
+    ):
+        st.markdown("## 🏢 Unternehmensqualität")
+        st.info(
+            "Für diese Immobilienaktie ist noch kein "
+            "spezifisches Immobilien-Qualitätsprofil hinterlegt. "
+            "Die Unternehmensqualität wird daher derzeit "
+            "nicht bewertet."
+        )
+        return
+
     rating, icon, border = _quality_rating(
         quality_score
     )
@@ -908,6 +922,20 @@ def render_quality_section(data: dict) -> None:
 
         if data.get("Real Estate Quality") is not None:
             _render_real_estate_quantitative_quality(data)
+            return
+
+        if (
+            data.get("Sektor") == "Real Estate"
+            and data.get("Quantitative Quality") is None
+        ):
+            st.markdown(
+                "#### 📊 2. Kennzahlenbasierte Qualität (60%)"
+            )
+            st.info(
+                "Für diese Immobilienaktie ist noch kein spezifisches "
+                "Immobilien-Datenprofil hinterlegt. Die quantitative "
+                "Unternehmensqualität wird daher derzeit nicht bewertet."
+            )
             return
 
         st.markdown("#### 📊 2. Kennzahlenbasierte Qualität (60%)")

@@ -60,12 +60,28 @@ def render_investment_decision(data: dict) -> None:
         )
     )
 
-    investment_score = (
-        0.60 * buy_score
-        + 0.40 * quality_score
-    )
+    if quality_score is None:
+        investment_score = None
+    else:
+        investment_score = (
+            0.60 * buy_score
+            + 0.40 * quality_score
+        )
 
-    if _is_distressed(data):
+    if quality_score is None:
+        title = "Eingeschränkt bewertbar"
+        icon = "⚪"
+        background = "#F3F4F6"
+        border = "#8b949e"
+        text = (
+            "Für diese Aktie liegt noch kein spezifisches "
+            "Unternehmensqualitätsprofil vor. "
+            "Die Kaufchance kann separat betrachtet werden, "
+            "ein vollständiges Investment-Urteil ist derzeit "
+            "nicht möglich."
+        )
+
+    elif _is_distressed(data):
         title = "Kein Investment"
         icon = "🔴"
         background = "#FDEEEE"

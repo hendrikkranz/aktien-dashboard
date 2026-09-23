@@ -27,6 +27,69 @@ OUTPUT_PATH = (
 def load_universe() -> pd.DataFrame:
     return pd.read_csv(UNIVERSE_PATH)
 
+def update_real_estate_benchmark() -> None:
+    universe = load_universe()
+
+    real_estate_rows = universe[
+        universe["Ticker"].astype(str).str.strip().ne("")
+        & universe["Sektor"].astype(str).str.strip().eq(
+            "Real Estate"
+        )
+    ]
+
+    results = []
+
+    for _, row in real_estate_rows.iterrows():
+        ticker = str(row["Ticker"]).strip().upper()
+
+        print(f"Lade Immobilienaktie {ticker}...")
+
+        try:
+            data = load_company_snapshot(ticker)
+
+            if data.get("Sektor") != "Real Estate":
+                continue
+
+            data = apply_current_intelligence(data)
+            results.append(data)
+
+        except Exception as error:
+            print(
+                f"Fehler bei Immobilienaktie {ticker}: {error}"
+            )
+
+    if not results:
+        return
+
+    if OUTPUT_PATH.exists():
+        cache = pd.read_csv(OUTPUT_PATH)
+    else:
+        cache = pd.DataFrame()
+
+    updated_cache = cache.copy()
+
+    for data in results:
+        ticker = data["Ticker"]
+
+        if not updated_cache.empty:
+            updated_cache = updated_cache[
+                ~updated_cache["Ticker"]
+                .astype(str)
+                .str.upper()
+                .eq(ticker.upper())
+            ]
+
+        updated_cache = pd.concat(
+            [updated_cache, pd.DataFrame([data])],
+            ignore_index=True,
+        )
+
+    updated_cache.to_csv(
+        OUTPUT_PATH,
+        index=False,
+    )
+
+
 def update_benchmark() -> None:
     universe = load_universe()
 

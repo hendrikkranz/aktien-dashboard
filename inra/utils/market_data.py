@@ -1608,9 +1608,12 @@ def load_company_snapshot(ticker: str) -> dict:
         else quantitative_quality
     )
 
-    snapshot["Quality Breakdown"] = (
-        calculate_quality_breakdown(snapshot)
-    )
+    if is_real_estate and real_estate_quality is None:
+        snapshot["Quality Breakdown"] = {}
+    else:
+        snapshot["Quality Breakdown"] = (
+            calculate_quality_breakdown(snapshot)
+        )
 
     return snapshot
 
