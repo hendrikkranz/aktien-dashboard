@@ -39,6 +39,42 @@ def get_investment_decision_color(title: str) -> str:
     return "#8b949e"
 
 
+INVESTMENT_DECISION_LEVELS = [
+    (
+        "Klarer Kauf",
+        "Sehr starke Gesamtkonstellation · Einstieg unterstützt",
+    ),
+    (
+        "Sehr kaufenswert – Einstieg abwarten",
+        "Sehr starke Gesamtkonstellation · Timing abwarten",
+    ),
+    (
+        "Erste Position aufbauen",
+        "Gute Gesamtkonstellation · Einstieg unterstützt",
+    ),
+    (
+        "Kaufenswert – Einstieg abwarten",
+        "Gute Gesamtkonstellation · Timing abwarten",
+    ),
+    (
+        "Trading-Chance",
+        "Attraktives Timing · Qualität unter Kaufniveau",
+    ),
+    (
+        "Beobachten",
+        "Interessant · Gesamtkonstellation noch nicht stark genug",
+    ),
+    (
+        "Abwarten",
+        "Aktuelle Gesamtkonstellation nicht attraktiv genug",
+    ),
+    (
+        "Kein Investment",
+        "Fundamentale Belastung zu hoch",
+    ),
+]
+
+
 def _is_distressed(data: dict) -> bool:
     distress_values = (
         data.get("Kapitalrendite"),
@@ -346,6 +382,28 @@ Investment-Urteil
 ).strip()
 
     st.html(html)
+
+    with st.popover("ⓘ Urteilsstufen"):
+        for level_title, level_text in INVESTMENT_DECISION_LEVELS:
+            color = get_investment_decision_color(level_title)
+
+            st.markdown(
+                (
+                    f'<span style="color:{color}; font-weight:700;">'
+                    f'{level_title}</span>'
+                    f'<span style="color:#8b949e;"> — '
+                    f'{level_text}</span>'
+                ),
+                unsafe_allow_html=True,
+            )
+
+        st.divider()
+        st.caption(
+            "Kernlogik: Investment-Score = 60 % Kaufchance + "
+            "40 % Unternehmensqualität. Das Entry Setup "
+            "beeinflusst zusätzlich, ob ein unmittelbarer "
+            "Einstieg unterstützt wird."
+        )
 
     ticker = str(data.get("Ticker") or "").strip().upper()
 
