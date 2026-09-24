@@ -195,6 +195,53 @@ def render_indicator(
                 detail,
             )
 
+        with st.expander("Warum dieses Signal?"):
+            render_explainer_heading("Was misst der Indikator?")
+            render_explainer_text(
+                "Die Marktbreite misst, wie viele Aktien eines Index "
+                "an einem Aufwärtstrend teilnehmen. InRA betrachtet "
+                "aktuell den <b>S&P 500</b> und ermittelt den Anteil "
+                "seiner Mitglieder, deren Kurs über der eigenen "
+                "<b>200-Tage-Linie</b> liegt."
+            )
+
+            render_explainer_heading("Warum ist das relevant?")
+            render_explainer_text(
+                "Ein steigender Index ist robuster, wenn viele seiner "
+                "Mitglieder den Aufwärtstrend mittragen. Steigt der Index "
+                "dagegen nur aufgrund weniger großer Aktien, während "
+                "immer mehr Einzelwerte unter ihre langfristige "
+                "Trendlinie fallen, kann das auf eine "
+                "<b>nachlassende Marktbreite</b> und damit eine höhere "
+                "Anfälligkeit des Gesamtmarkts hindeuten."
+            )
+
+            render_explainer_heading("So bewertet InRA")
+            render_explainer_text(
+                "InRA bewertet den Anteil der Indexmitglieder über ihrer "
+                "200-Tage-Linie: "
+                "<b>ab 70 % = 0/7</b> · "
+                "<b>60–unter 70 % = 1/7</b> · "
+                "<b>50–unter 60 % = 2/7</b> · "
+                "<b>40–unter 50 % = 4/7</b> · "
+                "<b>30–unter 40 % = 5/7</b> · "
+                "<b>20–unter 30 % = 6/7</b> · "
+                "<b>unter 20 % = 7/7</b>.<br><br>"
+                "Damit wird eine zunehmend schmalere Marktteilnahme "
+                "schrittweise als höheres Stresssignal gewertet."
+            )
+
+            render_explainer_heading("Grenzen des Signals")
+            render_explainer_text(
+                "Die Marktbreite ist kein eigenständiges Timing-Signal. "
+                "Eine schwache Breite kann längere Zeit bestehen, ohne "
+                "dass der Gesamtmarkt unmittelbar fällt. Außerdem bildet "
+                "die aktuelle V0.1 zunächst nur den <b>S&P 500</b> ab. "
+                "Europa und Japan können später ergänzt werden, wenn "
+                "eine ausreichend robuste und wartungsarme "
+                "Mitgliederbasis verfügbar ist."
+            )
+
     if name == "Zinskurve":
         series = component.get("series", {})
 
