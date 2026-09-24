@@ -438,10 +438,18 @@ with overview_container:
                 help="Aktie als Favorit markieren",
                 width=55,
             ),
+            "Name": st.column_config.TextColumn(
+                "Name",
+                width=220,
+            ),
             "Analysieren": st.column_config.CheckboxColumn(
                 "🔬",
                 help="Aktie analysieren",
-                width=45,
+                width=55,
+            ),
+            "Ticker": st.column_config.TextColumn(
+                "Ticker",
+                width=90,
             ),
             "Unternehmensqualität": st.column_config.NumberColumn(
                 "Qualität",
@@ -450,12 +458,24 @@ with overview_container:
             ),
             "Kaufchance": st.column_config.NumberColumn(
                 "Kaufchance",
-                width=85,
+                width=100,
                 format="%.0f",
             ),
             "Investment-Urteil": st.column_config.TextColumn(
                 "Investment-Urteil",
-                width="medium",
+                width=330,
+            ),
+            "Sektor": st.column_config.TextColumn(
+                "Sektor",
+                width=220,
+            ),
+            "Branche": st.column_config.TextColumn(
+                "Branche",
+                width=300,
+            ),
+            "Land": st.column_config.TextColumn(
+                "Land",
+                width=130,
             ),
         },
         key="scout_favorites_editor",
@@ -539,24 +559,32 @@ else:
             "Investment-Urteil",
         ],
         column_config={
+            "Name": st.column_config.TextColumn(
+                "Name",
+                width=370,
+            ),
             "Analysieren": st.column_config.CheckboxColumn(
                 "🔬",
                 help="Aktie analysieren",
-                width=45,
+                width=155,
+            ),
+            "Ticker": st.column_config.TextColumn(
+                "Ticker",
+                width=100,
             ),
             "Chance": st.column_config.NumberColumn(
                 "Chance",
-                width=85,
+                width=100,
                 format="%.0f",
             ),
             "Qualität": st.column_config.NumberColumn(
                 "Qualität",
-                width=80,
+                width=100,
                 format="%.0f",
             ),
             "Investment-Urteil": st.column_config.TextColumn(
                 "Investment-Urteil",
-                width="medium",
+                width=420,
             ),
         },
         key="scout_top_opportunities_editor",
@@ -616,24 +644,32 @@ else:
             "Investment-Urteil",
         ],
         column_config={
+            "Name": st.column_config.TextColumn(
+                "Name",
+                width=370,
+            ),
             "Analysieren": st.column_config.CheckboxColumn(
                 "🔬",
                 help="Aktie analysieren",
-                width=45,
+                width=155,
+            ),
+            "Ticker": st.column_config.TextColumn(
+                "Ticker",
+                width=100,
             ),
             "Qualität": st.column_config.NumberColumn(
                 "Qualität",
-                width=80,
+                width=100,
                 format="%.0f",
             ),
             "Chance": st.column_config.NumberColumn(
                 "Chance",
-                width=85,
+                width=100,
                 format="%.0f",
             ),
             "Investment-Urteil": st.column_config.TextColumn(
                 "Investment-Urteil",
-                width="medium",
+                width=420,
             ),
         },
         key="scout_top_quality_editor",
