@@ -14,8 +14,138 @@ import re
 
 import pandas as pd
 import requests
+import yfinance as yf
 
 from utils.market_data import load_price_history
+
+
+SP500_CONSTITUENTS_URL = (
+    "https://raw.githubusercontent.com/datasets/"
+    "s-and-p-500-companies/main/data/constituents.csv"
+)
+
+MARKET_BREADTH_MIN_COVERAGE = 0.90
+
+
+@lru_cache(maxsize=1)
+def load_sp500_constituents():
+    """Lädt die aktuelle S&P-500-Mitgliederliste."""
+    members = pd.read_csv(SP500_CONSTITUENTS_URL)
+
+    if "Symbol" not in members.columns:
+        raise ValueError(
+            "S&P-500-Mitgliederliste enthält keine Symbol-Spalte."
+        )
+
+    tickers = (
+        members["Symbol"]
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .str.replace(".", "-", regex=False)
+        .drop_duplicates()
+        .tolist()
+    )
+
+    if not tickers:
+        raise ValueError("S&P-500-Mitgliederliste ist leer.")
+
+    return tickers
+
+
+def build_market_breadth_component() -> Dict[str, object]:
+    """
+    Berechnet die US-Marktbreite anhand des Anteils aktueller
+    S&P-500-Mitglieder oberhalb ihrer individuellen SMA200.
+
+    V0.1:
+    - aktuelle S&P-500-Mitglieder
+    - mindestens 200 gültige Handelstage je Aktie
+    - mindestens 90 % Coverage für eine Bewertung
+    """
+    from modules.market_risk_score import (
+        calculate_market_breadth_score,
+    )
+
+    tickers = load_sp500_constituents()
+    total = len(tickers)
+
+    prices = yf.download(
+        tickers,
+        period="1y",
+        interval="1d",
+        auto_adjust=True,
+        progress=False,
+        threads=True,
+    )
+
+    if prices.empty or "Close" not in prices:
+        return {
+            "score": None,
+            "percent_above_sma200": None,
+            "coverage": 0.0,
+            "valid_constituents": 0,
+            "total_constituents": total,
+            "as_of": None,
+            "available": False,
+        }
+
+    close = prices["Close"]
+
+    above_sma200 = []
+    as_of_dates = []
+
+    for ticker in tickers:
+        if ticker not in close.columns:
+            continue
+
+        series = close[ticker].dropna()
+
+        if len(series) < 200:
+            continue
+
+        latest = float(series.iloc[-1])
+        sma200 = float(series.iloc[-200:].mean())
+
+        above_sma200.append(latest > sma200)
+        as_of_dates.append(series.index[-1])
+
+    valid = len(above_sma200)
+    coverage = valid / total if total else 0.0
+
+    if not valid:
+        percent_above = None
+    else:
+        percent_above = (
+            sum(above_sma200) / valid * 100.0
+        )
+
+    available = (
+        percent_above is not None
+        and coverage >= MARKET_BREADTH_MIN_COVERAGE
+    )
+
+    score = (
+        calculate_market_breadth_score(percent_above)
+        if available
+        else None
+    )
+
+    as_of = (
+        max(as_of_dates)
+        if as_of_dates
+        else None
+    )
+
+    return {
+        "score": score,
+        "percent_above_sma200": percent_above,
+        "coverage": coverage,
+        "valid_constituents": valid,
+        "total_constituents": total,
+        "as_of": as_of,
+        "available": available,
+    }
 
 
 MARKET_TREND_REGIONS = {
@@ -2647,9 +2777,7 @@ def build_market_risk_snapshot() -> Dict[str, object]:
         "credit_stress": build_credit_stress_component(),
         "volatility_stress": build_volatility_stress_component(),
 
-        # Für Market Breadth existiert in V0.1 bewusst
-        # noch keine belastbare historische Datenbasis.
-        "market_breadth": None,
+        "market_breadth": build_market_breadth_component(),
 
         "global_liquidity": build_global_liquidity_component(),
         "yield_curve": build_yield_curve_component(),

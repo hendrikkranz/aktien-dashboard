@@ -122,6 +122,11 @@ def render_indicator(
             "Etwas erhöhte Unsicherheit, aber keine breite "
             "Stresseskalation. Emerging Markets bleiben volatiler."
         ),
+        "Marktbreite": (
+            "Die US-Marktbreite ist derzeit leicht schwach: "
+            "Nur etwa die Hälfte der S&P-500-Aktien notiert "
+            "über ihrer eigenen 200-Tage-Linie."
+        ),
         "Globale Liquidität": (
             "Uneinheitliche Liquiditätslage: Fed leicht expansiv, "
             "EZB leicht kontraktiv, BoJ deutlich kontraktiv. "
@@ -157,6 +162,38 @@ def render_indicator(
 
     if interpretation:
         st.caption(interpretation)
+
+    if name == "Marktbreite":
+        percent_above = component.get("percent_above_sma200")
+        valid = component.get("valid_constituents")
+        total = component.get("total_constituents")
+        as_of = component.get("as_of")
+
+        if percent_above is not None:
+            detail = (
+                f"<b>{percent_above:.1f} %</b> der "
+                "S&P-500-Aktien über SMA200"
+            )
+
+            if valid is not None and total is not None:
+                detail += (
+                    f" · <b>{valid}/{total}</b> auswertbar"
+                )
+
+            if as_of:
+                as_of_text = str(as_of)[:10]
+                try:
+                    year, month, day = as_of_text.split("-")
+                    as_of_text = f"{day}.{month}.{year}"
+                except ValueError:
+                    pass
+
+                detail += f" · Datenstand <b>{as_of_text}</b>"
+
+            render_signal_line(
+                "S&P 500",
+                detail,
+            )
 
     if name == "Zinskurve":
         series = component.get("series", {})

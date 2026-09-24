@@ -59,6 +59,52 @@ def _clamp(value: float, minimum: float, maximum: float) -> float:
 
 
 
+def calculate_market_breadth_score(
+    percent_above_sma200: Optional[float],
+    max_points: float = 7.0,
+) -> Optional[float]:
+    """
+    Bewertet die US-Marktbreite anhand des Anteils der
+    S&P-500-Mitglieder oberhalb ihrer individuellen SMA200.
+
+    V0.1:
+    >= 70 % -> 0 / 7
+    >= 60 % -> 1 / 7
+    >= 50 % -> 2 / 7
+    >= 40 % -> 4 / 7
+    >= 30 % -> 5 / 7
+    >= 20 % -> 6 / 7
+    <  20 % -> 7 / 7
+
+    Die 50-%-Marke wird bewusst als Regimegrenze behandelt.
+    Coverage wird in der Datenkomponente geprüft.
+    """
+    if percent_above_sma200 is None:
+        return None
+
+    value = float(percent_above_sma200)
+
+    if value < 0.0 or value > 100.0:
+        return None
+
+    if value >= 70.0:
+        base_score = 0.0
+    elif value >= 60.0:
+        base_score = 1.0
+    elif value >= 50.0:
+        base_score = 2.0
+    elif value >= 40.0:
+        base_score = 4.0
+    elif value >= 30.0:
+        base_score = 5.0
+    elif value >= 20.0:
+        base_score = 6.0
+    else:
+        base_score = 7.0
+
+    return base_score / 7.0 * max_points
+
+
 def calculate_market_trend_score(
     distance_to_sma200_pct: Optional[float],
     sma200_slope_20d_pct: Optional[float],
