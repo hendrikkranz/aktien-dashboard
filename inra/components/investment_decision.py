@@ -15,6 +15,9 @@ def get_investment_decision_color(title: str) -> str:
     if title.startswith("Klarer Kauf"):
         return "#20C77A"
 
+    if title.startswith("Sehr kaufenswert – Einstieg abwarten"):
+        return "#239B6B"
+
     if title.startswith("Erste Position aufbauen"):
         return "#2EAD7B"
 
