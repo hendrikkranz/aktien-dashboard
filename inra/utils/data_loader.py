@@ -337,12 +337,33 @@ def search_stock_candidates(
         default=None,
     )
 
+    exact_plain_ticker_match = any(
+        candidate["Ticker"].strip().casefold()
+        == query_normalized
+        and "." not in candidate["Ticker"]
+        for candidate in candidates
+    )
+
+    def is_strong_name_conflict(candidate):
+        name = candidate["Name"].strip().casefold()
+
+        return (
+            exact_plain_ticker_match
+            and (
+                name == query_normalized
+                or name.startswith(query_normalized + " ")
+            )
+        )
+
     relevant_candidates = [
         candidate
         for candidate in candidates
         if (
             best_rank is not None
-            and rank(candidate) <= best_rank + 1
+            and (
+                rank(candidate) <= best_rank + 1
+                or is_strong_name_conflict(candidate)
+            )
         )
     ]
 
