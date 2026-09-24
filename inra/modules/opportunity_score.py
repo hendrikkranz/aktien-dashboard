@@ -281,6 +281,7 @@ def calculate_entry_setup_score(data: dict):
         "Neutral": 15.0,
         "Median Reclaim – vorsichtig": 13.5,
         "Obere Kanalzone": 12.0,
+        "Mehrfachwiderstand – Einstieg abwarten": 18.0,
         "Lower Channel Recovery – vorsichtig": 10.5,
         "Median Reclaim – schwach": 9.0,
         "Untere Kanalhälfte – schwach": 9.0,

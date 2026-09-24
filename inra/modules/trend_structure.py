@@ -524,6 +524,184 @@ def analyze_30w_support_reclaim(
     }
 
 
+def analyze_resistance_rejection(
+    weekly_history,
+) -> dict:
+    """Erkennt einen aktuellen Rückfall an einem Mehrfachwiderstand.
+
+    Diagnose V1:
+    - lokale Wochenhochs mit je zwei Wochen Abstand,
+    - mindestens drei Swing Highs in einem engen Preiscluster,
+    - Cluster über mindestens sechs Wochen,
+    - aktueller Kurs höchstens 5 % unter dem Widerstand,
+    - Widerstand in den letzten vier Wochen erneut erreicht,
+    - aktueller Schluss mindestens 2 % unter dem Widerstand.
+
+    Die Funktion bewertet ausschließlich das kurzfristige Entry-Risiko.
+    Ein Widerstandscluster allein ist noch keine aktuelle Rejection.
+    """
+    result = {
+        "signal": "Nicht bewertbar",
+        "resistance_level": None,
+        "tests": 0,
+        "span_weeks": None,
+        "current_distance_pct": None,
+        "recent_high": None,
+        "rejection": False,
+    }
+
+    if weekly_history is None or weekly_history.empty:
+        return result
+
+    if not {"High", "Close"}.issubset(weekly_history.columns):
+        return result
+
+    history = weekly_history[
+        ["High", "Close"]
+    ].copy()
+
+    history["High"] = pd.to_numeric(
+        history["High"],
+        errors="coerce",
+    )
+    history["Close"] = pd.to_numeric(
+        history["Close"],
+        errors="coerce",
+    )
+
+    history = history.dropna()
+
+    if len(history) < 20:
+        return result
+
+    # Für das heutige Entry Setup sind Widerstände aus dem
+    # zurückliegenden Jahr relevant.
+    cutoff = history.index[-1] - pd.DateOffset(months=12)
+
+    swing_highs = []
+
+    for pos in range(2, len(history) - 2):
+        value = float(history["High"].iloc[pos])
+
+        left = history["High"].iloc[pos - 2:pos]
+        right = history["High"].iloc[pos + 1:pos + 3]
+
+        if (
+            value > float(left.max())
+            and value > float(right.max())
+            and history.index[pos] >= cutoff
+        ):
+            swing_highs.append({
+                "date": history.index[pos],
+                "high": value,
+            })
+
+    current_close = float(
+        history["Close"].iloc[-1]
+    )
+
+    clusters = []
+
+    for start, first in enumerate(swing_highs):
+        cluster = [first]
+
+        for candidate in swing_highs[start + 1:]:
+            values = [
+                item["high"]
+                for item in cluster
+            ] + [candidate["high"]]
+
+            band_pct = (
+                max(values) / min(values) - 1
+            ) * 100
+
+            if band_pct <= 4.0:
+                cluster.append(candidate)
+
+        if len(cluster) < 3:
+            continue
+
+        span_weeks = (
+            cluster[-1]["date"]
+            - cluster[0]["date"]
+        ).days / 7
+
+        if span_weeks < 6:
+            continue
+
+        resistance_level = sum(
+            item["high"]
+            for item in cluster
+        ) / len(cluster)
+
+        current_distance_pct = (
+            current_close / resistance_level - 1
+        ) * 100
+
+        if not (
+            -5.0 <= current_distance_pct <= 0.0
+        ):
+            continue
+
+        clusters.append({
+            "swings": cluster,
+            "level": resistance_level,
+            "distance_pct": current_distance_pct,
+            "span_weeks": span_weeks,
+        })
+
+    if not clusters:
+        return {
+            **result,
+            "signal": "Kein relevanter Mehrfachwiderstand",
+        }
+
+    best = max(
+        clusters,
+        key=lambda item: (
+            len(item["swings"]),
+            item["span_weeks"],
+        ),
+    )
+
+    recent_high = float(
+        history["High"].tail(4).max()
+    )
+
+    touched = recent_high >= best["level"]
+
+    rejection = (
+        touched
+        and best["distance_pct"] <= -2.0
+    )
+
+    return {
+        "signal": (
+            "Aktuelle Widerstands-Rejection"
+            if rejection
+            else "Mehrfachwiderstand ohne aktuelle Rejection"
+        ),
+        "resistance_level": round(
+            float(best["level"]),
+            2,
+        ),
+        "tests": len(best["swings"]),
+        "span_weeks": round(
+            float(best["span_weeks"]),
+            1,
+        ),
+        "current_distance_pct": round(
+            float(best["distance_pct"]),
+            2,
+        ),
+        "recent_high": round(
+            recent_high,
+            2,
+        ),
+        "rejection": rejection,
+    }
+
+
 def classify_entry_setup(
     trend: dict,
     confirmation=None,
@@ -533,6 +711,7 @@ def classify_entry_setup(
     recovery_pct=None,
     distance_to_previous_52w_high_pct=None,
     support_30w_signal=None,
+    resistance_rejection=None,
 ) -> dict:
     """Klassifiziert das aktuelle technische Entry-Setup.
 
@@ -659,6 +838,39 @@ def classify_entry_setup(
                 "Trendkanalgrenze; kurzfristige Signale "
                 "heben den strukturellen Bruch nicht auf"
             ),
+        }
+
+    # Aktuelle Rejection an einem mehrfach getesteten Widerstand:
+    # Ein grundsätzlich positives längerfristiges Entry-Setup kann
+    # dadurch kurzfristig unattraktiv sein. Das Signal beschreibt
+    # bewusst das Timing heute und stellt den Aufwärtstrend selbst
+    # nicht infrage.
+    resistance_rejection = resistance_rejection or {}
+
+    if resistance_rejection.get("rejection") is True:
+        resistance_level = resistance_rejection.get(
+            "resistance_level"
+        )
+        resistance_tests = resistance_rejection.get("tests")
+
+        detail_parts = [
+            "Kurs wurde zuletzt an einem mehrfach getesteten "
+            "Widerstandsbereich zurückgewiesen"
+        ]
+
+        if resistance_level is not None:
+            detail_parts.append(
+                f"Widerstand bei etwa {resistance_level:.2f}"
+            )
+
+        if resistance_tests is not None:
+            detail_parts.append(
+                f"{resistance_tests} historische Tests"
+            )
+
+        return {
+            "setup": "Mehrfachwiderstand – Einstieg abwarten",
+            "detail": " · ".join(detail_parts),
         }
 
     # 2. Untere Kanalzone mit erkennbarer Aufwärtsreaktion.

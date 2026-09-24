@@ -31,6 +31,7 @@ from utils.qualitative_quality import (
 from modules.trend_structure import (
     analyze_30w_support_reclaim,
     analyze_entry_confirmation,
+    analyze_resistance_rejection,
     analyze_trend_structure,
     calculate_long_term_trend_score,
     classify_entry_setup,
@@ -1478,6 +1479,10 @@ def load_company_snapshot(ticker: str) -> dict:
         weekly_close
     )
 
+    resistance_rejection = analyze_resistance_rejection(
+        history_5y
+    )
+
     entry_setup = classify_entry_setup(
         long_term_trend,
         confirmation=entry_confirmation["confirmation"],
@@ -1489,6 +1494,7 @@ def load_company_snapshot(ticker: str) -> dict:
             "Abstand vorheriges 52W Hoch %"
         ],
         support_30w_signal=support_30w["signal"],
+        resistance_rejection=resistance_rejection,
     )
 
     snapshot = {
@@ -1505,6 +1511,7 @@ def load_company_snapshot(ticker: str) -> dict:
         "Branche": info.get("industry"),
         "Kurs": current_price,
         "Währung": info.get("currency"),
+        "Widerstands-Rejection": resistance_rejection,
         "Dividendenrendite": dividend_yield,
         "Dividendenstrategie Status": (
             "Keine Dividende"

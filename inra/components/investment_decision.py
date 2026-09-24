@@ -176,6 +176,22 @@ def get_investment_decision(data: dict) -> dict:
         )
 
     elif (
+        investment_score >= 80
+        and buy_score >= 70
+        and not entry_ready
+    ):
+        title = "Sehr kaufenswert – Einstieg abwarten"
+        icon = "🟢"
+        background = "#EAF7F2"
+        border = "#2EAD7B"
+        text = (
+            "Kaufchance und Unternehmensqualität ergeben zusammen "
+            "eine besonders überzeugende Investment-Konstellation. "
+            "Das aktuelle Entry Setup spricht jedoch dafür, mit "
+            "einem unmittelbaren Einstieg noch abzuwarten."
+        )
+
+    elif (
         investment_score >= 70
         and buy_score >= 60
         and not entry_ready
