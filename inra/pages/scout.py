@@ -503,6 +503,7 @@ else:
                 "Ticker",
                 "Kaufchance",
                 "Unternehmensqualität",
+                "Investment-Urteil",
             ]
         ]
         .dropna(subset=["Kaufchance"])
@@ -520,11 +521,55 @@ else:
         }
     )
 
-    st.dataframe(
+    top_opportunities.insert(
+        1,
+        "Analysieren",
+        False,
+    )
+
+    edited_opportunities = st.data_editor(
         top_opportunities,
         width="stretch",
         hide_index=True,
+        disabled=[
+            "Name",
+            "Ticker",
+            "Chance",
+            "Qualität",
+            "Investment-Urteil",
+        ],
+        column_config={
+            "Analysieren": st.column_config.CheckboxColumn(
+                "🔬",
+                help="Aktie analysieren",
+                width=45,
+            ),
+            "Chance": st.column_config.NumberColumn(
+                "Chance",
+                width=85,
+                format="%.0f",
+            ),
+            "Qualität": st.column_config.NumberColumn(
+                "Qualität",
+                width=80,
+                format="%.0f",
+            ),
+            "Investment-Urteil": st.column_config.TextColumn(
+                "Investment-Urteil",
+                width="medium",
+            ),
+        },
+        key="scout_top_opportunities_editor",
     )
+
+    opportunity_analysis = edited_opportunities.loc[
+        edited_opportunities["Analysieren"] == True,
+        "Ticker",
+    ].tolist()
+
+    if opportunity_analysis:
+        st.session_state["analyse_ticker"] = opportunity_analysis[0]
+        st.switch_page("pages/analyse.py")
 
     st.markdown("#### Top 10 Unternehmensqualität")
 
@@ -535,6 +580,7 @@ else:
                 "Ticker",
                 "Unternehmensqualität",
                 "Kaufchance",
+                "Investment-Urteil",
             ]
         ]
         .dropna(subset=["Unternehmensqualität"])
@@ -552,11 +598,55 @@ else:
         }
     )
 
-    st.dataframe(
+    top_quality.insert(
+        1,
+        "Analysieren",
+        False,
+    )
+
+    edited_quality = st.data_editor(
         top_quality,
         width="stretch",
         hide_index=True,
+        disabled=[
+            "Name",
+            "Ticker",
+            "Qualität",
+            "Chance",
+            "Investment-Urteil",
+        ],
+        column_config={
+            "Analysieren": st.column_config.CheckboxColumn(
+                "🔬",
+                help="Aktie analysieren",
+                width=45,
+            ),
+            "Qualität": st.column_config.NumberColumn(
+                "Qualität",
+                width=80,
+                format="%.0f",
+            ),
+            "Chance": st.column_config.NumberColumn(
+                "Chance",
+                width=85,
+                format="%.0f",
+            ),
+            "Investment-Urteil": st.column_config.TextColumn(
+                "Investment-Urteil",
+                width="medium",
+            ),
+        },
+        key="scout_top_quality_editor",
     )
+
+    quality_analysis = edited_quality.loc[
+        edited_quality["Analysieren"] == True,
+        "Ticker",
+    ].tolist()
+
+    if quality_analysis:
+        st.session_state["analyse_ticker"] = quality_analysis[0]
+        st.switch_page("pages/analyse.py")
     
     st.header("🔥 Heatmaps")
     st.subheader("1. Qualität × Kaufchance")
