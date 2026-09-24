@@ -783,7 +783,7 @@ else:
 
     fig.add_annotation(
         x=89,
-        y=69,
+        y=96,
         text="Top-Kandidaten",
         showarrow=False,
         font=dict(
@@ -794,7 +794,7 @@ else:
 
     fig.add_annotation(
         x=44,
-        y=69,
+        y=96,
         text="Einstiegsoptionen",
         showarrow=False,
         font=dict(
@@ -805,7 +805,7 @@ else:
 
     fig.add_annotation(
         x=89,
-        y=23,
+        y=4,
         text="Qualitätsaktien",
         showarrow=False,
         font=dict(
@@ -816,7 +816,7 @@ else:
 
     fig.add_annotation(
         x=44,
-        y=23,
+        y=4,
         text="Keine Priorität",
         showarrow=False,
         font=dict(
@@ -828,7 +828,7 @@ else:
     fig.update_layout(
         height=550,
         xaxis_range=[10, 105],
-        yaxis_range=[20, 100],
+        yaxis_range=[0, 100],
         showlegend=False,
     )
 
