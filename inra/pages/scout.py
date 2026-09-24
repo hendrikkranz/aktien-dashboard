@@ -360,6 +360,12 @@ display_universe.insert(
     ),
 )
 
+display_universe.insert(
+    2,
+    "Analysieren",
+    False,
+)
+
 display_universe = display_universe.sort_values(
     by="Kaufchance",
     ascending=False,
@@ -370,6 +376,7 @@ display_universe = display_universe[
     [
         "Favorit",
         "Name",
+        "Analysieren",
         "Ticker",
         "Unternehmensqualität",
         "Kaufchance",
@@ -406,6 +413,11 @@ with overview_container:
                 help="Aktie als Favorit markieren",
                 width=55,
             ),
+            "Analysieren": st.column_config.CheckboxColumn(
+                "🔬",
+                help="Aktie analysieren",
+                width=45,
+            ),
             "Unternehmensqualität": st.column_config.NumberColumn(
                 "Qualität",
                 width=80,
@@ -423,6 +435,15 @@ with overview_container:
         },
         key="scout_favorites_editor",
     )
+
+analysis_rows = edited_universe.loc[
+    edited_universe["Analysieren"] == True,
+    "Ticker",
+].tolist()
+
+if analysis_rows:
+    st.session_state["analyse_ticker"] = analysis_rows[0]
+    st.switch_page("pages/analyse.py")
 
 selected_favorites = edited_universe.loc[
     edited_universe["Favorit"] == True,
