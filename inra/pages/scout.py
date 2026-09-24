@@ -5,6 +5,10 @@ from pathlib import Path
 import streamlit as st
 import plotly.express as px
 
+from components.investment_decision import (
+    get_investment_decision_color,
+)
+
 from utils.data_loader import (
     add_stock_to_list,
     load_benchmark_cache,
@@ -387,6 +391,27 @@ display_universe = display_universe[
     ]
 ]
 
+def _style_investment_decision_row(row):
+    color = get_investment_decision_color(
+        row["Investment-Urteil"]
+    )
+
+    styles = [""] * len(row)
+
+    for column in ("Name", "Investment-Urteil"):
+        styles[row.index.get_loc(column)] = (
+            f"color: {color}; font-weight: 600;"
+        )
+
+    return styles
+
+
+styled_universe = display_universe.style.apply(
+    _style_investment_decision_row,
+    axis=1,
+)
+
+
 with overview_container:
     st.subheader("📊 Aktienübersicht")
     st.caption(
@@ -394,7 +419,7 @@ with overview_container:
     )
 
     edited_universe = st.data_editor(
-        display_universe,
+        styled_universe,
         width="stretch",
         hide_index=True,
         disabled=[

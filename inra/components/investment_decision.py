@@ -8,6 +8,34 @@ from modules.opportunity_score import (
 )
 from utils.current_intelligence import get_current_intelligence
 
+def get_investment_decision_color(title: str) -> str:
+    """Liefert die Ampelfarbe eines Investment-Urteils."""
+    title = str(title or "").strip()
+
+    if title.startswith("Klarer Kauf"):
+        return "#20C77A"
+
+    if title.startswith("Erste Position aufbauen"):
+        return "#2EAD7B"
+
+    if title.startswith("Kaufenswert – Einstieg abwarten"):
+        return "#86CFAE"
+
+    if title.startswith("Trading-Chance"):
+        return "#4A90E2"
+
+    if title.startswith("Beobachten"):
+        return "#D9A514"
+
+    if title.startswith("Abwarten"):
+        return "#E58A2B"
+
+    if title.startswith("Kein Investment"):
+        return "#D9534F"
+
+    return "#8b949e"
+
+
 def _is_distressed(data: dict) -> bool:
     distress_values = (
         data.get("Kapitalrendite"),
