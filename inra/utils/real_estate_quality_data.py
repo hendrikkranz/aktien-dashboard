@@ -42,9 +42,16 @@ class RealEstateQualityData:
     coverage_ratio: Optional[float] = None
     coverage_metric: Optional[str] = None
 
-    # Später für Immobilien-Kaufchance
+    # Immobilien-Kaufchance
     epra_nta_per_share: Optional[float] = None
     nav_per_share: Optional[float] = None
+
+    # Fallback, wenn kein belastbarer NTA/NAV je Aktie vorliegt.
+    # Verwendet die offizielle FY-Guidance des Unternehmens,
+    # nicht die berichtete Quartalskennzahl aus dem Quality-Modell.
+    valuation_earnings_metric: Optional[str] = None
+    valuation_earnings_per_share: Optional[float] = None
+    valuation_earnings_period: Optional[str] = None
 
     # Transparenz
     source_name: Optional[str] = None
@@ -283,6 +290,10 @@ def load_prologis_q2_2026():
 
         net_debt_ebitda=4.7,
 
+        valuation_earnings_metric="Core FFO",
+        valuation_earnings_per_share=6.26,
+        valuation_earnings_period="FY 2026 Guidance midpoint",
+
         source_name="Prologis Q2 2026 Results",
         source_url=PROLOGIS_Q2_2026_URL,
         source_period="30.06.2026",
@@ -308,6 +319,10 @@ def load_realty_income_q2_2026():
         vacancy_pct=1.2,
 
         net_debt_ebitda=5.4,
+
+        valuation_earnings_metric="AFFO",
+        valuation_earnings_per_share=4.445,
+        valuation_earnings_period="FY 2026 Guidance midpoint",
 
         source_name="Realty Income Q2 2026 Supplemental",
         source_url=REALTY_INCOME_Q2_2026_URL,
@@ -342,6 +357,10 @@ def load_simon_q2_2026():
         coverage_ratio=4.7,
         coverage_metric="Fixed Charge Coverage",
 
+        valuation_earnings_metric="Real Estate FFO",
+        valuation_earnings_per_share=13.25,
+        valuation_earnings_period="FY 2026 Guidance midpoint",
+
         source_name="Simon Property Group Q2 2026 Results",
         source_url=SIMON_Q2_2026_URL,
         source_period="30.06.2026",
@@ -374,6 +393,10 @@ def load_american_tower_q2_2026():
         net_debt_ebitda=4.9,
         coverage_ratio=None,
         coverage_metric=None,
+
+        valuation_earnings_metric="AFFO",
+        valuation_earnings_per_share=11.085,
+        valuation_earnings_period="FY 2026 Guidance midpoint",
 
         source_name="American Tower Q2 2026 Results",
         source_url=AMERICAN_TOWER_Q2_2026_URL,

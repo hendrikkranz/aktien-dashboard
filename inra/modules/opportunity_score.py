@@ -64,6 +64,63 @@ def calculate_real_estate_nav_score(data: dict):
     )
 
 
+def calculate_real_estate_earnings_score(data: dict):
+    """
+    Bewertungs-Fallback für Immobilienunternehmen ohne belastbaren
+    EPRA NTA bzw. NAV je Aktie.
+
+    Verwendet Kurs / FY-FFO bzw. FY-AFFO auf Basis einer offiziellen
+    Unternehmens-Guidance.
+
+    Rückgabe:
+        (points, multiple, metric, earnings_per_share, period)
+
+    Maximal 30 Punkte.
+    """
+    real_estate_data = data.get("Real Estate Quality Data") or {}
+
+    price = data.get("Kurs")
+    metric = real_estate_data.get("valuation_earnings_metric")
+    earnings_per_share = real_estate_data.get(
+        "valuation_earnings_per_share"
+    )
+    period = real_estate_data.get("valuation_earnings_period")
+
+    if (
+        price is None
+        or price <= 0
+        or earnings_per_share is None
+        or earnings_per_share <= 0
+    ):
+        return None, None, metric, earnings_per_share, period
+
+    multiple = price / earnings_per_share
+
+    thresholds = [
+        (12.0, 30),
+        (15.0, 26),
+        (18.0, 21),
+        (21.0, 15),
+        (24.0, 9),
+        (28.0, 4),
+    ]
+
+    points = 0
+
+    for maximum, score in thresholds:
+        if multiple <= maximum:
+            points = score
+            break
+
+    return (
+        points,
+        multiple,
+        metric,
+        earnings_per_share,
+        period,
+    )
+
+
 def calculate_opportunity_breakdown(data: dict) -> list:
     breakdown = []
 
@@ -189,24 +246,45 @@ def calculate_opportunity_breakdown(data: dict) -> list:
             nav_per_share,
         ) = calculate_real_estate_nav_score(data)
 
-        nav_discount_pct = None
+        if nav_points is not None:
+            nav_discount_pct = None
 
-        if price_to_nav is not None:
-            nav_discount_pct = (
-                1.0 - price_to_nav
-            ) * 100
+            if price_to_nav is not None:
+                nav_discount_pct = (
+                    1.0 - price_to_nav
+                ) * 100
 
-        breakdown.append(
-            {
-                "Kriterium": "NTA/NAV-Bewertung",
-                "Punkte": nav_points,
-                "Maximum": 30,
-                "NTA/NAV-Kennzahl": nav_metric,
-                "NTA/NAV je Aktie": nav_per_share,
-                "Kurs/NTA-NAV": price_to_nav,
-                "Abschlag/Prämie %": nav_discount_pct,
-            }
-        )
+            breakdown.append(
+                {
+                    "Kriterium": "NTA/NAV-Bewertung",
+                    "Punkte": nav_points,
+                    "Maximum": 30,
+                    "NTA/NAV-Kennzahl": nav_metric,
+                    "NTA/NAV je Aktie": nav_per_share,
+                    "Kurs/NTA-NAV": price_to_nav,
+                    "Abschlag/Prämie %": nav_discount_pct,
+                }
+            )
+        else:
+            (
+                earnings_points,
+                earnings_multiple,
+                earnings_metric,
+                earnings_per_share,
+                earnings_period,
+            ) = calculate_real_estate_earnings_score(data)
+
+            breakdown.append(
+                {
+                    "Kriterium": "FFO/AFFO-Bewertung",
+                    "Punkte": earnings_points,
+                    "Maximum": 30,
+                    "Ertragskennzahl": earnings_metric,
+                    "Ertrag je Aktie": earnings_per_share,
+                    "Zeitraum": earnings_period,
+                    "Kurs/FFO-AFFO": earnings_multiple,
+                }
+            )
     else:
         breakdown.append(
             {

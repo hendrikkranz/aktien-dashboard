@@ -218,7 +218,12 @@ def _render_opportunity_breakdown(
         and fundamental_available_maximum == 45
     )
 
-    if available_maximum == 100 or technical_only_missing:
+    if (
+        available_maximum == 100
+        or technical_only_missing
+        or v3_blocks["technical_neutral"]
+        or v3_blocks["entry_neutral"]
+    ):
         expander_title = (
             f"Warum {display_base_score} von "
             f"100 Basispunkten?"
@@ -571,6 +576,30 @@ def _render_opportunity_breakdown(
                     )
                 else:
                     current_value = "Nicht bewertbar"
+
+            elif criterion == "FFO/AFFO-Bewertung":
+                price = data.get("Kurs")
+                earnings_metric = item.get("Ertragskennzahl")
+                earnings_per_share = item.get("Ertrag je Aktie")
+                earnings_period = item.get("Zeitraum")
+                earnings_multiple = item.get("Kurs/FFO-AFFO")
+
+                if (
+                    price is not None
+                    and earnings_per_share is not None
+                    and earnings_multiple is not None
+                ):
+                    current_value = (
+                        f"Kurs {_format_value(price)} · "
+                        f"{earnings_period or 'FY Guidance'} "
+                        f"{earnings_metric or 'FFO/AFFO'} je Aktie "
+                        f"{_format_value(earnings_per_share)} · "
+                        f"Kurs/{earnings_metric or 'FFO/AFFO'} "
+                        f"{earnings_multiple:.1f}x"
+                    )
+                else:
+                    current_value = "Nicht bewertbar"
+
             else:
                 current_value = values.get(
                     criterion,
@@ -582,7 +611,10 @@ def _render_opportunity_breakdown(
                 if criterion == "Forward KGV"
                 else (
                     "Immobilienbewertung"
-                    if criterion == "NTA/NAV-Bewertung"
+                    if criterion in {
+                        "NTA/NAV-Bewertung",
+                        "FFO/AFFO-Bewertung",
+                    }
                     else "Aktueller Wert"
                 )
             )
@@ -620,6 +652,15 @@ def _render_opportunity_breakdown(
                         f"Der Aktienkurs liegt ungefähr auf Höhe des "
                         f"{nav_metric or 'NTA/NAV'} je Aktie."
                     )
+
+            if (
+                criterion == "FFO/AFFO-Bewertung"
+                and earnings_multiple is not None
+            ):
+                st.caption(
+                    "Bewertungsbasis: offizielle "
+                    "FY-2026-Unternehmensguidance."
+                )
 
             if (
                 criterion == "Forward KGV"
@@ -1523,7 +1564,7 @@ def render_opportunity_section(
     )
 
     if (
-        coverage < 100
+        fundamental_available_maximum < 45
         and get_pe_valuation_class(data) == "SONDERFALL"
     ):
         rating = "Bewertung als Sonderfall"
@@ -1536,7 +1577,11 @@ def render_opportunity_section(
             f"{available_maximum} statt 100 möglichen Punkten."
         )
 
-    elif coverage < 100 and not technical_only_missing:
+    elif (
+        coverage < 100
+        and not technical_only_missing
+        and not v3_blocks["entry_neutral"]
+    ):
         rating = "Eingeschränkt bewertbar"
         icon = "⚪"
         border = "#8b949e"
