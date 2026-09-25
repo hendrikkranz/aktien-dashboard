@@ -709,6 +709,7 @@ def classify_entry_setup(
     negative_signals=0,
     pullback_pct=None,
     recovery_pct=None,
+    momentum_6m=None,
     distance_to_previous_52w_high_pct=None,
     support_30w_signal=None,
     resistance_rejection=None,
@@ -1097,6 +1098,29 @@ def classify_entry_setup(
         }
 
     # 6. Obere Kanalzone.
+    #
+    # Für einen Neueinstieg wird extreme Kursbeschleunigung
+    # gesondert behandelt. Eine Aktie kann technisch weiterhin
+    # stark sein, aber nach einer Kursverdopplung innerhalb von
+    # sechs Monaten und gleichzeitig sehr hoher Position im
+    # langfristigen Trendkanal ein ungünstiges Entry-Risiko bieten.
+    extreme_overextension = (
+        current >= 1.60
+        and momentum_6m is not None
+        and momentum_6m >= 100.0
+    )
+
+    if extreme_overextension:
+        return {
+            "setup": "Extrem überdehnt – Einstieg abwarten",
+            "detail": (
+                "Sehr starke Kursbeschleunigung bei gleichzeitig "
+                "hoher Position im langfristigen Trendkanal; "
+                "für einen Neueinstieg ist das "
+                "Chance-Risiko-Verhältnis derzeit ungünstig"
+            ),
+        }
+
     # Sie ist nicht automatisch negativ: zunächst unterscheiden,
     # ob gleichzeitig das vorherige 52W-Hoch angegriffen oder
     # bereits überschritten wird.

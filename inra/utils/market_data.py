@@ -1490,6 +1490,7 @@ def load_company_snapshot(ticker: str) -> dict:
         negative_signals=entry_confirmation["negative_signals"],
         pullback_pct=momentum["Pullback %"],
         recovery_pct=momentum["Recovery %"],
+        momentum_6m=momentum["Momentum 6M"],
         distance_to_previous_52w_high_pct=momentum[
             "Abstand vorheriges 52W Hoch %"
         ],

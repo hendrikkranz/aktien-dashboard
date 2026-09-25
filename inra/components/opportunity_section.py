@@ -1662,6 +1662,34 @@ def render_opportunity_section(
 
     display_score = f"{round(buy_score)} / 100"
 
+    entry_gate_closed = (
+        data.get("Entry Setup")
+        == "Extrem überdehnt – Einstieg abwarten"
+    )
+
+    if entry_gate_closed and buy_score >= 68:
+        icon = "🟢"
+        rating = "Attraktiv – Einstieg abwarten"
+        explanation = (
+            "Die Kaufkonstellation ist insgesamt attraktiv, "
+            "der Einstieg ist wegen extremer Überdehnung derzeit "
+            "jedoch nicht freigegeben."
+        )
+
+    entry_gate_html = ""
+
+    if entry_gate_closed and buy_score >= 68:
+        entry_gate_html = """
+            <div style="
+                color:#d0d7de;
+                font-size:13px;
+                font-weight:600;
+                margin-top:5px;
+            ">
+                ⓧ Einstieg derzeit nicht freigegeben
+            </div>
+        """
+
     if (
         base_buy_score is not None
         and event_impact is not None
@@ -1747,6 +1775,7 @@ def render_opportunity_section(
             ">
                 {icon} {rating}
             </div>
+            {entry_gate_html}
         </div>
 
         <div style="

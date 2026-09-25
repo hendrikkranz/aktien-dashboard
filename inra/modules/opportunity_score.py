@@ -367,6 +367,7 @@ def calculate_entry_setup_score(data: dict):
         "Seitwärtstrend – kein Entry Setup": 9.0,
         "Median Test – schwach": 7.5,
         "Breakout – unbestätigt": 7.5,
+        "Extrem überdehnt – Einstieg abwarten": 7.5,
         "Widerstands-Anlauf – unbestätigt": 7.5,
         "Widerstands-Anlauf – schwach": 6.0,
         "Kein belastbares Entry Setup": 6.0,
