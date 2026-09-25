@@ -873,6 +873,48 @@ def classify_entry_setup(
             "detail": " · ".join(detail_parts),
         }
 
+    # Belastbarer Mehrfachwiderstand unmittelbar über dem Kurs:
+    # Auch ohne bereits bestätigte Rejection ist das Chance-Risiko-
+    # Verhältnis für einen Neueinstieg eingeschränkt. Positive
+    # Pullback-/Recovery-Signale dürfen diesen Widerstand nicht
+    # überstimmen.
+    resistance_distance = resistance_rejection.get(
+        "current_distance_pct"
+    )
+    resistance_level = resistance_rejection.get(
+        "resistance_level"
+    )
+    resistance_tests = resistance_rejection.get("tests")
+
+    resistance_overhead = (
+        resistance_rejection.get("rejection") is False
+        and resistance_tests is not None
+        and resistance_tests >= 3
+        and resistance_distance is not None
+        and -2.0 < resistance_distance <= 0.0
+    )
+
+    if resistance_overhead:
+        detail_parts = [
+            "Kurs liegt unmittelbar unter einem mehrfach "
+            "getesteten Widerstandsbereich"
+        ]
+
+        if resistance_level is not None:
+            detail_parts.append(
+                f"Widerstand bei etwa {resistance_level:.2f}"
+            )
+
+        if resistance_tests is not None:
+            detail_parts.append(
+                f"{resistance_tests} historische Tests"
+            )
+
+        return {
+            "setup": "Mehrfachwiderstand – Ausbruch abwarten",
+            "detail": " · ".join(detail_parts),
+        }
+
     # 2. Untere Kanalzone mit erkennbarer Aufwärtsreaktion.
     lower_channel_bounce = (
         recent_min <= -1.60
