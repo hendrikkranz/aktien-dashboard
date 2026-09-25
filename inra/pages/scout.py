@@ -11,6 +11,7 @@ from components.investment_decision import (
 
 from utils.data_loader import (
     add_stock_to_list,
+    remove_watchlist_stock_from_universe,
     load_benchmark_cache,
     get_benchmark_cache_timestamp,
     load_universe,
@@ -505,6 +506,73 @@ if set(selected_favorites) != set(
     )
 
     st.rerun()
+
+with st.expander("⚙️ Universum verwalten"):
+    watchlist_stocks = universe[
+        universe["Liste"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .eq("Watchlist")
+    ].copy()
+
+    if watchlist_stocks.empty:
+        st.caption(
+            "Keine ausschließlich der Watchlist zugeordneten "
+            "Aktien vorhanden."
+        )
+    else:
+        watchlist_stocks["Auswahl"] = (
+            watchlist_stocks["Name"].astype(str)
+            + " ("
+            + watchlist_stocks["Ticker"].astype(str)
+            + ")"
+        )
+
+        stock_options = dict(
+            zip(
+                watchlist_stocks["Auswahl"],
+                watchlist_stocks["Ticker"],
+            )
+        )
+
+        selected_stock = st.selectbox(
+            "Aktie auswählen",
+            options=list(stock_options),
+            key="remove_universe_stock",
+        )
+
+        confirm_remove = st.checkbox(
+            "Entfernen bestätigen",
+            key="confirm_remove_universe_stock",
+        )
+
+        if st.button(
+            "🗑 Aus Universum entfernen",
+            disabled=not confirm_remove,
+        ):
+            ticker_to_remove = stock_options[selected_stock]
+
+            if remove_watchlist_stock_from_universe(
+                ticker_to_remove
+            ):
+                st.session_state["favorite_tickers"] = [
+                    ticker
+                    for ticker in st.session_state[
+                        "favorite_tickers"
+                    ]
+                    if ticker != ticker_to_remove
+                ]
+                save_favorites(
+                    st.session_state["favorite_tickers"]
+                )
+                st.rerun()
+            else:
+                st.error(
+                    "Die Aktie konnte nicht aus dem "
+                    "Universum entfernt werden."
+                )
+
 
 st.subheader("🏆 Rankings")
 

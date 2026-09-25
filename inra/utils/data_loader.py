@@ -1,3 +1,4 @@
+import csv
 from pathlib import Path
 from typing import Optional
 
@@ -64,6 +65,74 @@ def add_stock_to_universe(
     )
 
     return True
+
+def remove_watchlist_stock_from_universe(
+    ticker: str,
+) -> bool:
+    """
+    Entfernt eine reine Watchlist-Aktie aus dem Universum.
+
+    Aktien mit weiteren Listenzuordnungen wie Benchmark oder DAX
+    werden nicht entfernt.
+    """
+    if not ticker:
+        return False
+
+    ticker = ticker.strip().upper()
+    universe = load_universe()
+
+    ticker_mask = (
+        universe["Ticker"]
+        .astype(str)
+        .str.upper()
+        .eq(ticker)
+    )
+
+    if not ticker_mask.any():
+        return False
+
+    list_value = universe.loc[
+        ticker_mask,
+        "Liste",
+    ].iloc[0]
+
+    lists = [
+        item.strip()
+        for item in (
+            ""
+            if pd.isna(list_value)
+            else str(list_value)
+        ).split(";")
+        if item.strip()
+    ]
+
+    if lists != ["Watchlist"]:
+        return False
+
+    original_lines = UNIVERSE_PATH.read_text().splitlines(
+        keepends=True
+    )
+
+    header = original_lines[0].rstrip("\r\n").split(",")
+    ticker_index = header.index("Ticker")
+
+    kept_lines = [original_lines[0]]
+
+    for line in original_lines[1:]:
+        row = next(csv.reader([line]))
+
+        if (
+            len(row) > ticker_index
+            and row[ticker_index].strip().upper() == ticker
+        ):
+            continue
+
+        kept_lines.append(line)
+
+    UNIVERSE_PATH.write_text("".join(kept_lines))
+
+    return True
+
 
 def add_stock_to_list(
     ticker: str,
