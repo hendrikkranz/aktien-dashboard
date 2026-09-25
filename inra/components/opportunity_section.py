@@ -1622,40 +1622,51 @@ def render_opportunity_section(
     margin:10px 0 22px 0;
 ">
     <div style="
-        color:#8b949e;
-        font-size:12px;
-        font-weight:700;
-        text-transform:uppercase;
-        letter-spacing:1px;
+        display:flex;
+        align-items:center;
+        gap:48px;
     ">
-        Kaufchance
-    </div>
+        <div style="
+            flex:0 0 220px;
+        ">
+            <div style="
+                color:#8b949e;
+                font-size:12px;
+                font-weight:700;
+                text-transform:uppercase;
+                letter-spacing:1px;
+            ">
+                Kaufchance
+            </div>
 
-    <div style="
-        color:white;
-        font-size:32px;
-        font-weight:700;
-        margin-top:10px;
-    ">
-        {display_score}
-    </div>
+            <div style="
+                color:white;
+                font-size:32px;
+                font-weight:700;
+                margin-top:8px;
+                line-height:1.05;
+            ">
+                {display_score}
+            </div>
 
-    <div style="
-        color:#d0d7de;
-        font-size:15px;
-        font-weight:600;
-        margin-top:5px;
-    ">
-        {icon} {rating}
-    </div>
+            <div style="
+                color:#d0d7de;
+                font-size:15px;
+                font-weight:600;
+                margin-top:5px;
+            ">
+                {icon} {rating}
+            </div>
+        </div>
 
-    <div style="
-        color:#c9d1d9;
-        font-size:15px;
-        line-height:1.55;
-        margin-top:14px;
-    ">
-        {explanation}
+        <div style="
+            color:#c9d1d9;
+            font-size:15px;
+            line-height:1.55;
+            flex:1;
+        ">
+            {explanation}
+        </div>
     </div>
 
     {overlay_html}

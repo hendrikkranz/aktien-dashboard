@@ -108,41 +108,84 @@ def render_dividend_section(data: dict) -> None:
     margin:10px 0 22px 0;
 ">
     <div style="
-        color:#8b949e;
-        font-size:12px;
-        font-weight:700;
-        text-transform:uppercase;
-        letter-spacing:1px;
+        display:flex;
+        align-items:center;
+        gap:48px;
     ">
-        Dividendenstrategie
-    </div>
+        <div style="
+            flex:0 0 220px;
+        ">
+            <div style="
+                color:#8b949e;
+                font-size:12px;
+                font-weight:700;
+                text-transform:uppercase;
+                letter-spacing:1px;
+            ">
+                Dividendenstrategie
+            </div>
 
-    <div style="
-        color:white;
-        font-size:32px;
-        font-weight:700;
-        margin-top:10px;
-    ">
-        {display_score}
-    </div>
+            <div style="
+                color:white;
+                font-size:32px;
+                font-weight:700;
+                margin-top:8px;
+                line-height:1.05;
+            ">
+                {display_score}
+            </div>
 
-    <div style="
-        color:#d0d7de;
-        font-size:15px;
-        font-weight:600;
-        margin-top:5px;
-    ">
-        {icon} {rating}{high_yield_icon}
-    </div>
+            <div style="
+                color:#d0d7de;
+                font-size:15px;
+                font-weight:600;
+                margin-top:5px;
+            ">
+                {icon} {rating}{high_yield_icon}
+            </div>
+        </div>
 
-    <div style="
-        color:#c9d1d9;
-        font-size:15px;
-        line-height:1.55;
-        margin-top:14px;
-        max-width:1000px;
-    ">
-        {summary}
+        <div style="
+            color:#c9d1d9;
+            font-size:15px;
+            line-height:1.55;
+            flex:1;
+        ">
+            {summary}
+        </div>
+
+        <div style="
+            width:66px;
+            height:66px;
+            box-sizing:border-box;
+            border:1px solid #0d1117;
+            border-radius:50%;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            flex:0 0 66px;
+        ">
+            <div style="
+                color:white;
+                font-size:17px;
+                font-weight:700;
+                line-height:1.05;
+            ">
+                {value}
+            </div>
+            <div style="
+                color:#8b949e;
+                font-size:8px;
+                font-weight:700;
+                margin-top:4px;
+                letter-spacing:0.4px;
+                text-transform:uppercase;
+                white-space:nowrap;
+            ">
+                Div.-Rendite
+            </div>
+        </div>
     </div>
 </div>
 """
