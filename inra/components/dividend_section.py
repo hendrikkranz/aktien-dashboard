@@ -158,7 +158,7 @@ def render_dividend_section(data: dict) -> None:
             width:66px;
             height:66px;
             box-sizing:border-box;
-            border:1px solid #0d1117;
+            border:1px solid #ffffff;
             border-radius:50%;
             display:flex;
             flex-direction:column;
