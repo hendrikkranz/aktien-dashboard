@@ -474,6 +474,8 @@ def load_primary_health_properties_h1_2026():
         coverage_ratio=2.6,
         coverage_metric="Interest Cover Ratio",
 
+        epra_nta_per_share=99.0,
+
         source_name=(
             "Primary Health Properties H1 2026 "
             "Interim Presentation"
