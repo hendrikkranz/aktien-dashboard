@@ -1147,7 +1147,7 @@ def _render_opportunity_breakdown(
             )
 
 
-def _render_current_intelligence(data: dict) -> None:
+def _render_current_intelligence_details(data: dict) -> None:
     ticker = data.get("Ticker")
     company_name = (
         data.get("Name")
@@ -1442,6 +1442,51 @@ def _render_current_intelligence(data: dict) -> None:
             update_stock_in_benchmark_cache(ticker)
             del st.session_state[preview_key]
             st.rerun()
+
+
+def _render_current_intelligence(data: dict) -> None:
+    ticker = data.get("Ticker")
+    saved_result = get_current_intelligence(ticker)
+
+    event_impact = data.get("Event Impact")
+
+    if saved_result:
+        if event_impact is None:
+            event_impact = 0
+
+        if event_impact > 0:
+            impact_label = f"+{event_impact}"
+        else:
+            impact_label = str(event_impact)
+
+        expander_title = (
+            f"Warum Event Impact = {impact_label}?"
+        )
+    else:
+        expander_title = (
+            "Warum Event Impact? · noch nicht analysiert"
+        )
+
+    st.markdown(
+        """
+        <div style="
+            color:#8b949e;
+            font-size:20px;
+            font-weight:600;
+            line-height:1;
+            margin:-7px 0 -15px 105px;
+            position:relative;
+            z-index:2;
+            pointer-events:none;
+        ">
+            +
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.expander(expander_title):
+        _render_current_intelligence_details(data)
 
 
 def render_opportunity_section(
