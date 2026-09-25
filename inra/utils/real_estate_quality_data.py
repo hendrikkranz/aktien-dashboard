@@ -80,6 +80,10 @@ REAL_ESTATE_TEST_UNIVERSE = {
         "company_name": "TAG Immobilien",
         "real_estate_type": "Residential",
     },
+    "PHP.L": {
+        "company_name": "Primary Health Properties",
+        "real_estate_type": "Healthcare REIT",
+    },
 }
 
 
@@ -157,6 +161,12 @@ def validate_real_estate_quality_data(data):
         )
 
     return errors
+
+
+PRIMARY_HEALTH_PROPERTIES_H1_2026_URL = (
+    "https://www.phpgroup.co.uk/media/3n2bsnps/"
+    "php-jun26-interim-presentation.pdf"
+)
 
 
 VONOVIA_H1_2026_URL = (
@@ -422,6 +432,57 @@ def load_tag_h1_2026():
     )
 
 
+def load_primary_health_properties_h1_2026():
+    """
+    Primary Health Properties H1 2026.
+
+    Verwendet ausschließlich offiziell von PHP veröffentlichte
+    Immobilien- und Finanzierungskennzahlen.
+
+    Adjusted EPS Growth:
+        Operative Ertragsentwicklung auf Basis des Adjusted EPS.
+
+    LFL Rental Growth:
+        Annualisiertes Like-for-like-Mietwachstum des Portfolios.
+
+    Occupancy:
+        Vermietungsquote des Immobilienportfolios.
+
+    Finanzierung:
+        LTV und Interest Cover bilden Verschuldung und
+        Schuldentragfähigkeit getrennt ab.
+    """
+    return RealEstateQualityData(
+        ticker="PHP.L",
+        company_name="Primary Health Properties",
+        real_estate_type="Healthcare REIT",
+
+        earnings_metric="Adjusted EPS",
+        earnings_growth_pct=9.0,
+        earnings_period="H1 2026",
+
+        portfolio_growth_metric=(
+            "Like-for-like Rental Growth, annualisiert"
+        ),
+        portfolio_growth_pct=3.2,
+
+        stability_metric="Occupancy",
+        occupancy_pct=99.0,
+        vacancy_pct=1.0,
+
+        ltv_pct=57.0,
+        coverage_ratio=2.6,
+        coverage_metric="Interest Cover Ratio",
+
+        source_name=(
+            "Primary Health Properties H1 2026 "
+            "Interim Presentation"
+        ),
+        source_url=PRIMARY_HEALTH_PROPERTIES_H1_2026_URL,
+        source_period="30.06.2026",
+    )
+
+
 REAL_ESTATE_DATA_LOADERS = {
     "VNA.DE": load_vonovia_h1_2026,
     "PLD": load_prologis_q2_2026,
@@ -429,6 +490,7 @@ REAL_ESTATE_DATA_LOADERS = {
     "SPG": load_simon_q2_2026,
     "AMT": load_american_tower_q2_2026,
     "TEG.DE": load_tag_h1_2026,
+    "PHP.L": load_primary_health_properties_h1_2026,
 }
 
 

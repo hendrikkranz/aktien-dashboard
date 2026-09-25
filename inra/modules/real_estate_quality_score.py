@@ -142,7 +142,8 @@ def calculate_ltv_score(ltv_pct):
             (40.0, 14),
             (45.0, 11),
             (50.0, 7),
-            (55.0, 3),
+            (55.0, 4),
+            (60.0, 2),
         ],
     )
 
@@ -278,12 +279,36 @@ def calculate_financing_quality_score(
 
     coverage_score = calculate_coverage_score(coverage)
 
-    score, available_maximum = _normalize_block(
-        [
-            (leverage_score, 18),
-            (coverage_score, 12),
-        ]
-    )
+    # Sobald mindestens eine Finanzierungsdimension belastbar
+    # verfügbar ist, wird der gesamte 30-Punkte-Block bewertet.
+    # Die jeweils fehlende Dimension wird neutral mit 50 % ihres
+    # Maximalwerts angesetzt. Dadurch verändert fehlende Information
+    # nicht mehr implizit die Gewichtung der vorhandenen Kennzahl.
+    if leverage_score is None and coverage_score is None:
+        score = None
+        available_maximum = 0
+        leverage_neutral = False
+        coverage_neutral = False
+    else:
+        leverage_neutral = leverage_score is None
+        coverage_neutral = coverage_score is None
+
+        effective_leverage_score = (
+            9
+            if leverage_neutral
+            else leverage_score
+        )
+        effective_coverage_score = (
+            6
+            if coverage_neutral
+            else coverage_score
+        )
+
+        score = (
+            effective_leverage_score
+            + effective_coverage_score
+        )
+        available_maximum = 30
 
     return {
         "score": score,
@@ -291,6 +316,8 @@ def calculate_financing_quality_score(
         "leverage_score": leverage_score,
         "leverage_source": leverage_source,
         "coverage_score": coverage_score,
+        "leverage_neutral": leverage_neutral,
+        "coverage_neutral": coverage_neutral,
     }
 
 
