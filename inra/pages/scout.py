@@ -4,6 +4,7 @@ from pathlib import Path
 
 import streamlit as st
 import plotly.express as px
+import pandas as pd
 
 from components.investment_decision import (
     get_investment_decision_color,
@@ -208,7 +209,132 @@ with st.container(border=True):
         value=False,
     )
 
+    selected_strategy = st.session_state.get(
+        "scout_strategy",
+        "Keine Strategie",
+    )
+
     filtered_universe = universe.copy()
+
+    if selected_strategy == "Value + Dividende + Trend":
+        forward_pe = pd.to_numeric(
+            filtered_universe["Forward KGV"],
+            errors="coerce",
+        )
+        dividend_yield = pd.to_numeric(
+            filtered_universe["Dividendenrendite"],
+            errors="coerce",
+        )
+        momentum_6m = pd.to_numeric(
+            filtered_universe["Momentum 6M"],
+            errors="coerce",
+        )
+
+        filtered_universe = filtered_universe[
+            (forward_pe <= 15)
+            & (dividend_yield >= 3)
+            & (
+                filtered_universe["Langfristiger Trend"]
+                == "Aufwärtstrend"
+            )
+            & (momentum_6m > 0)
+        ]
+
+    elif selected_strategy == "Quality zu fairem Preis":
+        quality = pd.to_numeric(
+            filtered_universe["Unternehmensqualität"],
+            errors="coerce",
+        )
+        forward_pe = pd.to_numeric(
+            filtered_universe["Forward KGV"],
+            errors="coerce",
+        )
+        revenue_growth = pd.to_numeric(
+            filtered_universe["Umsatzwachstum Median 3J"],
+            errors="coerce",
+        )
+        earnings_growth = pd.to_numeric(
+            filtered_universe["Gewinnwachstum Median 3J"],
+            errors="coerce",
+        )
+
+        fundamental_growth = (
+            revenue_growth.clip(upper=30)
+            + earnings_growth.clip(upper=30)
+        ) / 2
+
+        max_forward_pe = fundamental_growth.clip(
+            lower=15,
+            upper=30,
+        )
+
+        filtered_universe = filtered_universe[
+            (quality >= 75)
+            & (revenue_growth > 0)
+            & (earnings_growth > 0)
+            & (forward_pe <= max_forward_pe)
+        ]
+
+    elif selected_strategy == "Growth + Momentum":
+        revenue_growth = pd.to_numeric(
+            filtered_universe["Umsatzwachstum Median 3J"],
+            errors="coerce",
+        )
+        earnings_growth = pd.to_numeric(
+            filtered_universe["Gewinnwachstum Median 3J"],
+            errors="coerce",
+        )
+        positive_revenue_years = pd.to_numeric(
+            filtered_universe["Positive Umsatzjahre"],
+            errors="coerce",
+        )
+        positive_income_years = pd.to_numeric(
+            filtered_universe["Positive Gewinnjahre"],
+            errors="coerce",
+        )
+        momentum_6m = pd.to_numeric(
+            filtered_universe["Momentum 6M"],
+            errors="coerce",
+        )
+
+        filtered_universe = filtered_universe[
+            (revenue_growth >= 10)
+            & (earnings_growth >= 10)
+            & (positive_revenue_years >= 2)
+            & (positive_income_years >= 2)
+            & (
+                filtered_universe["Langfristiger Trend"]
+                == "Aufwärtstrend"
+            )
+            & (momentum_6m > 0)
+        ]
+
+    elif selected_strategy == "Dividendenqualität":
+        dividend_yield = pd.to_numeric(
+            filtered_universe["Dividendenrendite"],
+            errors="coerce",
+        )
+        dividend_score = pd.to_numeric(
+            filtered_universe["Dividendenstrategie Score"],
+            errors="coerce",
+        )
+        dividend_continuity = pd.to_numeric(
+            filtered_universe["Dividendenkontinuität Jahre"],
+            errors="coerce",
+        )
+        no_dividend_cut = (
+            filtered_universe["Dividendenkürzung letzte 3J"]
+            .astype(str)
+            .str.lower()
+            .eq("false")
+        )
+
+        filtered_universe = filtered_universe[
+            (dividend_yield >= 2)
+            & (dividend_score >= 12)
+            & (dividend_continuity >= 3)
+            & no_dividend_cut
+        ]
 
     if search:
         filtered_universe = filtered_universe[
@@ -572,6 +698,74 @@ with st.expander("⚙️ Universum verwalten"):
                     "Die Aktie konnte nicht aus dem "
                     "Universum entfernt werden."
                 )
+
+
+with st.container(border=True):
+    strategy_title_col, strategy_info_col = st.columns(
+        [0.94, 0.06],
+        vertical_alignment="center",
+    )
+
+    with strategy_title_col:
+        st.subheader("🎯 Strategien-Filter")
+
+    with strategy_info_col:
+        with st.popover("ⓘ"):
+            st.markdown(
+                """
+Strategien durchsuchen das aktuelle Scout-Universum nach festen InRA-Kriterien.
+Ein Treffer ist ein Screening-Ergebnis, keine automatisch positive
+Gesamtbewertung der Aktie.
+
+<u>Value + Dividende + Trend</u>
+- Forward-KGV ≤ 15
+- Dividendenrendite ≥ 3 %
+- langfristiger Aufwärtstrend
+- 6M-Momentum > 0 %
+
+<u>Quality zu fairem Preis</u>
+- Unternehmensqualität ≥ 75
+- positives 3J-Umsatz- und Gewinnwachstum
+- zulässiges Forward-KGV abhängig vom Fundamentalwachstum: 15 bis 30
+- Wachstum wird für diese Berechnung jeweils bei 30 % gedeckelt
+
+<u>Growth + Momentum</u>
+- 3J-Umsatzwachstum ≥ 10 %
+- 3J-Gewinnwachstum ≥ 10 %
+- mindestens 2 von 3 positiven Umsatzjahren
+- mindestens 2 von 3 positiven Gewinnjahren
+- langfristiger Aufwärtstrend
+- 6M-Momentum > 0 %
+
+<u>Dividendenqualität</u>
+- Dividendenrendite ≥ 2 %
+- Dividendenstrategie-Score ≥ 12
+- mindestens 3 Jahre Dividendenkontinuität
+- keine Dividendenkürzung in den letzten 3 Jahren
+
+Die Strategie lässt sich zusätzlich mit Land, Sektor, Branche,
+Liste und Favoriten kombinieren.
+                """,
+                unsafe_allow_html=True,
+            )
+
+    strategy_options = [
+        "Keine Strategie",
+        "Value + Dividende + Trend",
+        "Quality zu fairem Preis",
+        "Growth + Momentum",
+        "Dividendenqualität",
+    ]
+
+    st.selectbox(
+        "Strategie",
+        options=strategy_options,
+        key="scout_strategy",
+        help=(
+            "Wählt einen vordefinierten InRA-Screeningfilter. "
+            "Die normalen Scout-Filter bleiben zusätzlich aktiv."
+        ),
+    )
 
 
 st.subheader("🏆 Rankings")
