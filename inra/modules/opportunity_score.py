@@ -357,6 +357,7 @@ def calculate_entry_setup_score(data: dict):
         "Untere Kanalhälfte – unbestätigt": 18.0,
         "Median Test – unbestätigt": 16.5,
         "Neutral": 15.0,
+        "Obere Kanalhälfte": 13.5,
         "Median Reclaim – vorsichtig": 13.5,
         "Obere Kanalzone": 12.0,
         "Mehrfachwiderstand – Ausbruch abwarten": 18.0,
