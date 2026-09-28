@@ -92,13 +92,30 @@ def update_real_estate_benchmark() -> None:
     )
 
 
-def update_benchmark() -> None:
+def update_benchmark(progress_callback=None) -> None:
     universe = load_universe()
 
     results = []
+    total = len(universe)
 
-    for _, row in universe.iterrows():
+    for index, (_, row) in enumerate(
+        universe.iterrows(),
+        start=1,
+    ):
         ticker = row["Ticker"]
+        name = row.get("Name")
+
+        display_name = (
+            f"{name} ({ticker})"
+            if pd.notna(name) and str(name).strip()
+            else ticker
+        )
+
+        if progress_callback is not None:
+            progress_callback(
+                (index - 1) / total,
+                f"{display_name} wird aktualisiert …",
+            )
 
         print(f"Lade {ticker}...")
 
@@ -116,6 +133,12 @@ def update_benchmark() -> None:
         OUTPUT_PATH,
         index=False,
     )
+
+    if progress_callback is not None:
+        progress_callback(
+            1.0,
+            "Scout-Daten wurden aktualisiert.",
+        )
 
 if __name__ == "__main__":
     update_benchmark()

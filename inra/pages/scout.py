@@ -96,7 +96,21 @@ if cache_timestamp is not None:
     )
     
     if st.button("Scout-Daten aktualisieren"):
-        update_benchmark()
+        progress_bar = st.progress(
+            0,
+            text="Scout-Daten werden aktualisiert …",
+        )
+
+        def update_scout_progress(progress, label):
+            percent = round(progress * 100)
+            progress_bar.progress(
+                percent,
+                text=f"{percent} % · {label}",
+            )
+
+        update_benchmark(
+            progress_callback=update_scout_progress,
+        )
         st.rerun()
 
     if st.button("Immobilien-Daten aktualisieren"):
