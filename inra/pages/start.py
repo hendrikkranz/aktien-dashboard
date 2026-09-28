@@ -1157,8 +1157,21 @@ if st.button(
     ),
 ):
     try:
-        with st.spinner("Marktlage wird aktualisiert ..."):
-            snapshot = save_market_risk_snapshot()
+        progress_bar = st.progress(
+            0,
+            text="Marktlage wird aktualisiert ...",
+        )
+
+        def update_market_progress(progress, label):
+            percent = round(progress * 100)
+            progress_bar.progress(
+                percent,
+                text=f"{percent} % · {label}",
+            )
+
+        snapshot = save_market_risk_snapshot(
+            progress_callback=update_market_progress,
+        )
 
         st.success("Marktlage wurde aktualisiert.")
     except Exception as exc:

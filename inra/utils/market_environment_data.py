@@ -2757,7 +2757,9 @@ def build_under_the_radar_snapshot() -> Dict[str, object]:
     return result
 
 
-def build_market_risk_snapshot() -> Dict[str, object]:
+def build_market_risk_snapshot(
+    progress_callback=None,
+) -> Dict[str, object]:
     """
     Baut den vollständigen aktuellen InRA Market Risk Snapshot V0.1.
 
@@ -2772,24 +2774,56 @@ def build_market_risk_snapshot() -> Dict[str, object]:
         get_market_risk_label,
     )
 
-    components = {
-        "market_trend": build_market_trend_component(),
-        "credit_stress": build_credit_stress_component(),
-        "volatility_stress": build_volatility_stress_component(),
-
-        "market_breadth": build_market_breadth_component(),
-
-        "global_liquidity": build_global_liquidity_component(),
-        "yield_curve": build_yield_curve_component(),
-        "oecd_cli": build_oecd_cli_component(),
-        "broad_dollar": build_broad_dollar_component(),
-        "inflation_trend": build_inflation_trend_component(),
-        "initial_jobless_claims": (
-            build_initial_jobless_claims_component()
+    component_builders = [
+        ("market_trend", build_market_trend_component, "Markttrend"),
+        ("credit_stress", build_credit_stress_component, "Credit-Stress"),
+        (
+            "volatility_stress",
+            build_volatility_stress_component,
+            "Volatilität",
         ),
+        ("market_breadth", build_market_breadth_component, "Marktbreite"),
+        (
+            "global_liquidity",
+            build_global_liquidity_component,
+            "Globale Liquidität",
+        ),
+        ("yield_curve", build_yield_curve_component, "Zinskurve"),
+        ("oecd_cli", build_oecd_cli_component, "OECD-Frühindikator"),
+        ("broad_dollar", build_broad_dollar_component, "US-Dollar"),
+        (
+            "inflation_trend",
+            build_inflation_trend_component,
+            "Inflation",
+        ),
+        (
+            "initial_jobless_claims",
+            build_initial_jobless_claims_component,
+            "US-Erstanträge",
+        ),
+        ("valuation", build_global_cape_component, "Bewertung"),
+    ]
 
-        "valuation": build_global_cape_component(),
-    }
+    components = {}
+    total = len(component_builders)
+
+    for index, (name, builder, label) in enumerate(
+        component_builders,
+        start=1,
+    ):
+        if progress_callback is not None:
+            progress_callback(
+                (index - 1) / total * 0.95,
+                f"{label} wird geladen …",
+            )
+
+        components[name] = builder()
+
+    if progress_callback is not None:
+        progress_callback(
+            0.95,
+            "Market-Risk-Score wird berechnet …",
+        )
 
     component_scores = {
         name: (
@@ -2980,6 +3014,7 @@ def save_market_risk_history(
 
 def save_market_risk_snapshot(
     path="data/market_risk/latest_snapshot.json",
+    progress_callback=None,
 ):
     """
     Berechnet den aktuellen Market-Risk-Snapshot und speichert
@@ -2991,7 +3026,9 @@ def save_market_risk_snapshot(
 
     from datetime import datetime
 
-    snapshot = build_market_risk_snapshot()
+    snapshot = build_market_risk_snapshot(
+        progress_callback=progress_callback,
+    )
     snapshot["generated_at"] = datetime.now().astimezone().isoformat(
         timespec="seconds"
     )
@@ -3013,6 +3050,12 @@ def save_market_risk_snapshot(
         ),
         encoding="utf-8",
     )
+
+    if progress_callback is not None:
+        progress_callback(
+            1.0,
+            "Datenstand gespeichert",
+        )
 
     return snapshot
 
