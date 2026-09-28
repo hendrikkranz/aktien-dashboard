@@ -28,7 +28,10 @@ def _is_manual_data_stale(
 
 import streamlit as st
 
-from utils.market_data import save_manual_override
+from utils.market_data import (
+    load_price_history,
+    save_manual_override,
+)
 from utils.data_loader import update_stock_in_benchmark_cache
 
 from utils.fundamental_interpreter import (
@@ -46,6 +49,7 @@ from modules.chart_score import (
     calculate_technical_condition_v3_breakdown,
 )
 from utils.current_intelligence import (
+    detect_significant_price_moves,
     get_current_intelligence,
     research_current_intelligence_with_gemini,
     save_current_intelligence,
@@ -1265,6 +1269,17 @@ def _render_current_intelligence_details(data: dict) -> None:
                     ),
                 }
 
+                price_history = load_price_history(
+                    ticker,
+                    period="1y",
+                )
+
+                significant_price_moves = (
+                    detect_significant_price_moves(
+                        price_history
+                    )
+                )
+
                 result = research_current_intelligence_with_gemini(
                     api_key=st.secrets["GEMINI_API_KEY"],
                     tavily_api_key=st.secrets["TAVILY_API_KEY"],
@@ -1274,6 +1289,9 @@ def _render_current_intelligence_details(data: dict) -> None:
                     industry=data.get("Branche"),
                     momentum_3m=data.get("Momentum 3M"),
                     momentum_6m=data.get("Momentum 6M"),
+                    significant_price_moves=(
+                        significant_price_moves
+                    ),
                     inra_context=inra_context,
                 )
 
@@ -1347,12 +1365,54 @@ def _render_current_intelligence_details(data: dict) -> None:
     if movement_meta:
         st.caption(" · ".join(movement_meta))
 
+    def _safe_intelligence_text(value):
+        import html
+        return html.escape(str(value))
+
+    significant_moves = (
+        result.get("Auffaellige_Handelstage") or []
+    )
+
+    if significant_moves:
+        st.markdown("##### Auffällige Handelstage")
+
+        for move in significant_moves:
+            event_date = _format_date_de(
+                move.get("Datum")
+            )
+            daily_return = move.get(
+                "Tagesrendite_Prozent"
+            )
+            title = move.get(
+                "Titel",
+                "Auffällige Kursbewegung",
+            )
+            cause = move.get(
+                "Ursache",
+                "nicht belastbar geklärt",
+            )
+
+            if isinstance(daily_return, (int, float)):
+                return_text = f"{daily_return:+.1f} %"
+            else:
+                return_text = "–"
+
+            st.markdown(
+                f'<div style="margin-bottom:4px;">'
+                f'<strong>{event_date} · {return_text}</strong>'
+                f' — {_safe_intelligence_text(title)}'
+                f'</div>'
+                f'<div style="'
+                f'font-size:0.875rem; '
+                f'color:#9ca3af; '
+                f'margin-bottom:12px;">'
+                f'{_safe_intelligence_text(cause)}'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
     positive = result.get("Positive_Entwicklungen") or []
     negative = result.get("Negative_Entwicklungen") or []
-
-    def _safe_intelligence_text(value):
-        return str(value).replace("$", r"\$")
-
 
     col_positive, col_negative = st.columns(2)
 
@@ -1365,8 +1425,21 @@ def _render_current_intelligence_details(data: dict) -> None:
             )
 
         for index, item in enumerate(positive, start=1):
+            title = item.get("Titel", "Entwicklung")
+            event_date = item.get("Datum")
+            date_html = (
+                f' <span style="color:#9ca3af; '
+                f'font-size:0.8rem; font-weight:400;">'
+                f'· {_format_date_de(event_date)}</span>'
+                if event_date
+                else ""
+            )
+
             st.markdown(
-                f"**{index}. {item.get('Titel', 'Entwicklung')}**"
+                f'<div style="font-weight:700;">'
+                f'{index}. {_safe_intelligence_text(title)}'
+                f'{date_html}</div>',
+                unsafe_allow_html=True,
             )
 
             if item.get("Beschreibung"):
@@ -1386,8 +1459,21 @@ def _render_current_intelligence_details(data: dict) -> None:
             )
 
         for index, item in enumerate(negative, start=1):
+            title = item.get("Titel", "Entwicklung")
+            event_date = item.get("Datum")
+            date_html = (
+                f' <span style="color:#9ca3af; '
+                f'font-size:0.8rem; font-weight:400;">'
+                f'· {_format_date_de(event_date)}</span>'
+                if event_date
+                else ""
+            )
+
             st.markdown(
-                f"**{index}. {item.get('Titel', 'Entwicklung')}**"
+                f'<div style="font-weight:700;">'
+                f'{index}. {_safe_intelligence_text(title)}'
+                f'{date_html}</div>',
+                unsafe_allow_html=True,
             )
 
             if item.get("Beschreibung"):

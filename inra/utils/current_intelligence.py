@@ -14,6 +14,111 @@ from google.genai import types
 ALLOWED_EVENT_IMPACTS = {-10, -5, -2, 0, 2, 5, 10}
 
 
+def detect_significant_price_moves(
+    price_history,
+    lookback_days: int = 90,
+    volatility_window: int = 60,
+    min_abs_return_pct: float = 3.0,
+    min_volatility_multiple: float = 2.5,
+) -> list:
+    """Erkennt ungewöhnlich starke einzelne Handelstage.
+
+    Die Funktion liefert ausschließlich Recherche-Trigger.
+    Sie leitet aus einer Kursbewegung keine Ursache ab.
+    """
+    if (
+        price_history is None
+        or price_history.empty
+        or "Schlusskurs" not in price_history.columns
+        or "Datum" not in price_history.columns
+    ):
+        return []
+
+    history = price_history[
+        ["Datum", "Schlusskurs"]
+    ].copy()
+
+    history["Datum"] = __import__("pandas").to_datetime(
+        history["Datum"],
+        errors="coerce",
+        utc=True,
+    )
+
+    history["Schlusskurs"] = __import__("pandas").to_numeric(
+        history["Schlusskurs"],
+        errors="coerce",
+    )
+
+    history = (
+        history
+        .dropna(subset=["Datum", "Schlusskurs"])
+        .sort_values("Datum")
+    )
+
+    if len(history) < 31:
+        return []
+
+    history["Tagesrendite"] = (
+        history["Schlusskurs"].pct_change() * 100
+    )
+
+    history["Volatilität"] = (
+        history["Tagesrendite"]
+        .shift(1)
+        .rolling(
+            volatility_window,
+            min_periods=30,
+        )
+        .std()
+    )
+
+    latest_date = history["Datum"].max()
+    cutoff = latest_date - __import__("pandas").Timedelta(
+        days=lookback_days
+    )
+
+    recent = history[
+        history["Datum"] >= cutoff
+    ].copy()
+
+    recent["Vielfaches"] = (
+        recent["Tagesrendite"].abs()
+        / recent["Volatilität"]
+    )
+
+    hits = recent[
+        (recent["Tagesrendite"].abs() >= min_abs_return_pct)
+        & (
+            recent["Vielfaches"]
+            >= min_volatility_multiple
+        )
+    ].copy()
+
+    hits = hits.sort_values(
+        "Vielfaches",
+        ascending=False,
+    )
+
+    return [
+        {
+            "Datum": row["Datum"].date().isoformat(),
+            "Tagesrendite Prozent": round(
+                float(row["Tagesrendite"]),
+                2,
+            ),
+            "Vorherige Volatilität Prozent": round(
+                float(row["Volatilität"]),
+                2,
+            ),
+            "Volatilitätsvielfaches": round(
+                float(row["Vielfaches"]),
+                2,
+            ),
+        }
+        for _, row in hits.iterrows()
+    ]
+
+
 def build_current_intelligence_prompt(
     ticker: str,
     company_name: str,
@@ -137,6 +242,17 @@ Weitere Regeln:
 
 - Reine Kursbewegungen sind kein eigener positiver oder negativer Event.
 - Mehrere Artikel über dasselbe Ereignis zählen als ein Ereignis.
+- Nenne bei konkreten Unternehmensereignissen nach Möglichkeit das
+  genaue Datum (YYYY-MM-DD), sofern es aus den Quellen hervorgeht.
+- Bei Quartalszahlen, Guidance-Updates, Investor Days, Übernahmen,
+  regulatorischen Entscheidungen und vergleichbaren Ereignissen ist
+  das Veröffentlichungs- bzw. Ereignisdatum wichtiger als nur eine
+  Periodenangabe wie "Q2 2026".
+- Wenn InRA auffällige Handelstage gezielt recherchieren lässt, ordne
+  jeden dieser Tage separat ein. Nenne Datum und Tagesrendite und
+  erkläre die Ursache nur, wenn sie durch das Research-Paket belastbar
+  gestützt wird. Andernfalls schreibe ausdrücklich
+  "nicht belastbar geklärt".
 - Behaupte keine Ursache für eine Kursbewegung, wenn sie nicht
   ausreichend durch die Recherche gestützt wird.
 - Wiederhole keine allgemeinen Kennzahlen, die eine normale
@@ -225,6 +341,16 @@ Antworte ausschließlich als gültiges JSON-Objekt in genau dieser Struktur:
     "Sicherheit": "hoch|mittel|niedrig",
       "Quellen_IDs": ["Q1", "Q2"]
   }},
+  "Auffaellige_Handelstage": [
+    {{
+      "Datum": "YYYY-MM-DD",
+      "Tagesrendite_Prozent": -4.81,
+      "Titel": "kurze Bezeichnung des Kursereignisses",
+      "Ursache": "konkret recherchierte Ursache oder nicht belastbar geklärt",
+      "Sicherheit": "hoch|mittel|niedrig",
+      "Quellen_IDs": ["Q1", "Q2"]
+    }}
+  ],
   "Positive_Entwicklungen": [
     {{
       "Datum": "YYYY-MM-DD oder null",
@@ -429,6 +555,7 @@ def _classify_source(
 def _build_tavily_queries(
     ticker: str,
     company_name: str,
+    significant_price_moves: Optional[list] = None,
 ) -> list:
     current_query = (
         f'"{company_name}" {ticker} '
@@ -449,7 +576,7 @@ def _build_tavily_queries(
         "political regulatory legal government"
     )
 
-    return [
+    queries = [
         {
             "Bereich": "Aktuell/operativ",
             "Query": current_query,
@@ -466,6 +593,54 @@ def _build_tavily_queries(
         },
     ]
 
+    for move in significant_price_moves or []:
+        event_date = move.get("Datum")
+        daily_return = move.get(
+            "Tagesrendite Prozent"
+        )
+
+        if not event_date or daily_return is None:
+            continue
+
+        direction = (
+            "drop decline fell"
+            if daily_return < 0
+            else "jump rise gained"
+        )
+
+        event_query = (
+            f'"{company_name}" {ticker} '
+            f'"{event_date}" stock shares '
+            f"{direction} news reason"
+        )
+
+        event_day = date.fromisoformat(event_date)
+
+        start_date = (
+            event_day
+            - __import__("datetime").timedelta(days=1)
+        ).isoformat()
+
+        end_date = (
+            event_day
+            + __import__("datetime").timedelta(days=2)
+        ).isoformat()
+
+        queries.append(
+            {
+                "Bereich": (
+                    f"Kursereignis {event_date}"
+                ),
+                "Query": event_query,
+                "Topic": "news",
+                "StartDate": start_date,
+                "EndDate": end_date,
+                "Kursereignis": move,
+            }
+        )
+
+    return queries
+
 
 def _run_tavily_search(
     api_key: str,
@@ -473,6 +648,8 @@ def _run_tavily_search(
     max_results: int,
     topic: Optional[str] = None,
     time_range: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
 ) -> list:
     payload = {
         "query": query,
@@ -487,6 +664,12 @@ def _run_tavily_search(
 
     if time_range:
         payload["time_range"] = time_range
+
+    if start_date:
+        payload["start_date"] = start_date
+
+    if end_date:
+        payload["end_date"] = end_date
 
     request = urllib.request.Request(
         "https://api.tavily.com/search",
@@ -511,11 +694,13 @@ def _search_current_intelligence_with_tavily(
     api_key: str,
     ticker: str,
     company_name: str,
+    significant_price_moves: Optional[list] = None,
     max_results_per_query: int = 8,
 ) -> dict:
     queries = _build_tavily_queries(
         ticker=ticker,
         company_name=company_name,
+        significant_price_moves=significant_price_moves,
     )
 
     sources = []
@@ -532,6 +717,8 @@ def _search_current_intelligence_with_tavily(
             max_results=max_results_per_query,
             topic=query_info.get("Topic"),
             time_range=query_info.get("TimeRange"),
+            start_date=query_info.get("StartDate"),
+            end_date=query_info.get("EndDate"),
         )
 
         for item in results:
@@ -597,6 +784,115 @@ def _search_current_intelligence_with_tavily(
             research_parts
         ),
     }
+
+
+def _merge_significant_price_moves(
+    significant_price_moves,
+    researched_moves,
+    sources: Optional[list] = None,
+) -> list:
+    """Verbindet deterministische InRA-Kursdaten mit KI-Recherche."""
+
+    researched_by_date = {}
+
+    source_by_id = {
+        source.get("ID"): source
+        for source in sources or []
+        if isinstance(source, dict)
+        and source.get("ID")
+    }
+
+    if isinstance(researched_moves, list):
+        for item in researched_moves:
+            if not isinstance(item, dict):
+                continue
+
+            event_date = str(
+                item.get("Datum") or ""
+            ).strip()
+
+            if event_date:
+                researched_by_date[event_date] = item
+
+    result = []
+
+    for move in significant_price_moves or []:
+        if not isinstance(move, dict):
+            continue
+
+        event_date = str(
+            move.get("Datum") or ""
+        ).strip()
+
+        if not event_date:
+            continue
+
+        researched = researched_by_date.get(
+            event_date,
+            {},
+        )
+
+        cause = str(
+            researched.get("Ursache") or ""
+        ).strip()
+
+        if not cause:
+            cause = "nicht belastbar geklärt"
+
+        title = str(
+            researched.get("Titel") or ""
+        ).strip()
+
+        if not title:
+            title = "Auffällige Kursbewegung"
+
+        confidence = str(
+            researched.get("Sicherheit") or ""
+        ).strip().lower()
+
+        if confidence not in {
+            "hoch",
+            "mittel",
+            "niedrig",
+        }:
+            confidence = "niedrig"
+
+        expected_area = (
+            f"Kursereignis {event_date}"
+        )
+
+        source_ids = [
+            source_id
+            for source_id in _normalize_source_ids(
+                researched.get("Quellen_IDs")
+            )
+            if source_id in source_by_id
+            and source_by_id[source_id].get("Verwendbar")
+            and source_by_id[source_id].get("Bereich")
+            == expected_area
+        ]
+
+        if not source_ids:
+            cause = "nicht belastbar geklärt"
+            confidence = "niedrig"
+
+        result.append(
+            {
+                "Datum": event_date,
+                "Tagesrendite_Prozent": move.get(
+                    "Tagesrendite Prozent"
+                ),
+                "Volatilitaetsvielfaches": move.get(
+                    "Volatilitätsvielfaches"
+                ),
+                "Titel": title,
+                "Ursache": cause,
+                "Sicherheit": confidence,
+                "Quellen_IDs": source_ids,
+            }
+        )
+
+    return result
 
 
 def _validate_event_impact(value) -> int:
@@ -933,6 +1229,7 @@ def research_current_intelligence_with_gemini(
     momentum_1m: Optional[float] = None,
     momentum_3m: Optional[float] = None,
     momentum_6m: Optional[float] = None,
+    significant_price_moves: Optional[list] = None,
     inra_context: Optional[dict] = None,
     model: str = "gemini-3.6-flash",
 ) -> dict:
@@ -951,6 +1248,7 @@ def research_current_intelligence_with_gemini(
             api_key=tavily_api_key,
             ticker=ticker,
             company_name=company_name,
+            significant_price_moves=significant_price_moves,
         )
     )
 
@@ -991,6 +1289,14 @@ def research_current_intelligence_with_gemini(
         socket.getaddrinfo = original_getaddrinfo
 
     result = _parse_json_response(response.text)
+
+    result["Auffaellige_Handelstage"] = (
+        _merge_significant_price_moves(
+            significant_price_moves,
+            result.get("Auffaellige_Handelstage"),
+            tavily_research["sources"],
+        )
+    )
 
     result["Event_Impact_Vorschlag"] = (
         _validate_event_impact(
