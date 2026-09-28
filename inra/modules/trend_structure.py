@@ -1206,6 +1206,16 @@ def classify_entry_setup(
             ),
         }
 
+    if current >= 0.75:
+        return {
+            "setup": "Obere Kanalhälfte",
+            "detail": (
+                "Kurs liegt oberhalb der langfristigen "
+                "Trendmittellinie bereits in der oberen "
+                "Kanalhälfte"
+            ),
+        }
+
     return {
         "setup": "Neutral",
         "detail": (
