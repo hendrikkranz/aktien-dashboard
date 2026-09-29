@@ -8,6 +8,7 @@ Er verwendet ausschließlich bereits berechnete InRA-Ergebnisse.
 from components.investment_decision import get_investment_decision
 from modules.opportunity_score import calculate_opportunity_v3_blocks
 from utils.current_intelligence import get_current_intelligence
+from utils.market_data import load_price_history
 
 
 def build_analysis_report_data(data: dict) -> dict:
@@ -29,6 +30,23 @@ def build_analysis_report_data(data: dict) -> dict:
     investment_decision = get_investment_decision(data)
     opportunity_blocks = calculate_opportunity_v3_blocks(data)
 
+    price_history = (
+        load_price_history(ticker, period="1y")
+        if ticker
+        else None
+    )
+
+    price_history_data = []
+
+    if price_history is not None and not price_history.empty:
+        price_history_data = [
+            {
+                "date": row.Datum.strftime("%Y-%m-%d"),
+                "close": float(row.Schlusskurs),
+            }
+            for row in price_history.itertuples(index=False)
+        ]
+
     return {
         "company": {
             "name": data.get("Name"),
@@ -42,6 +60,7 @@ def build_analysis_report_data(data: dict) -> dict:
             "market_cap": data.get("Marktkapitalisierung"),
             "dividend_yield": data.get("Dividendenrendite"),
         },
+        "price_history": price_history_data,
         "investment_decision": {
             "title": investment_decision.get("title"),
             "text": investment_decision.get("text"),

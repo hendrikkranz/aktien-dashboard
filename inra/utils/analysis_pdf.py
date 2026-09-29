@@ -8,6 +8,8 @@ from reportlab.lib.styles import (
     getSampleStyleSheet,
 )
 from reportlab.lib.units import mm
+from reportlab.graphics.charts.lineplots import LinePlot
+from reportlab.graphics.shapes import Drawing, String
 from reportlab.platypus import (
     KeepTogether,
     PageBreak,
@@ -131,6 +133,116 @@ def _styles():
             textColor=DARK,
         ),
     }
+
+
+def _price_chart(price_history, currency=None):
+    """Erzeugt einen kompakten 1J-Kurschart als Vektorgrafik."""
+    if not price_history or len(price_history) < 2:
+        return None
+
+    values = []
+
+    for index, item in enumerate(price_history):
+        try:
+            close = float(item["close"])
+        except (KeyError, TypeError, ValueError):
+            continue
+
+        values.append((index, close))
+
+    if len(values) < 2:
+        return None
+
+    prices = [value[1] for value in values]
+    minimum = min(prices)
+    maximum = max(prices)
+
+    if minimum == maximum:
+        padding = max(abs(minimum) * 0.05, 1)
+    else:
+        padding = (maximum - minimum) * 0.10
+
+    drawing = Drawing(
+        178 * mm,
+        48 * mm,
+    )
+
+    chart = LinePlot()
+    chart.x = 13 * mm
+    chart.y = 8 * mm
+    chart.width = 157 * mm
+    chart.height = 33 * mm
+    chart.data = [values]
+
+    chart.xValueAxis.valueMin = 0
+    chart.xValueAxis.valueMax = len(price_history) - 1
+    chart.xValueAxis.valueSteps = [
+        0,
+        (len(price_history) - 1) / 2,
+        len(price_history) - 1,
+    ]
+    chart.xValueAxis.labelTextFormat = lambda value: ""
+
+    chart.yValueAxis.valueMin = minimum - padding
+    chart.yValueAxis.valueMax = maximum + padding
+    chart.yValueAxis.labels.fontName = "Helvetica"
+    chart.yValueAxis.labels.fontSize = 6.5
+    chart.yValueAxis.labels.fillColor = MID
+    chart.yValueAxis.strokeColor = BORDER
+    chart.yValueAxis.gridStrokeColor = BORDER
+    chart.yValueAxis.gridStrokeWidth = 0.35
+    chart.yValueAxis.visibleGrid = True
+
+    chart.xValueAxis.strokeColor = BORDER
+    chart.xValueAxis.tickDown = 0
+    chart.xValueAxis.tickUp = 0
+
+    chart.lines[0].strokeColor = PURPLE
+    chart.lines[0].strokeWidth = 1.8
+    chart.lines[0].symbol = None
+
+    drawing.add(chart)
+
+    first_date = price_history[0].get("date", "")
+    last_date = price_history[-1].get("date", "")
+
+    drawing.add(
+        String(
+            13 * mm,
+            2.5 * mm,
+            first_date,
+            fontName="Helvetica",
+            fontSize=6.5,
+            fillColor=MID,
+        )
+    )
+
+    drawing.add(
+        String(
+            170 * mm,
+            2.5 * mm,
+            last_date,
+            fontName="Helvetica",
+            fontSize=6.5,
+            fillColor=MID,
+            textAnchor="end",
+        )
+    )
+
+    currency_label = f" · {currency}" if currency else ""
+
+    drawing.add(
+        String(
+            13 * mm,
+            44 * mm,
+            f"1 Jahr · Schlusskurs{currency_label}",
+            fontName="Helvetica-Bold",
+            fontSize=7.5,
+            fillColor=DARK,
+        )
+    )
+
+    return drawing
 
 
 def _score_card(title, value, maximum, color, styles):
@@ -448,6 +560,19 @@ def build_analysis_pdf(report: dict) -> bytes:
     )
 
     story.append(score_table)
+
+    price_history = report.get("price_history") or []
+
+    if price_history:
+        story.append(
+            Paragraph("Kursverlauf", styles["section"])
+        )
+        story.append(
+            _price_chart(
+                price_history,
+                currency=company.get("currency"),
+            )
+        )
 
     story.append(
         Paragraph("Kaufchance", styles["section"])
