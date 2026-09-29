@@ -1580,18 +1580,21 @@ def render_market_history_chart(history_column):
             st.caption("📈 Noch keine Verlaufshistorie vorhanden.")
         return
 
+    chart_data["Datum_Label"] = (
+        chart_data["Datum"].dt.strftime("%d.%m.")
+    )
+
     chart = (
         alt.Chart(chart_data)
-        .mark_line(
-            point=True,
-            strokeWidth=2,
+        .mark_bar(
+            size=18,
         )
         .encode(
             x=alt.X(
-                "Datum:T",
+                "Datum_Label:N",
                 title=None,
+                sort=None,
                 axis=alt.Axis(
-                    format="%d.%m.",
                     labelAngle=0,
                 ),
             ),
