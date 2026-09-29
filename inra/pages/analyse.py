@@ -7,6 +7,8 @@ from utils.current_intelligence import (
     apply_current_intelligence,
     get_current_intelligence,
 )
+from utils.analysis_report import build_analysis_report_data
+from utils.analysis_pdf import build_analysis_pdf
 
 from components.investment_decision import (
     render_investment_decision,
@@ -503,16 +505,31 @@ if ticker:
     # die Kaufchance. Nur persistent übernommene Analysen zählen.
     data = apply_current_intelligence(data)
 
-    render_investment_decision(data)
+    report_data = build_analysis_report_data(data)
+    report_pdf = build_analysis_pdf(report_data)
+
+    ticker_for_filename = (
+        str(data.get("Ticker") or "Aktie")
+        .strip()
+        .replace("/", "-")
+        .replace("\\", "-")
+    )
+
+    render_investment_decision(
+        data,
+        report_pdf=report_pdf,
+        report_filename=(
+            f"InRA_Analyse_{ticker_for_filename}.pdf"
+        ),
+    )
 
     st.divider()
 
     render_quality_section(data)
-
     st.divider()
 
     render_dividend_section(data)
-
     st.divider()
 
     render_opportunity_section(data)
+

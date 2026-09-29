@@ -322,7 +322,11 @@ def get_investment_decision(data: dict) -> dict:
     }
 
 
-def render_investment_decision(data: dict) -> None:
+def render_investment_decision(
+    data: dict,
+    report_pdf: bytes = None,
+    report_filename: str = None,
+) -> None:
     decision = get_investment_decision(data)
 
     title = decision["title"]
@@ -383,27 +387,47 @@ Investment-Urteil
 
     st.html(html)
 
-    with st.popover("ⓘ Urteilsstufen"):
-        for level_title, level_text in INVESTMENT_DECISION_LEVELS:
-            color = get_investment_decision_color(level_title)
+    action_columns = st.columns(
+        [1, 2.2],
+        gap="small",
+    )
 
-            st.markdown(
-                (
-                    f'<span style="color:{color}; font-weight:700;">'
-                    f'{level_title}</span>'
-                    f'<span style="color:#8b949e;"> — '
-                    f'{level_text}</span>'
-                ),
-                unsafe_allow_html=True,
+    with action_columns[0]:
+        with st.popover("ⓘ Urteilsstufen"):
+            for level_title, level_text in INVESTMENT_DECISION_LEVELS:
+                color = get_investment_decision_color(level_title)
+
+                st.markdown(
+                    (
+                        f'<span style="color:{color}; font-weight:700;">'
+                        f'{level_title}</span>'
+                        f'<span style="color:#8b949e;"> — '
+                        f'{level_text}</span>'
+                    ),
+                    unsafe_allow_html=True,
+                )
+
+            st.divider()
+            st.caption(
+                "Kernlogik: Investment-Score = 60 % Kaufchance + "
+                "40 % Unternehmensqualität. Das Entry Setup "
+                "beeinflusst zusätzlich, ob ein unmittelbarer "
+                "Einstieg unterstützt wird."
             )
 
-        st.divider()
-        st.caption(
-            "Kernlogik: Investment-Score = 60 % Kaufchance + "
-            "40 % Unternehmensqualität. Das Entry Setup "
-            "beeinflusst zusätzlich, ob ein unmittelbarer "
-            "Einstieg unterstützt wird."
-        )
+    if report_pdf:
+        with action_columns[1]:
+            st.download_button(
+                "🖨 Analyse als PDF herunterladen",
+                data=report_pdf,
+                file_name=(
+                    report_filename
+                    or "InRA_Analyse.pdf"
+                ),
+                mime="application/pdf",
+                use_container_width=False,
+                key="download_analysis_pdf",
+            )
 
     ticker = str(data.get("Ticker") or "").strip().upper()
 
