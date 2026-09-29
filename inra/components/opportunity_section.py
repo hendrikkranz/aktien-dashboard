@@ -1616,10 +1616,7 @@ def _render_current_intelligence(data: dict) -> None:
         _render_current_intelligence_details(data)
 
 
-def render_opportunity_section(
-    data: dict,
-) -> None:
-
+def get_opportunity_rating(data: dict) -> tuple:
     buy_score = data["Kaufchance"]
     opportunity_breakdown = calculate_opportunity_breakdown(data)
 
@@ -1736,6 +1733,17 @@ def render_opportunity_section(
             "Die aktuelle Einstiegssituation erscheint "
             "derzeit nicht attraktiv."
         )
+
+    return rating, explanation, icon, border
+
+
+def render_opportunity_section(
+    data: dict,
+) -> None:
+
+    buy_score = data["Kaufchance"]
+    rating, explanation, icon, border = get_opportunity_rating(data)
+    v3_blocks = calculate_opportunity_v3_blocks(data)
 
     base_buy_score = data.get(
         "Kaufchance Basis",

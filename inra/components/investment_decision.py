@@ -324,7 +324,7 @@ def get_investment_decision(data: dict) -> dict:
 
 def render_investment_decision(
     data: dict,
-    report_pdf: bytes = None,
+    report_pdf_builder=None,
     report_filename: str = None,
 ) -> None:
     decision = get_investment_decision(data)
@@ -415,19 +415,41 @@ Investment-Urteil
                 "Einstieg unterstützt wird."
             )
 
-    if report_pdf:
+    if report_pdf_builder:
         with action_columns[1]:
-            st.download_button(
-                "🖨 Analyse als PDF herunterladen",
-                data=report_pdf,
-                file_name=(
-                    report_filename
-                    or "InRA_Analyse.pdf"
-                ),
-                mime="application/pdf",
-                use_container_width=False,
-                key="download_analysis_pdf",
+            ticker = str(
+                data.get("Ticker") or "Aktie"
+            ).strip().upper()
+
+            pdf_state_key = (
+                f"analysis_pdf_{ticker}"
             )
+
+            if st.session_state.get(pdf_state_key):
+                st.download_button(
+                    "🖨 Analyse als PDF herunterladen",
+                    data=st.session_state[pdf_state_key],
+                    file_name=(
+                        report_filename
+                        or "InRA_Analyse.pdf"
+                    ),
+                    mime="application/pdf",
+                    use_container_width=False,
+                    key="download_analysis_pdf",
+                )
+            elif st.button(
+                "🖨 Analyse als PDF erstellen",
+                use_container_width=False,
+                key="build_analysis_pdf",
+            ):
+                with st.spinner(
+                    "PDF-Analyse wird erstellt …"
+                ):
+                    st.session_state[pdf_state_key] = (
+                        report_pdf_builder()
+                    )
+
+                st.rerun()
 
     ticker = str(data.get("Ticker") or "").strip().upper()
 

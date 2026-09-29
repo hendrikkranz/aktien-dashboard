@@ -6,8 +6,10 @@ Er verwendet ausschließlich bereits berechnete InRA-Ergebnisse.
 """
 
 from components.investment_decision import get_investment_decision
+from components.opportunity_section import get_opportunity_rating
 from modules.opportunity_score import calculate_opportunity_v3_blocks
 from utils.current_intelligence import get_current_intelligence
+from utils.investment_summary import create_investment_summary
 from utils.market_data import load_price_history
 
 
@@ -29,6 +31,15 @@ def build_analysis_report_data(data: dict) -> dict:
 
     investment_decision = get_investment_decision(data)
     opportunity_blocks = calculate_opportunity_v3_blocks(data)
+
+    (
+        opportunity_rating,
+        opportunity_explanation,
+        _opportunity_icon,
+        _opportunity_border,
+    ) = get_opportunity_rating(data)
+
+    quality_summary = create_investment_summary(data)
 
     price_history = (
         load_price_history(ticker, period="1y")
@@ -56,6 +67,7 @@ def build_analysis_report_data(data: dict) -> dict:
             "country": data.get("Land"),
             "sector": data.get("Sektor"),
             "industry": data.get("Branche"),
+            "website": data.get("Website"),
             "price": data.get("Kurs"),
             "market_cap": data.get("Marktkapitalisierung"),
             "dividend_yield": data.get("Dividendenrendite"),
@@ -81,10 +93,13 @@ def build_analysis_report_data(data: dict) -> dict:
             "quantitative": data.get("Quantitative Quality"),
             "qualitative": data.get("Qualitative Quality"),
             "breakdown": data.get("Quality Breakdown") or {},
+            "summary": quality_summary,
         },
         "opportunity": {
             "breakdown": data.get("Opportunity Breakdown") or {},
             "blocks": opportunity_blocks,
+            "rating": opportunity_rating,
+            "explanation": opportunity_explanation,
             "entry_setup": data.get("Entry Setup"),
             "entry_setup_explanation": data.get(
                 "Entry Setup Erklärung"

@@ -505,8 +505,9 @@ if ticker:
     # die Kaufchance. Nur persistent übernommene Analysen zählen.
     data = apply_current_intelligence(data)
 
-    report_data = build_analysis_report_data(data)
-    report_pdf = build_analysis_pdf(report_data)
+    def build_report_pdf():
+        report_data = build_analysis_report_data(data)
+        return build_analysis_pdf(report_data)
 
     ticker_for_filename = (
         str(data.get("Ticker") or "Aktie")
@@ -517,7 +518,7 @@ if ticker:
 
     render_investment_decision(
         data,
-        report_pdf=report_pdf,
+        report_pdf_builder=build_report_pdf,
         report_filename=(
             f"InRA_Analyse_{ticker_for_filename}.pdf"
         ),
