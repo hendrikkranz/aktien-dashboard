@@ -385,8 +385,7 @@ def _investment_score_ring(value, color):
             cy,
             radius,
             90,
-            90 - extent,
-            reverse=True,
+            90 + extent,
         )
         arc.strokeColor = color
         arc.strokeWidth = 3.4
