@@ -499,6 +499,12 @@ display_universe = filtered_universe.copy()
 
 display_universe.insert(
     0,
+    "Auswahl",
+    False,
+)
+
+display_universe.insert(
+    1,
     "Favorit",
     display_universe["Ticker"].isin(
         st.session_state["favorite_tickers"]
@@ -519,6 +525,7 @@ display_universe = display_universe.sort_values(
 
 display_universe = display_universe[
     [
+        "Auswahl",
         "Favorit",
         "Name",
         "Analysieren",
@@ -574,6 +581,11 @@ with overview_container:
             "Land",
         ],
         column_config={
+            "Auswahl": st.column_config.CheckboxColumn(
+                "☑",
+                help="Aktie für Listen- oder Löschaktion auswählen",
+                width=55,
+            ),
             "Favorit": st.column_config.CheckboxColumn(
                 "★",
                 help="Aktie als Favorit markieren",
@@ -621,6 +633,136 @@ with overview_container:
         },
         key="scout_favorites_editor",
     )
+
+selected_rows = edited_universe.loc[
+    edited_universe["Auswahl"] == True,
+    "Ticker",
+].tolist()
+
+if selected_rows:
+    st.markdown(
+        f"**{len(selected_rows)} "
+        f"{'Aktie' if len(selected_rows) == 1 else 'Aktien'} ausgewählt**"
+    )
+
+    with st.expander("📋 Auswahl zu Liste hinzufügen"):
+        bulk_existing_list = st.selectbox(
+            "Bestehende Liste",
+            options=["—"] + list_options,
+            key="scout_bulk_existing_list",
+        )
+
+        bulk_new_list = st.text_input(
+            "Oder neue Liste anlegen",
+            placeholder="z. B. KI-Infrastruktur",
+            key="scout_bulk_new_list",
+        )
+
+        if st.button(
+            "Ausgewählte Aktien hinzufügen",
+            key="scout_bulk_add_to_list",
+            use_container_width=True,
+        ):
+            target_list = (
+                bulk_new_list.strip()
+                if bulk_new_list.strip()
+                else bulk_existing_list
+            )
+
+            if target_list == "—":
+                st.warning(
+                    "Bitte eine bestehende Liste auswählen "
+                    "oder einen neuen Listennamen eingeben."
+                )
+            else:
+                added_count = 0
+
+                for selected_ticker in selected_rows:
+                    if add_stock_to_list(
+                        selected_ticker,
+                        target_list,
+                    ):
+                        added_count += 1
+
+                if added_count:
+                    st.success(
+                        f"{added_count} von {len(selected_rows)} "
+                        f"Aktien wurden zur Liste "
+                        f"„{target_list}“ hinzugefügt."
+                    )
+                    st.rerun()
+                else:
+                    st.info(
+                        "Die ausgewählten Aktien sind bereits "
+                        f"der Liste „{target_list}“ zugeordnet."
+                    )
+
+    with st.expander("🗑 Ausgewählte Aktien löschen"):
+        st.caption(
+            "Es können nur Aktien vollständig gelöscht werden, "
+            "die ausschließlich der Watchlist zugeordnet sind. "
+            "Aktien aus anderen Listen bleiben geschützt."
+        )
+
+        confirm_bulk_remove = st.checkbox(
+            "Löschen bestätigen",
+            key="confirm_bulk_remove_universe_stocks",
+        )
+
+        if st.button(
+            "Ausgewählte Aktien aus Universum entfernen",
+            key="scout_bulk_remove_universe",
+            disabled=not confirm_bulk_remove,
+            use_container_width=True,
+        ):
+            removed = []
+            protected = []
+
+            for selected_ticker in selected_rows:
+                if remove_watchlist_stock_from_universe(
+                    selected_ticker
+                ):
+                    removed.append(selected_ticker)
+                else:
+                    protected.append(selected_ticker)
+
+            if removed:
+                st.session_state["favorite_tickers"] = [
+                    ticker
+                    for ticker in st.session_state[
+                        "favorite_tickers"
+                    ]
+                    if ticker not in removed
+                ]
+
+                save_favorites(
+                    st.session_state["favorite_tickers"]
+                )
+
+            if removed and not protected:
+                st.success(
+                    f"{len(removed)} "
+                    f"{'Aktie wurde' if len(removed) == 1 else 'Aktien wurden'} "
+                    "aus dem Universum entfernt."
+                )
+            elif removed:
+                st.success(
+                    f"{len(removed)} "
+                    f"{'Aktie wurde' if len(removed) == 1 else 'Aktien wurden'} "
+                    "entfernt. "
+                    f"{len(protected)} "
+                    f"{'Aktie blieb' if len(protected) == 1 else 'Aktien blieben'} "
+                    "wegen weiterer Listenzuordnungen geschützt."
+                )
+            else:
+                st.info(
+                    "Keine der ausgewählten Aktien wurde gelöscht. "
+                    "Sie sind nicht ausschließlich der Watchlist "
+                    "zugeordnet."
+                )
+
+            if removed:
+                st.rerun()
 
 analysis_rows = edited_universe.loc[
     edited_universe["Analysieren"] == True,
