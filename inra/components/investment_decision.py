@@ -21,6 +21,9 @@ def get_investment_decision_color(title: str) -> str:
     if title.startswith("Erste Position aufbauen"):
         return "#2EAD7B"
 
+    if title.startswith("Kaufenswert – attraktive Einstiegszone"):
+        return "#5DBE91"
+
     if title.startswith("Kaufenswert – Einstieg abwarten"):
         return "#86CFAE"
 
@@ -51,6 +54,10 @@ INVESTMENT_DECISION_LEVELS = [
     (
         "Erste Position aufbauen",
         "Gute Gesamtkonstellation · Einstieg unterstützt",
+    ),
+    (
+        "Kaufenswert – attraktive Einstiegszone",
+        "Gute Gesamtkonstellation · günstige Zone · Signal unbestätigt",
     ),
     (
         "Kaufenswert – Einstieg abwarten",
