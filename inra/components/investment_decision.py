@@ -108,6 +108,12 @@ def get_investment_decision(data: dict) -> dict:
     }
     entry_ready = entry_setup in entry_ready_setups
 
+    entry_zone_setups = {
+        "Untere Kanalhälfte – unbestätigt",
+        "Median Test – unbestätigt",
+    }
+    entry_zone = entry_setup in entry_zone_setups
+
     v3_blocks = calculate_opportunity_v3_blocks(data)
 
     available_maximum = v3_blocks["available_maximum"]
@@ -212,6 +218,22 @@ def get_investment_decision(data: dict) -> dict:
             "Die Kombination aus Einstiegschance und "
             "Unternehmensqualität spricht derzeit für den Aufbau "
             "einer ersten Position."
+        )
+
+    elif (
+        investment_score >= 70
+        and buy_score >= 60
+        and entry_zone
+    ):
+        title = "Kaufenswert – attraktive Einstiegszone"
+        icon = "🟢"
+        background = "#F2FAF6"
+        border = "#86CFAE"
+        text = (
+            "Die Aktie erscheint grundsätzlich kaufenswert und "
+            "befindet sich in einer attraktiven Einstiegszone. "
+            "Das technische Einstiegssignal ist jedoch noch "
+            "nicht bestätigt."
         )
 
     elif (

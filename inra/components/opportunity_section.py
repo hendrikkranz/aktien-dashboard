@@ -1707,6 +1707,17 @@ def get_opportunity_rating(data: dict) -> tuple:
                 "Die aktuelle Kaufkonstellation erscheint attraktiv. "
                 "Das Entry Setup unterstützt einen Einstieg."
             )
+        elif entry_setup in {
+            "Untere Kanalhälfte – unbestätigt",
+            "Median Test – unbestätigt",
+        }:
+            rating = "Attraktiv – günstige Einstiegszone"
+            explanation = (
+                "Die Aktie weist insgesamt eine attraktive "
+                "Kaufkonstellation auf und befindet sich in einer "
+                "günstigen Einstiegszone. Das technische "
+                "Einstiegssignal ist noch nicht bestätigt."
+            )
         else:
             rating = "Attraktiv – Einstieg noch unbestätigt"
             explanation = (
