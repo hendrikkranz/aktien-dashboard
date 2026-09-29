@@ -36,6 +36,10 @@ DARK = colors.HexColor("#20242B")
 MID = colors.HexColor("#626A73")
 LIGHT = colors.HexColor("#F4F5F7")
 BORDER = colors.HexColor("#D9DDE3")
+GREEN_LIGHT = colors.HexColor("#F2F8F5")
+PURPLE_LIGHT = colors.HexColor("#F6F3FC")
+BLUE_LIGHT = colors.HexColor("#F2F6FB")
+SUMMARY_LIGHT = colors.HexColor("#EEF7F2")
 
 
 def _text(value, fallback="–"):
@@ -92,11 +96,11 @@ def _styles():
             "section",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=11,
-            leading=13,
+            fontSize=12.5,
+            leading=15,
             textColor=DARK,
-            spaceBefore=2 * mm,
-            spaceAfter=1.5 * mm,
+            spaceBefore=4 * mm,
+            spaceAfter=2 * mm,
         ),
         "card_title": ParagraphStyle(
             "card_title",
@@ -119,7 +123,7 @@ def _styles():
             "body",
             parent=base["BodyText"],
             fontSize=8.7,
-            leading=12,
+            leading=12.8,
             textColor=DARK,
         ),
         "small": ParagraphStyle(
@@ -518,6 +522,76 @@ def _section_box(title, body, color, styles):
     return table
 
 
+def _opportunity_subcards(blocks, entry_setup, styles):
+    """Drei kompakte Karten für Bewertung, Technik und Entry Setup."""
+    cards = [
+        (
+            "Kursbewertung",
+            f"{_number(blocks.get('fundamental_points'), 1)} / 45",
+            "",
+        ),
+        (
+            "Technische Verfassung",
+            f"{_number(blocks.get('technical_points'), 1)} / 25",
+            "",
+        ),
+        (
+            "Entry Setup",
+            f"{_number(blocks.get('entry_points'), 1)} / 30",
+            _text(entry_setup),
+        ),
+    ]
+
+    content = []
+
+    for title, score, detail in cards:
+        body = (
+            f"<font color='#6B7280' size='7'>{title}</font>"
+            f"<br/>"
+            f"<font size='13'><b>{score}</b></font>"
+        )
+
+        if detail:
+            body += (
+                f"<br/>"
+                f"<font color='#6B7280' size='6.5'>{detail}</font>"
+            )
+
+        content.append(
+            Paragraph(
+                body,
+                styles["body"],
+            )
+        )
+
+    table = Table(
+        [content],
+        colWidths=[
+            59.3 * mm,
+            59.3 * mm,
+            59.4 * mm,
+        ],
+    )
+
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+                ("BOX", (0, 0), (-1, -1), 0.6, BORDER),
+                ("INNERGRID", (0, 0), (-1, -1), 0.4, BORDER),
+                ("LINEABOVE", (0, 0), (-1, 0), 2.2, PURPLE),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4 * mm),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 4 * mm),
+                ("TOPPADDING", (0, 0), (-1, -1), 2.5 * mm),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5 * mm),
+            ]
+        )
+    )
+
+    return table
+
+
 def _section_box_two_columns(
     title,
     left_body,
@@ -554,14 +628,61 @@ def _section_box_two_columns(
         TableStyle(
             [
                 ("BACKGROUND", (0, 0), (-1, -1), colors.white),
-                ("BOX", (0, 0), (-1, -1), 0.6, BORDER),
-                ("LINEBEFORE", (0, 0), (0, -1), 3, color),
+                ("BOX", (0, 0), (-1, -1), 0.5, BORDER),
+                ("LINEBEFORE", (0, 0), (0, -1), 3.5, color),
                 ("SPAN", (1, 0), (1, 1)),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 4 * mm),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 4 * mm),
-                ("TOPPADDING", (0, 0), (-1, -1), 2 * mm),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 2 * mm),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4.5 * mm),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 4.5 * mm),
+                ("TOPPADDING", (0, 0), (-1, -1), 3 * mm),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3 * mm),
+            ]
+        )
+    )
+
+    return table
+
+
+def _inra_fazit_box(body, styles):
+    """Hervorgehobener Abschluss des Research-Reports."""
+    content = [
+        [
+            Paragraph(
+                "<font size='7' color='#2E7D5B'>"
+                "<b>INRA · RESEARCH-FAZIT</b>"
+                "</font>",
+                styles["body"],
+            )
+        ],
+        [
+            Paragraph(
+                "<font size='12'><b>Investment Case</b></font>",
+                styles["body"],
+            )
+        ],
+        [
+            Paragraph(
+                body or "Keine Daten verfügbar.",
+                styles["body"],
+            )
+        ],
+    ]
+
+    table = Table(
+        content,
+        colWidths=[178 * mm],
+    )
+
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), SUMMARY_LIGHT),
+                ("BOX", (0, 0), (-1, -1), 0.7, GREEN),
+                ("LINEBEFORE", (0, 0), (0, -1), 4, GREEN),
+                ("LEFTPADDING", (0, 0), (-1, -1), 5 * mm),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 5 * mm),
+                ("TOPPADDING", (0, 0), (-1, -1), 2.5 * mm),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5 * mm),
             ]
         )
     )
@@ -1050,15 +1171,21 @@ def build_analysis_pdf(report: dict) -> bytes:
         )
     )
 
-    story.append(
-        _section_box_two_columns(
-            "Qualitätsprofil",
-            quality_text,
-            _text(quality.get("summary")),
-            GREEN,
-            styles,
+    quality_box = _section_box_two_columns(
+        "Qualitätsprofil",
+        quality_text,
+        _text(quality.get("summary")),
+        GREEN,
+        styles,
+    )
+    quality_box.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), GREEN_LIGHT),
+            ]
         )
     )
+    story.append(quality_box)
 
     # 2 · Kaufchance
 
@@ -1074,16 +1201,6 @@ def build_analysis_pdf(report: dict) -> bytes:
     opportunity_text = (
         f"<b>{_text(opportunity.get('rating'))}</b>"
         f"<br/><br/>"
-        f"<b>Kursbewertung:</b> "
-        f"{_number(blocks.get('fundamental_points'), 1)} / 45"
-        f"<br/>"
-        f"<b>Technische Verfassung:</b> "
-        f"{_number(blocks.get('technical_points'), 1)} / 25"
-        f"<br/>"
-        f"<b>Entry Setup:</b> "
-        f"{_number(blocks.get('entry_points'), 1)} / 30"
-        f" · {_text(opportunity.get('entry_setup'))}"
-        f"<br/><br/>"
         f"<b>Forward-KGV:</b> "
         f"{_number(valuation.get('forward_pe'), 1)}"
         f" &nbsp;&nbsp; "
@@ -1097,14 +1214,29 @@ def build_analysis_pdf(report: dict) -> bytes:
     )
 
     story.append(
-        _section_box_two_columns(
-            "Bewertung · Technik · Einstieg",
-            opportunity_text,
-            _text(opportunity.get("explanation")),
-            PURPLE,
+        _opportunity_subcards(
+            blocks,
+            opportunity.get("entry_setup"),
             styles,
         )
     )
+    story.append(Spacer(1, 2 * mm))
+
+    opportunity_box = _section_box_two_columns(
+        "Bewertung · Technik · Einstieg",
+        opportunity_text,
+        _text(opportunity.get("explanation")),
+        PURPLE,
+        styles,
+    )
+    opportunity_box.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), PURPLE_LIGHT),
+            ]
+        )
+    )
+    story.append(opportunity_box)
 
     # 3 · Dividendenstrategie
 
@@ -1138,14 +1270,20 @@ def build_analysis_pdf(report: dict) -> bytes:
         f"{_number(dividend.get('allocation_points'), 1)} / 3"
     )
 
-    story.append(
-        _section_box(
-            "Ausschüttung & Kapitalallokation",
-            dividend_text,
-            BLUE,
-            styles,
+    dividend_box = _section_box(
+        "Ausschüttung & Kapitalallokation",
+        dividend_text,
+        BLUE,
+        styles,
+    )
+    dividend_box.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), BLUE_LIGHT),
+            ]
         )
     )
+    story.append(dividend_box)
 
     # Abschließendes InRA-Fazit
 
@@ -1157,10 +1295,8 @@ def build_analysis_pdf(report: dict) -> bytes:
     )
 
     story.append(
-        _section_box(
-            "Investment Case",
+        _inra_fazit_box(
             _inra_summary_text(report.get("inra_summary")),
-            GREEN,
             styles,
         )
     )
