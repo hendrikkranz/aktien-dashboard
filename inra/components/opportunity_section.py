@@ -1727,14 +1727,29 @@ def get_opportunity_rating(data: dict) -> tuple:
             )
 
     elif buy_score >= 51:
-        rating = "Neutral"
+        entry_setup = data.get("Entry Setup")
+
         icon = "🟡"
         border = "#D9A514"
-        explanation = (
-            "Die aktuelle Einstiegssituation ist gemischt. "
-            "Positive und negative Signale halten sich "
-            "noch weitgehend die Waage."
-        )
+
+        if entry_setup in {
+            "Untere Kanalhälfte – unbestätigt",
+            "Median Test – unbestätigt",
+        }:
+            rating = "Neutral – günstige Einstiegszone"
+            explanation = (
+                "Die Kaufchance ist insgesamt noch gemischt. "
+                "Die aktuelle Position im langfristigen Trend bietet "
+                "jedoch eine günstige Einstiegszone; das technische "
+                "Einstiegssignal ist noch nicht bestätigt."
+            )
+        else:
+            rating = "Neutral"
+            explanation = (
+                "Die aktuelle Einstiegssituation ist gemischt. "
+                "Positive und negative Signale halten sich "
+                "noch weitgehend die Waage."
+            )
 
     else:
         rating = "Unattraktiv"
