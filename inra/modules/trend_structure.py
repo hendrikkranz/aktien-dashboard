@@ -1045,6 +1045,24 @@ def classify_entry_setup(
             and recovery_established
             and constructive_confirmation
         ):
+            advanced_recovery = (
+                recovery_pct is not None
+                and recovery_pct >= 70.0
+                and distance_to_previous_52w_high_pct is not None
+                and distance_to_previous_52w_high_pct >= -5.0
+            )
+
+            if advanced_recovery:
+                return {
+                    "setup": "Pullback Recovery – fortgeschritten",
+                    "detail": (
+                        "Gesunder Pullback mit positiver Bestätigung, "
+                        "aber die Erholung ist bereits weit fortgeschritten "
+                        "und der Kurs liegt wieder nahe am vorherigen "
+                        "52W-Hoch"
+                    ),
+                }
+
             return {
                 "setup": "Pullback Recovery – bestätigt",
                 "detail": (

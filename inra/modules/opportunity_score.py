@@ -347,6 +347,7 @@ def calculate_entry_setup_score(data: dict):
     points = {
         "Lower Channel Bounce – bestätigt": 30.0,
         "Pullback Recovery – bestätigt": 28.5,
+        "Pullback Recovery – fortgeschritten": 21.0,
         "Median Support – bestätigt": 27.0,
         "Median Reclaim – bestätigt": 25.5,
         "30W Support/Reclaim – bestätigt": 25.5,
