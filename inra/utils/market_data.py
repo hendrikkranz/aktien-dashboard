@@ -272,6 +272,7 @@ def _calculate_pullback_recovery(
 
 def load_momentum_metrics(ticker: str) -> dict:
     empty_result = {
+        "Kursstand": None,
         "Momentum 3M": None,
         "Momentum 6M": None,
         "Momentum 12M": None,
@@ -509,6 +510,7 @@ def load_momentum_metrics(ticker: str) -> dict:
     )
 
     return {
+        "Kursstand": close_prices.index[-1],
         "Momentum 3M": _calculate_period_return(
             close_prices,
             63,
@@ -1588,6 +1590,7 @@ def load_company_snapshot(ticker: str) -> dict:
         "Kurshistorie Start": price_history_start,
         "Kurshistorie Ende": price_history_end,
         "Kurshistorie Tage": price_history_days,
+        "Kursstand": momentum["Kursstand"],
         "Momentum 3M": momentum["Momentum 3M"],
         "Momentum 6M": momentum["Momentum 6M"],
         "Momentum 12M": momentum["Momentum 12M"],

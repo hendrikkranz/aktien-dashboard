@@ -364,6 +364,24 @@ def render_investment_decision(
     border = decision["border"]
     text = decision["text"]
 
+    kursstand = data.get("Kursstand")
+    kursstand_html = ""
+
+    if kursstand is not None:
+        try:
+            kursstand_text = kursstand.strftime("%d.%m.%Y")
+            kursstand_html = (
+                f'<span style="'
+                f'color:#8b949e;'
+                f'font-size:12px;'
+                f'font-weight:500;'
+                f'text-transform:none;'
+                f'letter-spacing:0;'
+                f'">Kursstand: {kursstand_text} · Schlusskurs</span>'
+            )
+        except (AttributeError, ValueError):
+            pass
+
     if title.startswith("Klarer Kauf"):
         icon_html = (
             '<span style="color:#20C77A;">★</span>'
@@ -383,13 +401,21 @@ def render_investment_decision(
 ">
 
 <div style="
-    color:#8b949e;
-    font-size:12px;
-    font-weight:700;
-    text-transform:uppercase;
-    letter-spacing:1px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
 ">
-Investment-Urteil
+    <div style="
+        color:#8b949e;
+        font-size:12px;
+        font-weight:700;
+        text-transform:uppercase;
+        letter-spacing:1px;
+    ">
+    Investment-Urteil
+    </div>
+    {kursstand_html}
 </div>
 
 <div style="
