@@ -1117,9 +1117,9 @@ def _render_opportunity_breakdown(
                 momentum_12m = data.get("Momentum 12M")
 
                 momentum_values = [
-                    momentum_3m,
-                    momentum_6m,
                     momentum_12m,
+                    momentum_6m,
+                    momentum_3m,
                 ]
 
                 if all(
@@ -1262,10 +1262,10 @@ def _render_opportunity_breakdown(
                         'margin-top:-2px;">'
                         '<div style="text-align:left;">'
                         '<div style="font-size:0.68rem;'
-                        'color:#9ca3af;">3 Monate</div>'
+                        'color:#9ca3af;">12 Monate</div>'
                         f'<div style="font-size:0.84rem;'
                         f'font-weight:700;color:#e6edf3;">'
-                        f'{_format_momentum(momentum_3m)}</div>'
+                        f'{_format_momentum(momentum_12m)}</div>'
                         '</div>'
                         '<div style="text-align:center;">'
                         '<div style="font-size:0.68rem;'
@@ -1276,10 +1276,10 @@ def _render_opportunity_breakdown(
                         '</div>'
                         '<div style="text-align:right;">'
                         '<div style="font-size:0.68rem;'
-                        'color:#9ca3af;">12 Monate</div>'
+                        'color:#9ca3af;">3 Monate</div>'
                         f'<div style="font-size:0.84rem;'
                         f'font-weight:700;color:#e6edf3;">'
-                        f'{_format_momentum(momentum_12m)}</div>'
+                        f'{_format_momentum(momentum_3m)}</div>'
                         '</div>'
                         '</div>'
                         '</div>'
@@ -1892,10 +1892,70 @@ def _render_opportunity_breakdown(
                 f"**{channel_position} · "
                 f"Position {channel_position_normalized:+.2f}**"
             )
-            st.caption(
-                "−2 untere Kanalgrenze · "
-                "0 Mittellinie · "
-                "+2 obere Kanalgrenze"
+
+            channel_marker_position = (
+                max(
+                    -2.0,
+                    min(
+                        2.0,
+                        float(channel_position_normalized),
+                    ),
+                )
+                + 2.0
+            ) / 4.0 * 100.0
+
+            channel_scale_html = f"""
+            <div style="
+                position:relative;
+                height:16px;
+                margin-top:10px;
+                margin-bottom:2px;
+            ">
+                <div style="
+                    position:absolute;
+                    left:0;
+                    right:0;
+                    top:7px;
+                    height:2px;
+                    background:#6e7681;
+                    border-radius:2px;
+                "></div>
+                <div style="
+                    position:absolute;
+                    left:50%;
+                    top:3px;
+                    width:1px;
+                    height:10px;
+                    background:#9ca3af;
+                "></div>
+                <div style="
+                    position:absolute;
+                    left:{channel_marker_position:.1f}%;
+                    top:1px;
+                    width:14px;
+                    height:14px;
+                    border:2px solid #e6edf3;
+                    background:#0e1117;
+                    border-radius:50%;
+                    transform:translateX(-50%);
+                    box-sizing:border-box;
+                "></div>
+            </div>
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                color:#9ca3af;
+                font-size:0.72rem;
+            ">
+                <span>−2 untere Kanalgrenze</span>
+                <span>0 Mittellinie</span>
+                <span>+2 obere Kanalgrenze</span>
+            </div>
+            """
+
+            st.markdown(
+                channel_scale_html,
+                unsafe_allow_html=True,
             )
 
         if v3_blocks["entry_neutral"]:
