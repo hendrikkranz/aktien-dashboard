@@ -1671,18 +1671,18 @@ def _render_opportunity_breakdown(
                         )
                     elif positive_macd_signals <= 2:
                         macd_explanation = (
-                            "Erste positive MACD-Signale sind erkennbar, "
+                            "Erste positive MACD-Signale sind erkennbar,<br>"
                             "aber noch nicht ausreichend bestätigt."
                         )
                     elif positive_macd_signals <= 4:
                         macd_explanation = (
-                            "Der MACD zeigt positive Aufwärtsdynamik, "
+                            "Der MACD zeigt positive Aufwärtsdynamik,<br>"
                             "die Bestätigung ist jedoch noch nicht "
                             "vollständig."
                         )
                     else:
                         macd_explanation = (
-                            "Der MACD bestätigt eine klare positive "
+                            "Der MACD bestätigt eine klare positive<br>"
                             "Aufwärtsdynamik."
                         )
 
