@@ -48,12 +48,12 @@ INVESTMENT_DECISION_LEVELS = [
         "Sehr starke Gesamtkonstellation · Einstieg unterstützt",
     ),
     (
-        "Sehr kaufenswert – Einstieg abwarten",
-        "Sehr starke Gesamtkonstellation · Timing abwarten",
-    ),
-    (
         "Erste Position aufbauen",
         "Gute Gesamtkonstellation · Einstieg unterstützt",
+    ),
+    (
+        "Sehr kaufenswert – Einstieg abwarten",
+        "Sehr starke Gesamtkonstellation · Timing abwarten",
     ),
     (
         "Kaufenswert – attraktive Einstiegszone",
