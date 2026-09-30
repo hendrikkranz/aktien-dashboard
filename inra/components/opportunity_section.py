@@ -1,4 +1,5 @@
 from datetime import datetime
+import textwrap
 
 def _format_date_de(value: str) -> str:
     try:
@@ -313,10 +314,29 @@ def _render_opportunity_breakdown(
             )
 
         st.markdown(
-            f"##### 💰 Kursbewertung"
-            f"<span style='float:right'>"
-            f"{course_score_display}"
-            f"</span>",
+            f"""
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                padding:16px 16px;
+                margin:2px 0 14px 0;
+                background:linear-gradient(
+                    180deg,
+                    #363b44 0%,
+                    #292d34 100%
+                );
+                border:1px solid #5a616c;
+                border-radius:8px;
+                box-shadow:0 5px 16px rgba(0,0,0,0.38);
+                color:#f0f2f5;
+                font-size:1.12rem;
+                font-weight:700;
+            ">
+                <span>💰 Kursbewertung</span>
+                <span>{course_score_display}</span>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
@@ -869,10 +889,29 @@ def _render_opportunity_breakdown(
             technical_header = f"{technical_points:.1f} / 25"
 
         st.markdown(
-            f"##### 📈 Technische Verfassung"
-            f"<span style='float:right'>"
-            f"{technical_header}"
-            f"</span>",
+            f"""
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                padding:16px 16px;
+                margin:2px 0 14px 0;
+                background:linear-gradient(
+                    180deg,
+                    #363b44 0%,
+                    #292d34 100%
+                );
+                border:1px solid #5a616c;
+                border-radius:8px;
+                box-shadow:0 5px 16px rgba(0,0,0,0.38);
+                color:#f0f2f5;
+                font-size:1.12rem;
+                font-weight:700;
+            ">
+                <span>📈 Technische Verfassung</span>
+                <span>{technical_header}</span>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
@@ -973,8 +1012,103 @@ def _render_opportunity_breakdown(
                         trend_status
                     ).lower()
 
+                trend_visual = {
+                    "Aufwärtstrend": {
+                        "symbol": "↗",
+                        "color": "#2EAD7B",
+                        "label": "Aufwärtstrend",
+                    },
+                    "Seitwärtstrend": {
+                        "symbol": "→",
+                        "color": "#D9A514",
+                        "label": "Seitwärtstrend",
+                    },
+                    "Seitwärts": {
+                        "symbol": "→",
+                        "color": "#D9A514",
+                        "label": "Seitwärtstrend",
+                    },
+                    "Abwärtstrend": {
+                        "symbol": "↘",
+                        "color": "#D9534F",
+                        "label": "Abwärtstrend",
+                    },
+                }.get(
+                    trend,
+                    {
+                        "symbol": "–",
+                        "color": "#8b949e",
+                        "label": str(trend),
+                    },
+                )
+
+                trend_html = (
+                    f'<div style="display:flex;align-items:center;'
+                    f'gap:10px;margin-top:4px;margin-bottom:4px;">'
+                    f'<div style="width:38px;height:38px;'
+                    f'border-radius:10px;'
+                    f'background:{trend_visual["color"]}18;'
+                    f'color:{trend_visual["color"]};'
+                    f'display:flex;align-items:center;'
+                    f'justify-content:center;font-size:1.65rem;'
+                    f'font-weight:700;">'
+                    f'{trend_visual["symbol"]}'
+                    f'</div>'
+                    f'<div>'
+                    f'<div style="font-size:0.88rem;'
+                    f'font-weight:700;color:#e6edf3;">'
+                    f'{trend_visual["label"]}'
+                    f'</div>'
+                    f'<div style="font-size:0.72rem;'
+                    f'color:#9ca3af;margin-top:1px;">'
+                    f'Trendstruktur · {trend_status}'
+                    f'</div>'
+                    f'</div>'
+                    f'</div>'
+                )
+
                 st.markdown(
-                    f"**{trend} · {trend_status}**"
+                    f"""
+                    <div style="
+                        display:flex;
+                        justify-content:flex-end;
+                        margin-top:-38px;
+                        margin-bottom:8px;
+                    ">
+                        <div style="
+                            display:flex;
+                            align-items:center;
+                            gap:8px;
+                        ">
+                            <div style="
+                                width:30px;
+                                height:30px;
+                                border-radius:8px;
+                                background:{trend_visual['color']}18;
+                                color:{trend_visual['color']};
+                                display:flex;
+                                align-items:center;
+                                justify-content:center;
+                                font-size:1.35rem;
+                                font-weight:700;
+                            ">{trend_visual['symbol']}</div>
+                            <div>
+                                <div style="
+                                    font-size:0.86rem;
+                                    font-weight:700;
+                                    color:#e6edf3;
+                                    line-height:1.05;
+                                ">{trend_visual['label']}</div>
+                                <div style="
+                                    font-size:0.68rem;
+                                    color:#9ca3af;
+                                    margin-top:3px;
+                                ">{trend_status} · bis zu 5 Jahre</div>
+                            </div>
+                        </div>
+                    </div>
+                    """.replace("\n", "").strip(),
+                    unsafe_allow_html=True,
                 )
 
             elif criterion == "Momentum":
@@ -982,25 +1116,199 @@ def _render_opportunity_breakdown(
                 momentum_6m = data.get("Momentum 6M")
                 momentum_12m = data.get("Momentum 12M")
 
-                m1, m2, m3 = st.columns(3)
+                momentum_values = [
+                    momentum_3m,
+                    momentum_6m,
+                    momentum_12m,
+                ]
 
-                with m1:
-                    st.caption("3 Monate")
-                    st.markdown(
-                        f"**{_format_momentum(momentum_3m)}**"
+                if all(
+                    value is not None
+                    for value in momentum_values
+                ):
+                    values = [
+                        float(value)
+                        for value in momentum_values
+                    ]
+
+                    chart_min = min(
+                        min(values),
+                        0.0,
+                    )
+                    chart_max = max(
+                        max(values),
+                        0.0,
                     )
 
-                with m2:
-                    st.caption("6 Monate")
-                    st.markdown(
-                        f"**{_format_momentum(momentum_6m)}**"
+                    chart_range = chart_max - chart_min
+
+                    if chart_range == 0:
+                        chart_range = 1.0
+
+                    padding = max(
+                        chart_range * 0.18,
+                        2.0,
                     )
 
-                with m3:
-                    st.caption("12 Monate")
-                    st.markdown(
-                        f"**{_format_momentum(momentum_12m)}**"
+                    chart_min -= padding
+                    chart_max += padding
+                    chart_range = chart_max - chart_min
+
+                    import math
+
+                    momentum_scale = max(
+                        5.0,
+                        min(
+                            20.0,
+                            max(abs(value) for value in values)
+                            * 0.15,
+                        ),
                     )
+
+                    transformed_values = [
+                        math.asinh(value / momentum_scale)
+                        for value in values
+                    ]
+                    transformed_zero = 0.0
+
+                    transformed_min = min(
+                        min(transformed_values),
+                        transformed_zero,
+                    )
+                    transformed_max = max(
+                        max(transformed_values),
+                        transformed_zero,
+                    )
+
+                    transformed_range = (
+                        transformed_max - transformed_min
+                    )
+
+                    if transformed_range == 0:
+                        transformed_range = 1.0
+
+                    transformed_padding = max(
+                        transformed_range * 0.18,
+                        0.15,
+                    )
+
+                    transformed_min -= transformed_padding
+                    transformed_max += transformed_padding
+                    transformed_range = (
+                        transformed_max - transformed_min
+                    )
+
+                    def momentum_y(value):
+                        transformed = math.asinh(
+                            value / momentum_scale
+                        )
+                        return (
+                            8
+                            + (
+                                transformed_max - transformed
+                            )
+                            / transformed_range
+                            * 54
+                        )
+
+                    x_positions = [20, 150, 280]
+                    y_positions = [
+                        momentum_y(value)
+                        for value in values
+                    ]
+                    zero_y = momentum_y(0.0)
+
+                    points = " ".join(
+                        f"{x},{y:.1f}"
+                        for x, y in zip(
+                            x_positions,
+                            y_positions,
+                        )
+                    )
+
+                    circles = "".join(
+                        (
+                            f'<circle cx="{x}" cy="{y:.1f}" '
+                            f'r="4.5" fill="#0e1117" '
+                            f'stroke="#e6edf3" '
+                            f'stroke-width="2"/>'
+                        )
+                        for x, y in zip(
+                            x_positions,
+                            y_positions,
+                        )
+                    )
+
+                    momentum_html = (
+                        '<div style="margin-top:-38px;'
+                        'width:55%;min-width:360px;'
+                        'margin-left:auto;">'
+                        '<svg viewBox="0 0 300 78" '
+                        'width="100%" height="78" '
+                        'preserveAspectRatio="none">'
+                        f'<line x1="8" y1="{zero_y:.1f}" '
+                        f'x2="292" y2="{zero_y:.1f}" '
+                        'stroke="#6e7681" stroke-width="1" '
+                        'stroke-dasharray="4 4"/>'
+                        f'<polyline points="{points}" '
+                        'fill="none" stroke="#7457C8" '
+                        'stroke-width="2" '
+                        'stroke-linecap="round" '
+                        'stroke-linejoin="round"/>'
+                        f'{circles}'
+                        '</svg>'
+                        '<div style="display:flex;'
+                        'justify-content:space-between;'
+                        'margin-top:-2px;">'
+                        '<div style="text-align:left;">'
+                        '<div style="font-size:0.68rem;'
+                        'color:#9ca3af;">3 Monate</div>'
+                        f'<div style="font-size:0.84rem;'
+                        f'font-weight:700;color:#e6edf3;">'
+                        f'{_format_momentum(momentum_3m)}</div>'
+                        '</div>'
+                        '<div style="text-align:center;">'
+                        '<div style="font-size:0.68rem;'
+                        'color:#9ca3af;">6 Monate</div>'
+                        f'<div style="font-size:0.84rem;'
+                        f'font-weight:700;color:#e6edf3;">'
+                        f'{_format_momentum(momentum_6m)}</div>'
+                        '</div>'
+                        '<div style="text-align:right;">'
+                        '<div style="font-size:0.68rem;'
+                        'color:#9ca3af;">12 Monate</div>'
+                        f'<div style="font-size:0.84rem;'
+                        f'font-weight:700;color:#e6edf3;">'
+                        f'{_format_momentum(momentum_12m)}</div>'
+                        '</div>'
+                        '</div>'
+                        '</div>'
+                    )
+
+                    st.markdown(
+                        momentum_html,
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    m1, m2, m3 = st.columns(3)
+
+                    with m1:
+                        st.caption("3 Monate")
+                        st.markdown(
+                            f"**{_format_momentum(momentum_3m)}**"
+                        )
+
+                    with m2:
+                        st.caption("6 Monate")
+                        st.markdown(
+                            f"**{_format_momentum(momentum_6m)}**"
+                        )
+
+                    with m3:
+                        st.caption("12 Monate")
+                        st.markdown(
+                            f"**{_format_momentum(momentum_12m)}**"
+                        )
 
             elif criterion == "RSI":
                 rsi = data.get("RSI 14")
@@ -1020,6 +1328,52 @@ def _render_opportunity_breakdown(
                     st.caption("Relative Stärke")
                     st.markdown(
                         f"**RSI (14): {rsi:.1f} · {label}**"
+                    )
+
+                    rsi_position = max(
+                        0.0,
+                        min(100.0, float(rsi)),
+                    )
+
+                    rsi_html = (
+                        f'<div style="position:relative;'
+                        f'margin-top:10px;margin-bottom:4px;'
+                        f'height:8px;border-radius:999px;'
+                        f'background:linear-gradient(to right,'
+                        f'#2EAD7B 0%,'
+                        f'#2EAD7B 30%,'
+                        f'#8b949e 30%,'
+                        f'#8b949e 60%,'
+                        f'#E58A2B 60%,'
+                        f'#E58A2B 70%,'
+                        f'#D9534F 70%,'
+                        f'#D9534F 100%);">'
+                        f'<div style="position:absolute;'
+                        f'left:{rsi_position}%;top:50%;'
+                        f'width:16px;height:16px;border-radius:50%;'
+                        f'background:#20242B;'
+                        f'border:3px solid #ffffff;'
+                        f'transform:translate(-50%,-50%);'
+                        f'box-shadow:0 0 0 1px rgba(0,0,0,0.35);">'
+                        f'</div>'
+                        f'</div>'
+                        f'<div style="position:relative;'
+                        f'height:17px;color:#9ca3af;'
+                        f'font-size:0.68rem;">'
+                        f'<span style="position:absolute;left:0;">0</span>'
+                        f'<span style="position:absolute;left:30%;'
+                        f'transform:translateX(-50%);">30</span>'
+                        f'<span style="position:absolute;left:60%;'
+                        f'transform:translateX(-50%);">60</span>'
+                        f'<span style="position:absolute;left:70%;'
+                        f'transform:translateX(-50%);">70</span>'
+                        f'<span style="position:absolute;right:0;">100</span>'
+                        f'</div>'
+                    )
+
+                    st.markdown(
+                        rsi_html,
+                        unsafe_allow_html=True,
                     )
 
             elif criterion == "52W-Kontext":
@@ -1047,6 +1401,80 @@ def _render_opportunity_breakdown(
                             if distance_52w is not None
                             else "**Keine Daten**"
                         )
+                    )
+
+                if distance_52w is not None:
+                    distance_position = max(
+                        0.0,
+                        min(
+                            100.0,
+                            (float(distance_52w) + 50.0) / 50.0 * 100.0,
+                        ),
+                    )
+
+                    st.markdown(
+                        f"""
+                        <div style="
+                            position:relative;
+                            margin-top:8px;
+                            margin-bottom:4px;
+                            height:7px;
+                            border-radius:999px;
+                            background:linear-gradient(
+                                to right,
+                                #3f454d 0%,
+                                #4d5560 20%,
+                                #596572 40%,
+                                #66788a 60%,
+                                #5b8f82 80%,
+                                #2EAD7B 100%
+                            );
+                        ">
+                            <div style="
+                                position:absolute;
+                                left:{distance_position}%;
+                                top:50%;
+                                width:16px;
+                                height:16px;
+                                border-radius:50%;
+                                background:#20242B;
+                                border:3px solid #ffffff;
+                                transform:translate(-50%, -50%);
+                                box-shadow:0 0 0 1px rgba(0,0,0,0.35);
+                            "></div>
+                        </div>
+
+                        <div style="
+                            position:relative;
+                            height:17px;
+                            color:#9ca3af;
+                            font-size:0.68rem;
+                        ">
+                            <span style="position:absolute;left:0;">≤ −50</span>
+                            <span style="
+                                position:absolute;
+                                left:20%;
+                                transform:translateX(-50%);
+                            ">−40</span>
+                            <span style="
+                                position:absolute;
+                                left:40%;
+                                transform:translateX(-50%);
+                            ">−30</span>
+                            <span style="
+                                position:absolute;
+                                left:60%;
+                                transform:translateX(-50%);
+                            ">−20</span>
+                            <span style="
+                                position:absolute;
+                                left:80%;
+                                transform:translateX(-50%);
+                            ">−10</span>
+                            <span style="position:absolute;right:0;">0 %</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
                     )
 
             elif criterion == "Pressure Balance":
@@ -1077,6 +1505,253 @@ def _render_opportunity_breakdown(
                         f"{pressure_balance:+.2f} · {label}**"
                     )
 
+                    # Relevanter Bewertungsbereich:
+                    # <= -0.50 bis >= +0.40.
+                    pressure_min = -0.50
+                    pressure_max = 0.40
+
+                    pressure_position = (
+                        (
+                            max(
+                                pressure_min,
+                                min(
+                                    pressure_max,
+                                    float(pressure_balance),
+                                ),
+                            )
+                            - pressure_min
+                        )
+                        / (pressure_max - pressure_min)
+                        * 100.0
+                    )
+
+                    # Positionen der Bewertungsgrenzen auf der
+                    # nicht symmetrischen Skala -0.50 bis +0.40.
+                    pos_minus_030 = (
+                        (-0.30 - pressure_min)
+                        / (pressure_max - pressure_min)
+                        * 100.0
+                    )
+                    pos_minus_010 = (
+                        (-0.10 - pressure_min)
+                        / (pressure_max - pressure_min)
+                        * 100.0
+                    )
+                    pos_plus_005 = (
+                        (0.05 - pressure_min)
+                        / (pressure_max - pressure_min)
+                        * 100.0
+                    )
+                    pos_plus_020 = (
+                        (0.20 - pressure_min)
+                        / (pressure_max - pressure_min)
+                        * 100.0
+                    )
+
+                    pressure_html = (
+                        f'<div style="position:relative;'
+                        f'margin-top:10px;margin-bottom:4px;'
+                        f'height:8px;border-radius:999px;'
+                        f'background:linear-gradient(to right,'
+                        f'#D9534F 0%,'
+                        f'#D9534F {pos_minus_030:.1f}%,'
+                        f'#B96B50 {pos_minus_030:.1f}%,'
+                        f'#B96B50 {pos_minus_010:.1f}%,'
+                        f'#8b949e {pos_minus_010:.1f}%,'
+                        f'#8b949e {pos_plus_005:.1f}%,'
+                        f'#5b8f82 {pos_plus_005:.1f}%,'
+                        f'#5b8f82 {pos_plus_020:.1f}%,'
+                        f'#2EAD7B {pos_plus_020:.1f}%,'
+                        f'#2EAD7B 100%);">'
+                        f'<div style="position:absolute;'
+                        f'left:{pressure_position:.1f}%;top:50%;'
+                        f'width:16px;height:16px;'
+                        f'border-radius:50%;'
+                        f'background:#20242B;'
+                        f'border:3px solid #ffffff;'
+                        f'transform:translate(-50%,-50%);'
+                        f'box-shadow:0 0 0 1px rgba(0,0,0,0.35);">'
+                        f'</div>'
+                        f'</div>'
+                        f'<div style="position:relative;'
+                        f'height:17px;color:#9ca3af;'
+                        f'font-size:0.68rem;">'
+                        f'<span style="position:absolute;left:0;">'
+                        f'≤ −0,50</span>'
+                        f'<span style="position:absolute;'
+                        f'left:{pos_minus_030:.1f}%;'
+                        f'transform:translateX(-50%);">−0,30</span>'
+                        f'<span style="position:absolute;'
+                        f'left:{pos_minus_010:.1f}%;'
+                        f'transform:translateX(-50%);">−0,10</span>'
+                        f'<span style="position:absolute;'
+                        f'left:{pos_plus_005:.1f}%;'
+                        f'transform:translateX(-50%);">+0,05</span>'
+                        f'<span style="position:absolute;'
+                        f'left:{pos_plus_020:.1f}%;'
+                        f'transform:translateX(-50%);">+0,20</span>'
+                        f'<span style="position:absolute;right:0;">'
+                        f'≥ +0,40</span>'
+                        f'</div>'
+                    )
+
+                    st.markdown(
+                        pressure_html,
+                        unsafe_allow_html=True,
+                    )
+
+            if criterion == "CM MACD":
+                macd_weekly = data.get("CM MACD Weekly")
+                signal_weekly = data.get("CM Signal Weekly")
+                histogram_weekly = data.get("CM Histogram Weekly")
+
+                if (
+                    macd_weekly is not None
+                    and signal_weekly is not None
+                    and histogram_weekly is not None
+                    and len(macd_weekly) >= 2
+                    and len(signal_weekly) >= 2
+                    and len(histogram_weekly) >= 2
+                ):
+                    macd_values = [
+                        float(value)
+                        for value in macd_weekly[-12:]
+                    ]
+                    signal_values = [
+                        float(value)
+                        for value in signal_weekly[-12:]
+                    ]
+                    histogram_values = [
+                        float(value)
+                        for value in histogram_weekly[-12:]
+                    ]
+
+                    count = min(
+                        len(macd_values),
+                        len(signal_values),
+                        len(histogram_values),
+                    )
+
+                    macd_values = macd_values[-count:]
+                    signal_values = signal_values[-count:]
+                    histogram_values = histogram_values[-count:]
+
+                    all_values = (
+                        macd_values
+                        + signal_values
+                        + histogram_values
+                        + [0.0]
+                    )
+
+                    chart_min = min(all_values)
+                    chart_max = max(all_values)
+                    chart_range = chart_max - chart_min
+
+                    if chart_range == 0:
+                        chart_range = 1.0
+
+                    padding = chart_range * 0.12
+                    chart_min -= padding
+                    chart_max += padding
+                    chart_range = chart_max - chart_min
+
+                    def macd_y(value):
+                        return (
+                            6
+                            + (chart_max - value)
+                            / chart_range
+                            * 78
+                        )
+
+                    x_positions = [
+                        10 + index * 280 / (count - 1)
+                        for index in range(count)
+                    ]
+
+                    macd_points_svg = " ".join(
+                        f"{x:.1f},{macd_y(value):.1f}"
+                        for x, value in zip(
+                            x_positions,
+                            macd_values,
+                        )
+                    )
+
+                    signal_points_svg = " ".join(
+                        f"{x:.1f},{macd_y(value):.1f}"
+                        for x, value in zip(
+                            x_positions,
+                            signal_values,
+                        )
+                    )
+
+                    zero_y = macd_y(0.0)
+
+                    bar_width = max(
+                        3.0,
+                        min(12.0, 180.0 / count),
+                    )
+
+                    histogram_bars = "".join(
+                        (
+                            f'<rect '
+                            f'x="{x - bar_width / 2:.1f}" '
+                            f'y="{min(macd_y(value), zero_y):.1f}" '
+                            f'width="{bar_width:.1f}" '
+                            f'height="{max(abs(macd_y(value) - zero_y), 1.0):.1f}" '
+                            f'rx="1" '
+                            f'fill="{"#2EAD7B" if value >= 0 else "#D9534F"}" '
+                            f'opacity="0.55"/>'
+                        )
+                        for x, value in zip(
+                            x_positions,
+                            histogram_values,
+                        )
+                    )
+
+                    macd_html = (
+                        '<div style="margin-top:-38px;'
+                        'width:55%;min-width:360px;'
+                        'margin-left:auto;">'
+                        '<svg viewBox="0 0 300 92" '
+                        'width="100%" height="92" '
+                        'preserveAspectRatio="none">'
+                        f'<line x1="6" y1="{zero_y:.1f}" '
+                        f'x2="294" y2="{zero_y:.1f}" '
+                        'stroke="#6e7681" stroke-width="1" '
+                        'stroke-dasharray="4 4"/>'
+                        f'{histogram_bars}'
+                        f'<polyline points="{signal_points_svg}" '
+                        'fill="none" stroke="#8b949e" '
+                        'stroke-width="1.5" '
+                        'stroke-linecap="round" '
+                        'stroke-linejoin="round"/>'
+                        f'<polyline points="{macd_points_svg}" '
+                        'fill="none" stroke="#7457C8" '
+                        'stroke-width="2" '
+                        'stroke-linecap="round" '
+                        'stroke-linejoin="round"/>'
+                        '</svg>'
+                        '<div style="display:flex;'
+                        'justify-content:flex-end;gap:14px;'
+                        'margin-top:-2px;font-size:0.68rem;'
+                        'color:#9ca3af;">'
+                        '<span style="color:#7457C8;">━ MACD</span>'
+                        '<span>━ Signal</span>'
+                        '<span>▮ Histogramm</span>'
+                        '</div>'
+                        '<div style="text-align:right;'
+                        'margin-top:3px;font-size:0.68rem;'
+                        'color:#9ca3af;">'
+                        'Darstellung: letzte 12 Wochen'
+                        '</div>'
+                        '</div>'
+                    )
+
+                    st.markdown(
+                        macd_html,
+                        unsafe_allow_html=True,
+                    )
+
             st.divider()
 
         # -----------------------------------------------------
@@ -1094,10 +1769,29 @@ def _render_opportunity_breakdown(
             entry_header = f"{entry_points:.1f} / 30"
 
         st.markdown(
-            f"##### 🎯 Entry Setup heute"
-            f"<span style='float:right'>"
-            f"{entry_header}"
-            f"</span>",
+            f"""
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                padding:16px 16px;
+                margin:2px 0 14px 0;
+                background:linear-gradient(
+                    180deg,
+                    #363b44 0%,
+                    #292d34 100%
+                );
+                border:1px solid #5a616c;
+                border-radius:8px;
+                box-shadow:0 5px 16px rgba(0,0,0,0.38);
+                color:#f0f2f5;
+                font-size:1.12rem;
+                font-weight:700;
+            ">
+                <span>🎯 Entry Setup heute</span>
+                <span>{entry_header}</span>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
@@ -1139,6 +1833,51 @@ def _render_opportunity_breakdown(
         entry_detail = data.get("Entry Setup Erklärung")
         if entry_detail:
             st.caption(entry_detail)
+
+        if entry_points is not None:
+            entry_position = max(
+                0.0,
+                min(
+                    100.0,
+                    float(entry_points) / 30.0 * 100.0,
+                ),
+            )
+
+            entry_scale_html = (
+                f'<div style="margin-top:10px;">'
+                f'<div style="position:relative;'
+                f'height:8px;border-radius:999px;'
+                f'background:linear-gradient(to right,'
+                f'#D9534F 0%,'
+                f'#B96B50 25%,'
+                f'#8b949e 50%,'
+                f'#5b8f82 75%,'
+                f'#2EAD7B 100%);">'
+                f'<div style="position:absolute;'
+                f'left:{entry_position:.1f}%;top:50%;'
+                f'width:16px;height:16px;'
+                f'border-radius:50%;'
+                f'background:#20242B;'
+                f'border:3px solid #ffffff;'
+                f'transform:translate(-50%,-50%);'
+                f'box-shadow:0 0 0 1px rgba(0,0,0,0.35);">'
+                f'</div>'
+                f'</div>'
+                f'<div style="display:flex;'
+                f'justify-content:space-between;'
+                f'margin-top:5px;margin-bottom:20px;'
+                f'font-size:0.68rem;color:#9ca3af;">'
+                f'<span>Einstieg abwarten</span>'
+                f'<span>Selektiver Einstieg</span>'
+                f'<span>Günstiges Einstiegssetup</span>'
+                f'</div>'
+                f'</div>'
+            )
+
+            st.markdown(
+                entry_scale_html,
+                unsafe_allow_html=True,
+            )
 
         channel_position = data.get("Trendkanal Position")
         channel_position_normalized = data.get(
