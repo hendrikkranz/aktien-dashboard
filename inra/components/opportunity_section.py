@@ -1613,6 +1613,90 @@ def _render_opportunity_breakdown(
                     and len(signal_weekly) >= 2
                     and len(histogram_weekly) >= 2
                 ):
+                    positive_weeks = 0
+                    for value in reversed(histogram_weekly):
+                        if value > 0:
+                            positive_weeks += 1
+                        else:
+                            break
+
+                    crossover_weeks = 0
+                    for macd_value, signal_value in reversed(
+                        list(zip(macd_weekly, signal_weekly))
+                    ):
+                        if macd_value > signal_value:
+                            crossover_weeks += 1
+                        else:
+                            break
+
+                    histogram_rising = (
+                        len(histogram_weekly) >= 2
+                        and histogram_weekly[-1]
+                        > histogram_weekly[-2]
+                    )
+                    histogram_rising_3w = (
+                        len(histogram_weekly) >= 3
+                        and histogram_weekly[-1]
+                        > histogram_weekly[-2]
+                        > histogram_weekly[-3]
+                    )
+                    macd_rising_3w = (
+                        len(macd_weekly) >= 3
+                        and macd_weekly[-1]
+                        > macd_weekly[-2]
+                        > macd_weekly[-3]
+                    )
+                    fresh_positive_histogram = (
+                        1 <= positive_weeks <= 3
+                    )
+                    fresh_bullish_crossover = (
+                        1 <= crossover_weeks <= 3
+                    )
+
+                    positive_macd_signals = sum(
+                        (
+                            histogram_rising,
+                            histogram_rising_3w,
+                            macd_rising_3w,
+                            fresh_positive_histogram,
+                            fresh_bullish_crossover,
+                        )
+                    )
+
+                    if positive_macd_signals == 0:
+                        macd_explanation = (
+                            "Kein positives MACD-Signal: Histogramm und "
+                            "MACD<br>zeigen aktuell keine frische "
+                            "Aufwärtsdynamik."
+                        )
+                    elif positive_macd_signals <= 2:
+                        macd_explanation = (
+                            "Erste positive MACD-Signale sind erkennbar, "
+                            "aber noch nicht ausreichend bestätigt."
+                        )
+                    elif positive_macd_signals <= 4:
+                        macd_explanation = (
+                            "Der MACD zeigt positive Aufwärtsdynamik, "
+                            "die Bestätigung ist jedoch noch nicht "
+                            "vollständig."
+                        )
+                    else:
+                        macd_explanation = (
+                            "Der MACD bestätigt eine klare positive "
+                            "Aufwärtsdynamik."
+                        )
+
+                    st.markdown(
+                        (
+                            '<div style="color:#9ca3af;'
+                            'font-size:0.875rem;'
+                            'margin-top:0.25rem;">'
+                            f'{macd_explanation}'
+                            '</div>'
+                        ),
+                        unsafe_allow_html=True,
+                    )
+
                     macd_values = [
                         float(value)
                         for value in macd_weekly[-12:]
