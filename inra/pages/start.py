@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 
 from utils.market_environment_data import (
+    load_market_overview_data,
     load_market_risk_history,
     load_market_risk_snapshot,
     save_market_risk_snapshot,
@@ -1128,6 +1129,477 @@ def render_indicator(
                 )
 
 
+MARKET_OVERVIEW_EVENTS = [
+    {
+        "Datum": "1998-09-23",
+        "Ereignis": "Russlandkrise / LTCM",
+        "Info": "Finanzmarktstress rund um Russlandkrise und LTCM.",
+    },
+    {
+        "Datum": "2000-03-10",
+        "Ereignis": "Dotcom-Blase",
+        "Info": "Höhepunkt der Technologieblase; anschließend starker Bärenmarkt.",
+    },
+    {
+        "Datum": "2001-09-11",
+        "Ereignis": "9/11",
+        "Info": "Terroranschläge in den USA mit schweren Marktverwerfungen.",
+    },
+    {
+        "Datum": "2008-09-15",
+        "Ereignis": "Finanzkrise · Lehman",
+        "Info": "Lehman Brothers meldet Insolvenz an; die Finanzkrise eskaliert.",
+    },
+    {
+        "Datum": "2011-08-08",
+        "Ereignis": "US-/Euro-Schuldenkrise",
+        "Info": "Starke Marktverluste während der Staatsschuldenkrise.",
+    },
+    {
+        "Datum": "2015-08-24",
+        "Ereignis": "China-Marktturbulenzen",
+        "Info": "Globale Aktienmärkte geraten wegen China-Sorgen stark unter Druck.",
+    },
+    {
+        "Datum": "2018-02-05",
+        "Ereignis": "Volatilitätsschock 2018",
+        "Info": "Abrupter Volatilitätssprung und starke Aktienmarktverluste.",
+    },
+    {
+        "Datum": "2020-03-23",
+        "Ereignis": "Corona-Crash",
+        "Info": "Extremphase des pandemiebedingten globalen Markteinbruchs.",
+    },
+    {
+        "Datum": "2022-02-24",
+        "Ereignis": "Angriff auf die Ukraine",
+        "Info": "Beginn der großangelegten russischen Invasion mit starken Marktreaktionen.",
+    },
+    {
+        "Datum": "2025-04-02",
+        "Ereignis": "Zollschock · Liberation Day",
+        "Info": "Ankündigung weitreichender US-Zölle; anschließend heftige globale Marktreaktion.",
+    },
+]
+
+
+def _market_overview_event_points(chart_data):
+    """Ordnet Ereignisse dem nächstgelegenen sichtbaren Datenpunkt zu."""
+    if chart_data is None or chart_data.empty:
+        return pd.DataFrame(
+            columns=["Datum", "Wert", "Ereignis", "Info"]
+        )
+
+    data = (
+        chart_data[["Datum", "Wert"]]
+        .dropna()
+        .sort_values("Datum")
+        .copy()
+    )
+
+    # Einheitliche Datumsbasis für Yahoo-/FRED-Daten und
+    # die statischen Marktereignisse.
+    data["Datum"] = pd.to_datetime(
+        data["Datum"],
+        utc=True,
+    ).dt.tz_localize(None)
+
+    if data.empty:
+        return pd.DataFrame(
+            columns=["Datum", "Wert", "Ereignis", "Info"]
+        )
+
+    start = data["Datum"].min()
+    end = data["Datum"].max()
+    rows = []
+
+    for event in MARKET_OVERVIEW_EVENTS:
+        event_date = pd.Timestamp(event["Datum"])
+
+        if event_date < start or event_date > end:
+            continue
+
+        nearest_index = (
+            (data["Datum"] - event_date)
+            .abs()
+            .idxmin()
+        )
+        nearest = data.loc[nearest_index]
+
+        rows.append(
+            {
+                "Datum": nearest["Datum"],
+                "Wert": nearest["Wert"],
+                "Ereignis": event["Ereignis"],
+                "Info": event["Info"],
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def _market_overview_window(history, period_key):
+    if history is None or history.empty:
+        return pd.DataFrame(columns=["Datum", "Wert"])
+
+    data = history.copy()
+    end = data["Datum"].max()
+    years = 1 if period_key == "1 Jahr" else 30
+    start = end - pd.DateOffset(years=years)
+    return data[data["Datum"] >= start].copy()
+
+
+def _market_overview_change(data, unit):
+    if data is None or len(data) < 2:
+        return None
+
+    first = float(data["Wert"].iloc[0])
+    last = float(data["Wert"].iloc[-1])
+
+    if unit == "index":
+        if first == 0:
+            return None
+        return (last / first - 1) * 100
+
+    return last - first
+
+
+def _build_market_overview_chart(
+    item,
+    period_key,
+    height=145,
+):
+    history = item.get("history")
+    data = _market_overview_window(history, period_key)
+
+    if data.empty:
+        return None
+
+    chart_data = data.copy()
+
+    if period_key == "Langfrist" and len(chart_data) > 900:
+        chart_data = (
+            chart_data
+            .set_index("Datum")["Wert"]
+            .resample("W")
+            .last()
+            .dropna()
+            .reset_index()
+        )
+
+    line_chart = (
+        alt.Chart(chart_data)
+        .mark_line(
+            strokeWidth=1.5,
+        )
+        .encode(
+            x=alt.X(
+                "Datum:T",
+                title=None,
+                axis=alt.Axis(
+                    format=(
+                        "%Y"
+                        if period_key == "Langfrist"
+                        else "%b %y"
+                    )
+                ),
+            ),
+            y=alt.Y(
+                "Wert:Q",
+                title=None,
+                scale=alt.Scale(zero=False),
+            ),
+            tooltip=[
+                alt.Tooltip(
+                    "Datum:T",
+                    title="Datum",
+                    format="%d.%m.%Y",
+                ),
+                alt.Tooltip(
+                    "Wert:Q",
+                    title="Wert",
+                    format=",.2f",
+                ),
+            ],
+        )
+        .properties(height=height)
+    )
+
+    event_data = _market_overview_event_points(chart_data)
+
+    if not event_data.empty:
+        event_points = (
+            alt.Chart(event_data)
+            .mark_point(
+                filled=True,
+                size=70,
+                color="#FFFFFF",
+                stroke="#FFFFFF",
+                strokeWidth=1.0,
+            )
+            .encode(
+                x=alt.X("Datum:T"),
+                y=alt.Y("Wert:Q"),
+                tooltip=[
+                    alt.Tooltip(
+                        "Ereignis:N",
+                        title="Marktereignis",
+                    ),
+                    alt.Tooltip(
+                        "Datum:T",
+                        title="Datum",
+                        format="%d.%m.%Y",
+                    ),
+                    alt.Tooltip(
+                        "Info:N",
+                        title="Einordnung",
+                    ),
+                ],
+            )
+        )
+
+        line_chart = line_chart + event_points
+
+    return line_chart
+
+
+def _market_overview_metric_text(item, period_key):
+    history = item.get("history")
+    data = _market_overview_window(history, period_key)
+
+    if data.empty:
+        return "–", "–"
+
+    current = float(data["Wert"].iloc[-1])
+    unit = item.get("unit")
+    change = _market_overview_change(data, unit)
+
+    if unit == "%":
+        current_text = f"{current:.2f} %"
+        change_text = (
+            f"{change:+.2f} pp"
+            if change is not None
+            else "–"
+        )
+    elif unit == "pp":
+        current_text = f"{current:.2f} pp"
+        change_text = (
+            f"{change:+.2f} pp"
+            if change is not None
+            else "–"
+        )
+    else:
+        current_text = f"{current:.1f}"
+        change_text = (
+            f"{change:+.1f} %"
+            if change is not None
+            else "–"
+        )
+
+    return current_text, change_text
+
+
+@st.dialog("Marktchart", width="large")
+def show_market_overview_chart(item, period_key):
+    st.markdown(f"## {item['name']}")
+    st.caption(item.get("subtitle", ""))
+
+    current_text, change_text = _market_overview_metric_text(
+        item,
+        period_key,
+    )
+
+    metric_col, change_col = st.columns(2)
+
+    metric_col.metric(
+        "Aktuell",
+        current_text,
+    )
+
+    change_label = (
+        "Veränderung 1J"
+        if period_key == "1 Jahr"
+        else "Veränderung langfristig"
+    )
+
+    change_col.metric(
+        change_label,
+        change_text,
+    )
+
+    chart = _build_market_overview_chart(
+        item,
+        period_key,
+        height=430,
+    )
+
+    if chart is not None:
+        st.altair_chart(
+            chart,
+            use_container_width=True,
+        )
+
+    as_of = pd.Timestamp(
+        item["as_of"]
+    ).strftime("%d.%m.%Y")
+
+    history = item.get("history")
+
+    if (
+        period_key == "Langfrist"
+        and history is not None
+        and not history.empty
+    ):
+        first_available = pd.Timestamp(
+            history["Datum"].min()
+        )
+        since = first_available.strftime("%Y")
+
+        st.caption(
+            f"Daten seit {since} verfügbar · "
+            f"Stand {as_of} · "
+            f"Quelle: {item['source']}"
+        )
+    else:
+        st.caption(
+            f"Datenstand {as_of} · "
+            f"Quelle: {item['source']}"
+        )
+
+
+def render_market_overview_card(item, period_key):
+    history = item.get("history")
+    data = _market_overview_window(history, period_key)
+
+    if data.empty:
+        st.markdown(f"#### {item['name']}")
+        st.caption(item.get("subtitle", ""))
+        st.info("Zeitreihe derzeit nicht verfügbar.")
+        return
+
+    current = float(data["Wert"].iloc[-1])
+    unit = item.get("unit")
+    change = _market_overview_change(data, unit)
+
+    if unit == "%":
+        current_text = f"{current:.2f} %"
+        change_text = f"{change:+.2f} pp" if change is not None else "–"
+    elif unit == "pp":
+        current_text = f"{current:.2f} pp"
+        change_text = f"{change:+.2f} pp" if change is not None else "–"
+    else:
+        current_text = f"{current:,.1f}".replace(",", " ")
+        change_text = f"{change:+.1f} %" if change is not None else "–"
+
+    first_available = pd.Timestamp(history["Datum"].min())
+    requested_years = 1 if period_key == "1 Jahr" else 30
+    requested_start = pd.Timestamp(data["Datum"].max()) - pd.DateOffset(
+        years=requested_years
+    )
+    limited_history = first_available > requested_start + pd.DateOffset(days=45)
+
+    st.markdown(f"#### {item['name']}")
+    st.caption(item.get("subtitle", ""))
+
+    metric_col, change_col = st.columns([1.15, 1])
+    metric_col.metric("Aktuell", current_text)
+    change_label = (
+        "Veränderung 1J"
+        if period_key == "1 Jahr"
+        else "Veränderung langfristig"
+    )
+    change_col.metric(change_label, change_text)
+
+    chart = _build_market_overview_chart(
+        item,
+        period_key,
+        height=145,
+    )
+
+    if chart is not None:
+        st.altair_chart(
+            chart,
+            use_container_width=True,
+        )
+
+    if st.button(
+        "↗ Vergrößern",
+        key=f"expand_market_{item['name']}_{period_key}",
+        use_container_width=True,
+    ):
+        show_market_overview_chart(
+            item,
+            period_key,
+        )
+
+    as_of = pd.Timestamp(item["as_of"]).strftime("%d.%m.%Y")
+    if limited_history and period_key == "Langfrist":
+        since = first_available.strftime("%Y")
+        st.caption(
+            f"Daten seit {since} verfügbar · Stand {as_of} · "
+            f"Quelle: {item['source']}"
+        )
+    else:
+        st.caption(f"Datenstand {as_of} · Quelle: {item['source']}")
+
+
+st.markdown(
+    """
+    <div style="
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #8b949e;
+        margin-bottom: 0.15rem;
+    ">
+        Märkte im Überblick
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.caption(
+    "Vier zentrale Marktgrößen auf einen Blick – zunächst die Daten, "
+    "danach die InRA-Einordnung in der Marktlage."
+)
+
+overview_period = st.radio(
+    "Zeitraum Märkte im Überblick",
+    options=["1 Jahr", "Langfrist"],
+    horizontal=True,
+    label_visibility="collapsed",
+    key="market_overview_period",
+)
+
+market_overview = load_market_overview_data()
+
+row_1 = st.columns(2, gap="large")
+with row_1[0]:
+    with st.container(border=True):
+        render_market_overview_card(
+            market_overview["world_equities"], overview_period
+        )
+with row_1[1]:
+    with st.container(border=True):
+        render_market_overview_card(
+            market_overview["us_10y"], overview_period
+        )
+
+row_2 = st.columns(2, gap="large")
+with row_2[0]:
+    with st.container(border=True):
+        render_market_overview_card(
+            market_overview["vix"], overview_period
+        )
+with row_2[1]:
+    with st.container(border=True):
+        render_market_overview_card(
+            market_overview["us_high_yield"], overview_period
+        )
+
+st.divider()
+
 st.markdown(
     """
     <div style="
@@ -1621,7 +2093,23 @@ def render_market_history_chart(history_column):
                 ),
             ],
         )
-        .properties(height=145)
+        .properties(
+            height=145,
+            title=alt.TitleParams(
+                text=item["name"],
+                subtitle=[
+                    item.get("subtitle", ""),
+                    (
+                        "1 Jahr"
+                        if period_key == "1 Jahr"
+                        else "Langfrist"
+                    ),
+                ],
+                anchor="start",
+                fontSize=13,
+                subtitleFontSize=10,
+            ),
+        )
     )
 
     st.altair_chart(

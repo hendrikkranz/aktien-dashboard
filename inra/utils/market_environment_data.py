@@ -321,6 +321,98 @@ def load_fred_series(
 
 
 
+MARKET_OVERVIEW_SERIES = {
+    "world_equities": {
+        "name": "Weltaktien",
+        "subtitle": "MSCI ACWI ETF-Proxy",
+        "source": "Yahoo Finance",
+        "ticker": "ACWI",
+        "unit": "index",
+    },
+    "us_10y": {
+        "name": "US-Zins 10J",
+        "subtitle": "10-jährige US-Staatsanleihe",
+        "source": "FRED",
+        "fred_id": "DGS10",
+        "unit": "%",
+    },
+    "vix": {
+        "name": "Volatilität",
+        "subtitle": "CBOE VIX",
+        "source": "FRED",
+        "fred_id": "VIXCLS",
+        "unit": "index",
+    },
+    "us_high_yield": {
+        "name": "Credit Stress",
+        "subtitle": "US High Yield OAS",
+        "source": "FRED",
+        "fred_id": "BAMLH0A0HYM2",
+        "unit": "pp",
+    },
+}
+
+
+def _prepare_market_overview_history(history: pd.DataFrame) -> pd.DataFrame:
+    """Normalisiert eine Zeitreihe für die reine Dashboard-Darstellung."""
+    if history is None or history.empty:
+        return pd.DataFrame(columns=["Datum", "Wert"])
+
+    result = history.copy()
+
+    if "Schlusskurs" in result.columns:
+        result = result[["Datum", "Schlusskurs"]].rename(
+            columns={"Schlusskurs": "Wert"}
+        )
+    elif {"Datum", "Wert"}.issubset(result.columns):
+        result = result[["Datum", "Wert"]]
+    else:
+        return pd.DataFrame(columns=["Datum", "Wert"])
+
+    result["Datum"] = pd.to_datetime(result["Datum"], errors="coerce")
+    result["Wert"] = pd.to_numeric(result["Wert"], errors="coerce")
+
+    return (
+        result
+        .dropna(subset=["Datum", "Wert"])
+        .sort_values("Datum")
+        .drop_duplicates(subset=["Datum"], keep="last")
+        .reset_index(drop=True)
+    )
+
+
+@lru_cache(maxsize=1)
+def load_market_overview_data() -> Dict[str, dict]:
+    """
+    Lädt die vier Zeitreihen für „Märkte im Überblick“.
+
+    Diese Darstellung ist bewusst von der Market-Risk-Bewertung getrennt:
+    Sie liefert ausschließlich beobachtbare Marktzeitreihen und verändert
+    weder Scores noch Gewichtungen des Market Risk Models.
+    """
+    results = {}
+
+    for key, config in MARKET_OVERVIEW_SERIES.items():
+        try:
+            if config["source"] == "Yahoo Finance":
+                raw = load_price_history(config["ticker"], period="max")
+            else:
+                raw = load_fred_series(config["fred_id"])
+
+            history = _prepare_market_overview_history(raw)
+        except Exception:
+            history = pd.DataFrame(columns=["Datum", "Wert"])
+
+        results[key] = {
+            **config,
+            "available": not history.empty,
+            "history": history,
+            "as_of": history["Datum"].iloc[-1] if not history.empty else None,
+        }
+
+    return results
+
+
 @lru_cache(maxsize=32)
 def load_ecb_series(
     series_id: str,
