@@ -1706,17 +1706,17 @@ def load_company_snapshot(ticker: str) -> dict:
     snapshot["Real Estate Quality"] = real_estate_quality
     snapshot["Real Estate Quality Data"] = real_estate_quality_data
 
+    snapshot["Qualitative Quality"] = qualitative_quality["score"]
+    snapshot["Qualitative Quality Details"] = qualitative_quality
+    snapshot["Qualitative Quality Factor Details"] = qualitative_quality_details
+    snapshot["Basis Quality"] = basis_quality
+
     snapshot["Kaufchance"] = calculate_opportunity_score(
         snapshot
     )
     snapshot["Opportunity Breakdown"] = (
         calculate_opportunity_breakdown(snapshot)
     )
-
-    snapshot["Qualitative Quality"] = qualitative_quality["score"]
-    snapshot["Qualitative Quality Details"] = qualitative_quality
-    snapshot["Qualitative Quality Factor Details"] = qualitative_quality_details
-    snapshot["Basis Quality"] = basis_quality
     snapshot["Unternehmensqualität"] = (
         basis_quality
         if basis_quality is not None
