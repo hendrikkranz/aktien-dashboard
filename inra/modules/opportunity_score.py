@@ -210,6 +210,20 @@ def calculate_opportunity_breakdown(data: dict) -> list:
             valuation_class,
         )
 
+    earnings_quality_adjustment = (
+        calculate_pe_earnings_quality_penalty(data)
+    )
+
+    pe_earnings_quality_penalty = (
+        earnings_quality_adjustment["penalty"]
+    )
+
+    if core_points is not None:
+        core_points = max(
+            0,
+            core_points - pe_earnings_quality_penalty,
+        )
+
     if (
         pe_current_year is not None
         and pe_next_year is not None
@@ -308,6 +322,17 @@ def calculate_opportunity_breakdown(data: dict) -> list:
                 ),
                 "Punkte GJ +1": next_year_points,
                 "Gewicht GJ +1": 0.40,
+                "Ergebnisqualitäts-Abschlag": (
+                    pe_earnings_quality_penalty
+                ),
+                "Ergebnisqualität": (
+                    earnings_quality_adjustment["rating"]
+                ),
+                "Bereinigungsquote": (
+                    earnings_quality_adjustment[
+                        "adjustment_ratio"
+                    ]
+                ),
             }
         )
 
@@ -338,6 +363,68 @@ def calculate_opportunity_breakdown(data: dict) -> list:
         )
 
     return breakdown
+
+
+def calculate_pe_earnings_quality_penalty(data: dict) -> dict:
+    """
+    Moderater Vertrauensabschlag auf die Forward-KGV-Bewertung.
+
+    Der Abschlag greift nur, wenn die qualitative Ergebnisqualität
+    und eine belastbare GAAP-/Adjusted-EPS-Differenz gemeinsam auf
+    eine eingeschränkte Vergleichbarkeit des verwendeten Adjusted-EPS
+    hinweisen.
+    """
+    factor_details = data.get(
+        "Qualitative Quality Factor Details"
+    ) or {}
+
+    earnings_quality = factor_details.get(
+        "Bilanzierungs-/Ergebnisqualität"
+    ) or {}
+
+    rating = earnings_quality.get("rating")
+    adjustment_ratio = earnings_quality.get(
+        "adjustment_ratio"
+    )
+
+    if adjustment_ratio is None:
+        adjustment_ratio = earnings_quality.get(
+            "Bereinigungsquote"
+        )
+
+    try:
+        rating = float(rating)
+        adjustment_ratio = float(adjustment_ratio)
+    except (TypeError, ValueError):
+        return {
+            "penalty": 0,
+            "rating": rating,
+            "adjustment_ratio": adjustment_ratio,
+            "applied": False,
+        }
+
+    # Negative Differenzen bedeuten keinen Aufschlag des
+    # Adjusted EPS gegenüber GAAP und erzeugen keinen Malus.
+    if adjustment_ratio < 25:
+        penalty = 0
+    elif rating >= 5:
+        penalty = 0
+    elif rating >= 4:
+        penalty = 1
+    elif rating >= 3:
+        penalty = 2 if adjustment_ratio <= 40 else 3
+    else:
+        # Für 1–2/5 zunächst bewusst kein automatischer Malus.
+        # Diese seltenen Fälle sollen vor einer Kalibrierung
+        # separat untersucht werden.
+        penalty = 0
+
+    return {
+        "penalty": penalty,
+        "rating": rating,
+        "adjustment_ratio": adjustment_ratio,
+        "applied": penalty > 0,
+    }
 
 
 def calculate_entry_setup_score(data: dict):

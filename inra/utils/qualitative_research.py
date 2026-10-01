@@ -169,7 +169,24 @@ def build_qualitative_research_prompt(
         '- "Begründung": kurze nachvollziehbare Begründung\n'
         '- Nur beim Faktor "Burggraben / Wettbewerbsposition": '
         '"Hauptkonkurrenten": Liste mit 1 bis 3 tatsächlich relevanten '
-        'Hauptkonkurrenten. Bei allen anderen Faktoren dieses Feld weglassen.\n\n'
+        'Hauptkonkurrenten. Bei allen anderen Faktoren dieses Feld weglassen.\n'
+        '- Nur beim Faktor "Bilanzierungs-/Ergebnisqualität": recherchiere '
+        'zusätzlich für das jüngste abgeschlossene Geschäftsjahr ein direkt '
+        'vergleichbares Paar aus verwässertem GAAP-EPS und vom Unternehmen '
+        'ausgewiesenem bereinigtem bzw. Non-GAAP-EPS. Beide Werte müssen '
+        'denselben Berichtszeitraum und dieselbe Aktienbasis betreffen. '
+        'Bevorzuge dafür Geschäftsbericht, Earnings Release oder '
+        'Investor-Relations-Unterlagen des Unternehmens. Wenn kein '
+        'belastbares direkt vergleichbares Paar verfügbar ist, verwende '
+        'für beide Werte null. Gib dafür zusätzlich aus:\n'
+        '  - "GAAP EPS": Zahl oder null\n'
+        '  - "Adjusted EPS": Zahl oder null\n'
+        '  - "Bereinigungsursache": kurze Beschreibung der wesentlichen '
+        'wiederkehrenden Bereinigungen, insbesondere SBC, '
+        'akquisitionsbedingte Abschreibungen oder Restrukturierungen; '
+        'null, wenn nicht belastbar bestimmbar.\n'
+        'Die Bereinigungsquote NICHT selbst berechnen und kein Feld '
+        '"Bereinigungsquote" ausgeben.\n\n'
         "Keine Felder für Quellen oder Quellenstand ausgeben. "
         "Die tatsächlichen Quellen werden technisch aus den "
         "Google-Grounding-Metadaten übernommen.\n\n"
@@ -262,7 +279,37 @@ def _parse_json_response(response_text: str) -> list:
         text,
     )
 
-    data = json.loads(text)
+    # Falls Gemini trotz Vorgabe Begleittext ausgibt,
+    # nur das eigentliche JSON-Array verwenden.
+    array_start = text.find("[")
+    array_end = text.rfind("]")
+
+    if (
+        array_start != -1
+        and array_end != -1
+        and array_end > array_start
+    ):
+        text = text[array_start:array_end + 1]
+
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        # Häufiger Gemini-Formatfehler:
+        # überflüssiges Komma unmittelbar vor } oder ].
+        repaired_text = re.sub(
+            r",\s*([}\]])",
+            r"\1",
+            text,
+        )
+
+        try:
+            data = json.loads(repaired_text)
+        except json.JSONDecodeError:
+            raise ValueError(
+                "Gemini-Antwort enthält kein gültiges JSON. "
+                f"Fehler bei Zeile {exc.lineno}, "
+                f"Spalte {exc.colno}."
+            ) from exc
 
     if not isinstance(data, list):
         raise ValueError(
@@ -396,6 +443,37 @@ def research_qualitative_quality_with_gemini(
         reason = item.get("Begründung")
         competitors = item.get("Hauptkonkurrenten")
 
+        gaap_eps = None
+        adjusted_eps = None
+        adjustment_ratio = None
+        adjustment_reason = None
+
+        if factor == "Bilanzierungs-/Ergebnisqualität":
+            gaap_eps = item.get("GAAP EPS")
+            adjusted_eps = item.get("Adjusted EPS")
+            adjustment_reason = item.get(
+                "Bereinigungsursache"
+            )
+
+            try:
+                gaap_eps = float(gaap_eps)
+                adjusted_eps = float(adjusted_eps)
+
+                if adjusted_eps > 0 and gaap_eps >= 0:
+                    adjustment_ratio = (
+                        (adjusted_eps - gaap_eps)
+                        / adjusted_eps
+                        * 100
+                    )
+                else:
+                    gaap_eps = None
+                    adjusted_eps = None
+                    adjustment_ratio = None
+            except (TypeError, ValueError):
+                gaap_eps = None
+                adjusted_eps = None
+                adjustment_ratio = None
+
         if rating not in {1, 2, 3, 4, 5}:
             rating = None
             status = "Nicht bewertbar"
@@ -408,6 +486,14 @@ def research_qualitative_quality_with_gemini(
             "Status": status,
             "Begründung": reason,
             "Hauptkonkurrenten": competitors,
+            "GAAP EPS": gaap_eps,
+            "Adjusted EPS": adjusted_eps,
+            "Bereinigungsquote": (
+                round(adjustment_ratio, 1)
+                if adjustment_ratio is not None
+                else None
+            ),
+            "Bereinigungsursache": adjustment_reason,
         }
 
     for factor in QUALITATIVE_FACTORS:

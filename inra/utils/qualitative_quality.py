@@ -19,6 +19,10 @@ QUALITATIVE_QUALITY_COLUMNS = [
     "Stand",
     "Begründung",
     "Hauptkonkurrenten",
+    "GAAP EPS",
+    "Adjusted EPS",
+    "Bereinigungsquote",
+    "Bereinigungsursache",
 ]
 
 
@@ -101,6 +105,26 @@ def get_qualitative_quality_details(
                 None
                 if pd.isna(competitors)
                 else str(competitors)
+            ),
+            "gaap_eps": (
+                None
+                if pd.isna(row.get("GAAP EPS"))
+                else row.get("GAAP EPS")
+            ),
+            "adjusted_eps": (
+                None
+                if pd.isna(row.get("Adjusted EPS"))
+                else row.get("Adjusted EPS")
+            ),
+            "adjustment_ratio": (
+                None
+                if pd.isna(row.get("Bereinigungsquote"))
+                else row.get("Bereinigungsquote")
+            ),
+            "adjustment_reason": (
+                None
+                if pd.isna(row.get("Bereinigungsursache"))
+                else row.get("Bereinigungsursache")
             ),
         }
 
@@ -186,6 +210,14 @@ def save_qualitative_quality_research(
                     if factor
                     == "Burggraben / Wettbewerbsposition"
                     else None
+                ),
+                "GAAP EPS": details.get("GAAP EPS"),
+                "Adjusted EPS": details.get("Adjusted EPS"),
+                "Bereinigungsquote": details.get(
+                    "Bereinigungsquote"
+                ),
+                "Bereinigungsursache": details.get(
+                    "Bereinigungsursache"
                 ),
             }
         )
