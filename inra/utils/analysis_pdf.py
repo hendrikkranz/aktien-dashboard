@@ -13,8 +13,9 @@ from reportlab.lib.styles import (
 )
 from reportlab.lib.units import mm
 from reportlab.graphics.charts.lineplots import LinePlot
-from reportlab.graphics.shapes import ArcPath, Circle, Drawing, String
+from reportlab.graphics.shapes import ArcPath, Circle, Drawing, String, Line, Rect, Polygon
 from reportlab.platypus import (
+    Flowable,
     Image,
     KeepTogether,
     PageBreak,
@@ -40,6 +41,14 @@ GREEN_LIGHT = colors.HexColor("#F2F8F5")
 PURPLE_LIGHT = colors.HexColor("#F6F3FC")
 BLUE_LIGHT = colors.HexColor("#F2F6FB")
 SUMMARY_LIGHT = colors.HexColor("#EEF7F2")
+HERO_LIGHT = colors.HexColor("#F1F7F4")
+INTELLIGENCE_LIGHT = colors.HexColor("#FCF7F1")
+RED = colors.HexColor("#B85C52")
+RED_LIGHT = colors.HexColor("#FBF3F2")
+AMBER = colors.HexColor("#C28A24")
+AMBER_LIGHT = colors.HexColor("#FCF8ED")
+BLUE_SOFT = colors.HexColor("#EDF4FA")
+SECTION_BORDER = colors.HexColor("#C9CED6")
 
 
 def _text(value, fallback="–"):
@@ -96,11 +105,19 @@ def _styles():
             "section",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=12.5,
-            leading=15,
+            fontSize=13,
+            leading=16,
             textColor=DARK,
-            spaceBefore=4 * mm,
-            spaceAfter=2 * mm,
+            spaceBefore=5 * mm,
+            spaceAfter=2.5 * mm,
+        ),
+        "detail_section_title": ParagraphStyle(
+            "detail_section_title",
+            parent=base["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=13.5,
+            leading=16,
+            textColor=DARK,
         ),
         "card_title": ParagraphStyle(
             "card_title",
@@ -137,8 +154,8 @@ def _styles():
             "decision",
             parent=base["Normal"],
             fontName="Helvetica-Bold",
-            fontSize=16,
-            leading=19,
+            fontSize=17,
+            leading=20,
             textColor=DARK,
         ),
         "eyebrow": ParagraphStyle(
@@ -162,8 +179,8 @@ def _styles():
             "score_card_value",
             parent=base["Normal"],
             fontName="Helvetica-Bold",
-            fontSize=17,
-            leading=19,
+            fontSize=18,
+            leading=20,
             textColor=DARK,
         ),
         "score_card_label": ParagraphStyle(
@@ -175,6 +192,299 @@ def _styles():
             textColor=MID,
         ),
     }
+
+
+def _decision_palette(score):
+    """Farbe des Investment-Urteils aus dem bereits berechneten Score."""
+    try:
+        value = float(score)
+    except (TypeError, ValueError):
+        return MID, LIGHT, False
+
+    if value >= 75:
+        return GREEN, GREEN_LIGHT, False
+    if value >= 60:
+        return colors.HexColor("#5E8C61"), colors.HexColor("#F2F7F2"), False
+    if value >= 45:
+        return colors.HexColor("#D2A126"), AMBER_LIGHT, True
+    if value >= 30:
+        return ORANGE, colors.HexColor("#FCF4EC"), False
+
+    return RED, RED_LIGHT, False
+
+
+class _OutlinedDecisionTitle(Flowable):
+    """Einzeiliges Urteil mit optionaler feiner dunkler Kontur."""
+
+    def __init__(
+        self,
+        text,
+        color,
+        outlined=False,
+        width=125 * mm,
+        height=7.5 * mm,
+    ):
+        super().__init__()
+        self.text = str(text or "–")
+        self.color = color
+        self.outlined = outlined
+        self.width = width
+        self.height = height
+
+    def wrap(self, availWidth, availHeight):
+        return min(self.width, availWidth), self.height
+
+    def draw(self):
+        canvas = self.canv
+        canvas.saveState()
+
+        text_object = canvas.beginText()
+        text_object.setTextOrigin(0, 1.4 * mm)
+        text_object.setFont("Helvetica-Bold", 17)
+
+        if self.outlined:
+            canvas.setLineWidth(0.28)
+            canvas.setStrokeColor(colors.HexColor("#665B3B"))
+            canvas.setFillColor(self.color)
+
+            try:
+                text_object.setTextRenderMode(2)
+            except AttributeError:
+                pass
+        else:
+            canvas.setFillColor(self.color)
+
+        text_object.textLine(self.text)
+        canvas.drawText(text_object)
+        canvas.restoreState()
+
+
+
+
+class _IconBadge(Flowable):
+    """Kleine, rein vektorielle Report-Icons ohne externe Assets."""
+
+    def __init__(self, kind, color, background=None, size=10 * mm):
+        super().__init__()
+        self.kind = kind
+        self.color = color
+        self.background = background or colors.white
+        self.size = size
+
+    def wrap(self, availWidth, availHeight):
+        return self.size, self.size
+
+    def draw(self):
+        c = self.canv
+        s = self.size
+        c.saveState()
+        c.setFillColor(self.background)
+        c.setStrokeColor(self.color)
+        c.setLineWidth(1.15)
+        c.circle(s/2, s/2, s*0.46, fill=1, stroke=0)
+        c.setStrokeColor(self.color)
+        c.setFillColor(self.color)
+        if self.kind in ("quality", "chart"):
+            for x, h in ((0.24, .24), (.43, .43), (.62, .67)):
+                c.rect(s*x, s*.22, s*.12, s*h, fill=0, stroke=1)
+            c.line(s*.18, s*.28, s*.36, s*.46)
+            c.line(s*.36, s*.46, s*.51, s*.40)
+            c.line(s*.51, s*.40, s*.76, s*.72)
+        elif self.kind == "opportunity":
+            c.line(s*.20, s*.28, s*.39, s*.49)
+            c.line(s*.39, s*.49, s*.52, s*.40)
+            c.line(s*.52, s*.40, s*.76, s*.72)
+            c.line(s*.62, s*.72, s*.76, s*.72)
+            c.line(s*.76, s*.72, s*.76, s*.58)
+        elif self.kind == "dividend":
+            for y in (.30, .46, .62):
+                c.ellipse(s*.25, s*y, s*.72, s*(y+.18), fill=0, stroke=1)
+        elif self.kind == "positive":
+            c.line(s*.28, s*.50, s*.72, s*.50)
+            c.line(s*.50, s*.28, s*.50, s*.72)
+        elif self.kind == "negative":
+            c.line(s*.28, s*.50, s*.72, s*.50)
+        elif self.kind == "focus":
+            c.line(s*.24, s*.50, s*.68, s*.50)
+            c.line(s*.55, s*.37, s*.68, s*.50)
+            c.line(s*.55, s*.63, s*.68, s*.50)
+        elif self.kind == "summary":
+            c.circle(s*.50, s*.56, s*.20, fill=0, stroke=1)
+            c.line(s*.42, s*.34, s*.58, s*.34)
+            c.line(s*.45, s*.27, s*.55, s*.27)
+        c.restoreState()
+
+
+def _country_map_badge(country, styles):
+    """Dekorative Weltkarte + Länderlabel, bewusst ohne Netzwerkzugriff."""
+    d = Drawing(31 * mm, 18 * mm)
+    map_color = colors.HexColor("#DDE3E8")
+    # stark vereinfachte Kontinentsilhouetten; dekorativ, nicht kartografisch
+    shapes = [
+        [(2,12),(6,16),(12,15),(14,12),(11,9),(7,9),(5,6),(3,8)],
+        [(14,8),(17,7),(18,3),(16,0),(14,3)],
+        [(18,14),(24,16),(30,14),(29,11),(25,10),(23,7),(20,9)],
+        [(25,7),(29,6),(30,3),(27,2)],
+    ]
+    for pts in shapes:
+        d.add(Polygon([v*mm/2.0 for pt in pts for v in pt], fillColor=map_color, strokeColor=None))
+    label = Paragraph(
+        f"<font size='7.5' color='#626A73'><b>{_text(country)}</b></font>",
+        styles["meta"],
+    )
+    return Table([[d], [label]], colWidths=[31*mm], style=[
+        ("ALIGN",(0,0),(-1,-1),"CENTER"),
+        ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
+        ("TOPPADDING",(0,0),(-1,-1),0),("BOTTOMPADDING",(0,0),(-1,-1),0),
+    ])
+
+
+def _detail_section(title, content, color, background, styles):
+    """Kompletter Detailbereich inklusive Headline in einem Rahmen."""
+    if not isinstance(content, list):
+        content = [content]
+
+    header = Table(
+        [[Paragraph(title, styles["detail_section_title"])]],
+        colWidths=[178 * mm],
+    )
+
+    header.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), background),
+                ("LINEBELOW", (0, 0), (-1, -1), 1.15, color),
+                ("LEFTPADDING", (0, 0), (-1, -1), 5 * mm),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 5 * mm),
+                ("TOPPADDING", (0, 0), (-1, -1), 3.8 * mm),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3.5 * mm),
+            ]
+        )
+    )
+
+    body = Table(
+        [[[item for item in content]]],
+        colWidths=[178 * mm],
+    )
+
+    body.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
+
+    outer = Table(
+        [[header], [body]],
+        colWidths=[178 * mm],
+    )
+
+    outer.setStyle(
+        TableStyle(
+            [
+                ("BOX", (0, 0), (-1, -1), 0.8, SECTION_BORDER),
+                ("LINEBEFORE", (0, 0), (0, -1), 4, color),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
+
+    return KeepTogether(outer)
+
+
+def _intelligence_cards(current, styles):
+    """Drei klar getrennte Executive-Intelligence-Karten."""
+    if not isinstance(current, dict):
+        current = {}
+
+    definitions = [
+        (
+            "RÜCKENWIND",
+            current.get("Positive_Entwicklungen") or [],
+            GREEN,
+            GREEN_LIGHT,
+        ),
+        (
+            "GEGENWIND",
+            current.get("Negative_Entwicklungen") or [],
+            RED,
+            RED_LIGHT,
+        ),
+        (
+            "DARAUF KOMMT ES AN",
+            current.get("Offene_Faktoren") or [],
+            ORANGE,
+            INTELLIGENCE_LIGHT,
+        ),
+    ]
+
+    cards = []
+
+    for label, items, color, background in definitions:
+        if items:
+            body = _current_intelligence_item_text(items[0])
+        else:
+            body = "Keine wesentliche Entwicklung."
+
+        icon_kind = {"RÜCKENWIND": "positive", "GEGENWIND": "negative"}.get(label, "focus")
+        card = Table(
+            [
+                [
+                    _IconBadge(icon_kind, color, colors.white, 7.5 * mm),
+                    Paragraph(
+                        f"<font color='{color.hexval()}' size='7'>"
+                        f"<b>{label}</b></font>",
+                        styles["body"],
+                    ),
+                ],
+                ["", Paragraph(body, styles["small"])],
+            ],
+            colWidths=[9 * mm, 47.5 * mm],
+        )
+
+        card.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), background),
+                    ("BOX", (0, 0), (-1, -1), 0.55, BORDER),
+                    ("LINEABOVE", (0, 0), (-1, 0), 2.4, color),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 3.5 * mm),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 3.5 * mm),
+                    ("TOPPADDING", (0, 0), (-1, -1), 2.5 * mm),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5 * mm),
+                ]
+            )
+        )
+
+        cards.append(card)
+
+    table = Table(
+        [cards],
+        colWidths=[59.3 * mm] * 3,
+    )
+
+    table.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 1.3 * mm),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 1.3 * mm),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
+
+    return table
 
 
 LOGO_CACHE_DIR = (
@@ -425,34 +735,41 @@ def _investment_score_ring(value, color):
 
 
 def _summary_score_card(title, value, maximum, color, styles):
-    """Ruhige Score-Karte für die drei Analysebereiche."""
+    """Klar abgegrenzte Score-Karte für die drei Analysebereiche."""
+    background = {
+        GREEN.hexval(): GREEN_LIGHT,
+        PURPLE.hexval(): PURPLE_LIGHT,
+        BLUE.hexval(): BLUE_LIGHT,
+    }.get(color.hexval(), colors.white)
+
+    kind = {
+        "Unternehmensqualität": "quality",
+        "Kaufchance": "opportunity",
+        "Dividendenstrategie": "dividend",
+    }.get(title, "quality")
     content = [
         [
-            Paragraph(
-                title.upper(),
-                styles["score_card_label"],
-            )
+            _IconBadge(kind, color, colors.white, 8 * mm),
+            Paragraph(title.upper(), styles["score_card_label"]),
         ],
         [
-            Paragraph(
-                _score(value, maximum),
-                styles["score_card_value"],
-            )
+            "",
+            Paragraph(_score(value, maximum), styles["score_card_value"]),
         ],
     ]
 
     table = Table(
         content,
-        colWidths=[54 * mm],
-        rowHeights=[7 * mm, 11 * mm],
+        colWidths=[10 * mm, 44 * mm],
+        rowHeights=[9 * mm, 11 * mm],
     )
 
     table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.white),
-                ("BOX", (0, 0), (-1, -1), 0.55, BORDER),
-                ("LINEABOVE", (0, 0), (-1, 0), 2.5, color),
+                ("BACKGROUND", (0, 0), (-1, -1), background),
+                ("BOX", (0, 0), (-1, -1), 0.7, SECTION_BORDER),
+                ("LINEABOVE", (0, 0), (-1, 0), 3, color),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                 ("LEFTPADDING", (0, 0), (-1, -1), 4 * mm),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 4 * mm),
@@ -655,10 +972,14 @@ def _inra_fazit_box(body, styles):
             )
         ],
         [
-            Paragraph(
-                "<font size='12'><b>Investment Case</b></font>",
-                styles["body"],
-            )
+            Table([[
+                _IconBadge("summary", GREEN, colors.white, 8.5 * mm),
+                Paragraph("<font size='12'><b>Investment Case</b></font>", styles["body"]),
+            ]], colWidths=[11 * mm, 157 * mm], style=[
+                ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+                ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
+                ("TOPPADDING",(0,0),(-1,-1),0),("BOTTOMPADDING",(0,0),(-1,-1),0),
+            ])
         ],
         [
             Paragraph(
@@ -906,10 +1227,12 @@ def build_analysis_pdf(report: dict) -> bytes:
 
     logo = _company_logo(company.get("website"))
 
+    country_badge = _country_map_badge(company.get("country"), styles)
+
     if logo:
         company_header = Table(
-            [[logo, company_content]],
-            colWidths=[18 * mm, 160 * mm],
+            [[logo, company_content, country_badge]],
+            colWidths=[18 * mm, 128 * mm, 32 * mm],
         )
 
         company_header.setStyle(
@@ -918,7 +1241,8 @@ def build_analysis_pdf(report: dict) -> bytes:
                     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                     ("LEFTPADDING", (0, 0), (-1, -1), 0),
                     ("RIGHTPADDING", (0, 0), (0, 0), 4 * mm),
-                    ("RIGHTPADDING", (1, 0), (1, 0), 0),
+                    ("RIGHTPADDING", (1, 0), (2, 0), 0),
+                    ("ALIGN", (2, 0), (2, 0), "RIGHT"),
                     ("TOPPADDING", (0, 0), (-1, -1), 0),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
                 ]
@@ -928,29 +1252,46 @@ def build_analysis_pdf(report: dict) -> bytes:
         story.append(company_header)
 
     else:
-        story.extend(company_content)
+        company_header = Table(
+            [[company_content, country_badge]],
+            colWidths=[146 * mm, 32 * mm],
+        )
+        company_header.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        story.append(company_header)
 
     story.append(Spacer(1, 3.5 * mm))
 
     # --- Investment-Urteil als Hero -------------------------------
 
     investment_score = decision.get("score")
+    decision_color, decision_background, decision_outline = (
+        _decision_palette(investment_score)
+    )
 
-    decision_left = [
-        Paragraph(
-            "INVESTMENT-URTEIL",
-            styles["eyebrow"],
-        ),
-        Paragraph(
-            _text(decision.get("title")),
-            styles["decision"],
+    decision_copy = [
+        Paragraph("INVESTMENT-URTEIL", styles["eyebrow"]),
+        _OutlinedDecisionTitle(
+            _text(decision.get("title")), decision_color, outlined=decision_outline,
         ),
         Spacer(1, 1.5 * mm),
-        Paragraph(
-            _text(decision.get("text")),
-            styles["hero_body"],
-        ),
+        Paragraph(_text(decision.get("text")), styles["hero_body"]),
     ]
+    decision_left = Table(
+        [[_IconBadge("quality", decision_color, colors.white, 11 * mm), decision_copy]],
+        colWidths=[14 * mm, 121 * mm],
+        style=[
+            ("VALIGN",(0,0),(-1,-1),"TOP"),
+            ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
+            ("TOPPADDING",(0,0),(-1,-1),0),("BOTTOMPADDING",(0,0),(-1,-1),0),
+        ],
+    )
 
     decision_table = Table(
         [
@@ -958,7 +1299,7 @@ def build_analysis_pdf(report: dict) -> bytes:
                 decision_left,
                 _investment_score_ring(
                     investment_score,
-                    GREEN,
+                    decision_color,
                 ),
             ]
         ],
@@ -968,9 +1309,9 @@ def build_analysis_pdf(report: dict) -> bytes:
     decision_table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, -1), LIGHT),
-                ("BOX", (0, 0), (-1, -1), 0.6, BORDER),
-                ("LINEBEFORE", (0, 0), (0, -1), 4, GREEN),
+                ("BACKGROUND", (0, 0), (-1, -1), decision_background),
+                ("BOX", (0, 0), (-1, -1), 0.75, SECTION_BORDER),
+                ("LINEBEFORE", (0, 0), (0, -1), 4, decision_color),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                 ("LEFTPADDING", (0, 0), (0, 0), 6 * mm),
                 ("RIGHTPADDING", (0, 0), (0, 0), 7 * mm),
@@ -983,7 +1324,7 @@ def build_analysis_pdf(report: dict) -> bytes:
     )
 
     story.append(decision_table)
-    story.append(Spacer(1, 3 * mm))
+    story.append(Spacer(1, 4.5 * mm))
 
     # --- Drei Analyse-Scores --------------------------------------
 
@@ -1033,7 +1374,7 @@ def build_analysis_pdf(report: dict) -> bytes:
     )
 
     story.append(score_table)
-    story.append(Spacer(1, 2.5 * mm))
+    story.append(Spacer(1, 4 * mm))
 
     # --- Kursverlauf ----------------------------------------------
 
@@ -1097,7 +1438,7 @@ def build_analysis_pdf(report: dict) -> bytes:
 
             story.append(chart_box)
 
-    story.append(Spacer(1, 2 * mm))
+    story.append(Spacer(1, 4 * mm))
 
     # --- Aktuelle Entwicklungen ----------------------------------
 
@@ -1131,26 +1472,12 @@ def build_analysis_pdf(report: dict) -> bytes:
     )
 
     story.append(intelligence_header)
-
-    story.append(
-        _section_box(
-            "Was den Investment Case aktuell bewegt",
-            _current_intelligence_summary_text(current),
-            ORANGE,
-            styles,
-        )
-    )
+    story.append(Spacer(1, 1.5 * mm))
+    story.append(_intelligence_cards(current, styles))
 
     story.append(PageBreak())
 
     # 1 · Unternehmensqualität
-
-    story.append(
-        Paragraph(
-            "1 · Unternehmensqualität",
-            styles["section"],
-        )
-    )
 
     quality_breakdown = quality.get("breakdown") or {}
 
@@ -1185,16 +1512,18 @@ def build_analysis_pdf(report: dict) -> bytes:
             ]
         )
     )
-    story.append(quality_box)
-
-    # 2 · Kaufchance
-
     story.append(
-        Paragraph(
-            "2 · Kaufchance",
-            styles["section"],
+        _detail_section(
+            "1 · Unternehmensqualität",
+            quality_box,
+            GREEN,
+            GREEN_LIGHT,
+            styles,
         )
     )
+    story.append(Spacer(1, 5 * mm))
+
+    # 2 · Kaufchance
 
     blocks = opportunity.get("blocks") or {}
 
@@ -1213,14 +1542,11 @@ def build_analysis_pdf(report: dict) -> bytes:
         f"12M {_number(opportunity.get('momentum_12m'), 1, ' %')}"
     )
 
-    story.append(
-        _opportunity_subcards(
-            blocks,
-            opportunity.get("entry_setup"),
-            styles,
-        )
+    opportunity_subcards = _opportunity_subcards(
+        blocks,
+        opportunity.get("entry_setup"),
+        styles,
     )
-    story.append(Spacer(1, 2 * mm))
 
     opportunity_box = _section_box_two_columns(
         "Bewertung · Technik · Einstieg",
@@ -1236,16 +1562,22 @@ def build_analysis_pdf(report: dict) -> bytes:
             ]
         )
     )
-    story.append(opportunity_box)
-
-    # 3 · Dividendenstrategie
-
     story.append(
-        Paragraph(
-            "3 · Dividendenstrategie",
-            styles["section"],
+        _detail_section(
+            "2 · Kaufchance",
+            [
+                opportunity_subcards,
+                Spacer(1, 2 * mm),
+                opportunity_box,
+            ],
+            PURPLE,
+            PURPLE_LIGHT,
+            styles,
         )
     )
+    story.append(Spacer(1, 5 * mm))
+
+    # 3 · Dividendenstrategie
 
     dividend_text = (
         f"<font size='12'><b>Dividendenrendite: "
@@ -1283,7 +1615,16 @@ def build_analysis_pdf(report: dict) -> bytes:
             ]
         )
     )
-    story.append(dividend_box)
+    story.append(
+        _detail_section(
+            "3 · Dividendenstrategie",
+            dividend_box,
+            BLUE,
+            BLUE_LIGHT,
+            styles,
+        )
+    )
+    story.append(Spacer(1, 4.5 * mm))
 
     # Abschließendes InRA-Fazit
 
@@ -1301,10 +1642,14 @@ def build_analysis_pdf(report: dict) -> bytes:
         )
     )
 
-    story.append(Spacer(1, 1.5 * mm))
+    def _draw_page_footer(canvas, doc):
+        """Zeichnet den Disclaimer fest auf Seite 2."""
+        if doc.page != 2:
+            return
 
-    story.append(
-        Paragraph(
+        canvas.saveState()
+
+        footer = Paragraph(
             (
                 "<b>Hinweis:</b> InRA ist ein Research-Werkzeug. "
                 "Die dargestellten Scores, Einschätzungen und "
@@ -1314,8 +1659,25 @@ def build_analysis_pdf(report: dict) -> bytes:
             ),
             styles["small"],
         )
-    )
 
-    document.build(story)
+        footer_width = PAGE_WIDTH - 32 * mm
+        _, footer_height = footer.wrap(
+            footer_width,
+            12 * mm,
+        )
+
+        footer.drawOn(
+            canvas,
+            16 * mm,
+            7 * mm,
+        )
+
+        canvas.restoreState()
+
+    document.build(
+        story,
+        onFirstPage=_draw_page_footer,
+        onLaterPages=_draw_page_footer,
+    )
 
     return buffer.getvalue()

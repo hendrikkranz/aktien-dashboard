@@ -647,6 +647,54 @@ def _render_opportunity_breakdown(
                 f"{value_label}: {current_value}"
             )
 
+            if criterion == "Forward KGV":
+                quality_checked = item.get(
+                    "Ergebnisqualität geprüft",
+                    False,
+                )
+                quality_rating = item.get(
+                    "Ergebnisqualität"
+                )
+                adjustment_ratio = item.get(
+                    "Bereinigungsquote"
+                )
+                quality_penalty = item.get(
+                    "Ergebnisqualitäts-Abschlag",
+                    0,
+                )
+
+                if not quality_checked:
+                    st.caption(
+                        "Ergebnisqualität: noch nicht auf "
+                        "GAAP-/Adjusted-EPS-Differenz geprüft"
+                    )
+                else:
+                    quality_parts = []
+
+                    if quality_rating is not None:
+                        quality_parts.append(
+                            f"{_format_value(quality_rating)}/5"
+                        )
+
+                    if adjustment_ratio is not None:
+                        quality_parts.append(
+                            "Bereinigungsquote "
+                            f"{_format_value(adjustment_ratio)} %"
+                        )
+
+                    if quality_penalty > 0:
+                        quality_parts.append(
+                            f"Abschlag −{_format_value(quality_penalty)} "
+                            f"→ {_format_value(item.get('Punkte'))}/24 Punkte"
+                        )
+                    else:
+                        quality_parts.append("kein Abschlag")
+
+                    st.caption(
+                        "Ergebnisqualität: "
+                        + " · ".join(quality_parts)
+                    )
+
             if (
                 criterion == "NTA/NAV-Bewertung"
                 and price_to_nav is not None

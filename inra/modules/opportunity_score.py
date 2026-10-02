@@ -325,6 +325,9 @@ def calculate_opportunity_breakdown(data: dict) -> list:
                 "Ergebnisqualitäts-Abschlag": (
                     pe_earnings_quality_penalty
                 ),
+                "Ergebnisqualität geprüft": (
+                    earnings_quality_adjustment["checked"]
+                ),
                 "Ergebnisqualität": (
                     earnings_quality_adjustment["rating"]
                 ),
@@ -400,6 +403,7 @@ def calculate_pe_earnings_quality_penalty(data: dict) -> dict:
             "penalty": 0,
             "rating": rating,
             "adjustment_ratio": adjustment_ratio,
+            "checked": False,
             "applied": False,
         }
 
@@ -423,6 +427,7 @@ def calculate_pe_earnings_quality_penalty(data: dict) -> dict:
         "penalty": penalty,
         "rating": rating,
         "adjustment_ratio": adjustment_ratio,
+        "checked": True,
         "applied": penalty > 0,
     }
 
