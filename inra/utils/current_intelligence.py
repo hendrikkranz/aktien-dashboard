@@ -576,6 +576,13 @@ def _build_tavily_queries(
         "political regulatory legal government"
     )
 
+    status_query = (
+        f'"{company_name}" {ticker} '
+        "latest status completed completion approved approval "
+        "cleared clearance closed decision resolved cancelled "
+        "withdrawn acquisition merger regulation restructuring"
+    )
+
     queries = [
         {
             "Bereich": "Aktuell/operativ",
@@ -590,6 +597,10 @@ def _build_tavily_queries(
             "Query": external_query,
             "Topic": "news",
             "TimeRange": "month",
+        },
+        {
+            "Bereich": "Status strategischer Ereignisse",
+            "Query": status_query,
         },
     ]
 
