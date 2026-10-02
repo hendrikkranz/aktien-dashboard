@@ -517,66 +517,6 @@ def render_quality_section(data: dict) -> None:
             create_investment_summary(data)
         )
 
-    card = f"""
-<div style="
-    background:#1b1f27;
-    border-left:6px solid {border};
-    border-radius:12px;
-    padding:22px 24px;
-    margin:10px 0 22px 0;
-">
-    <div style="
-        display:flex;
-        align-items:center;
-        gap:48px;
-    ">
-        <div style="
-            flex:0 0 220px;
-        ">
-            <div style="
-                color:#8b949e;
-                font-size:12px;
-                font-weight:700;
-                text-transform:uppercase;
-                letter-spacing:1px;
-            ">
-                Unternehmensqualität
-            </div>
-
-            <div style="
-                color:white;
-                font-size:32px;
-                font-weight:700;
-                margin-top:8px;
-                line-height:1.05;
-            ">
-                {quality_score} / 100
-            </div>
-
-            <div style="
-                color:#d0d7de;
-                font-size:15px;
-                font-weight:600;
-                margin-top:5px;
-            ">
-                {icon} {rating}
-            </div>
-        </div>
-
-        <div style="
-            color:#c9d1d9;
-            font-size:15px;
-            line-height:1.55;
-            flex:1;
-        ">
-            {summary}
-        </div>
-    </div>
-</div>
-"""
-
-    st.html(card)
-
     breakdown = data["Quality Breakdown"]
     profitability_breakdown = calculate_profitability_breakdown(
         data.get("Kapitalrendite"),
@@ -638,249 +578,133 @@ def render_quality_section(data: dict) -> None:
         else None
     )
 
-    with st.expander(
-         f"Warum {quality_score} von 100 Punkten?"
+
+    if (
+        basis_quality is not None
+        and quantitative_quality is not None
+        and qualitative_quality is not None
     ):
-
-        if (
-            basis_quality is not None
-            and quantitative_quality is not None
-            and qualitative_quality is not None
-        ):
-            st.caption(
-                f"Gesamtbewertung: "
-                f"40 % von {qualitative_quality} (Qualitativ) + "
-                f"60 % von {quantitative_quality} (Kennzahlen) "
-                f"= {basis_quality} / 100"
-            )
-
-        qualitative_details = data.get(
-            "Qualitative Quality Details",
-            {},
+        st.caption(
+            f"Gesamtbewertung: "
+            f"40 % von {qualitative_quality} (Qualitativ) + "
+            f"60 % von {quantitative_quality} (Kennzahlen) "
+            f"= {basis_quality} / 100"
         )
 
-        qualitative_score = qualitative_details.get("score")
-        qualitative_status = qualitative_details.get("status")
-        evaluable_factors = qualitative_details.get(
+    qualitative_details = data.get(
+        "Qualitative Quality Details",
+        {},
+    )
+
+    qualitative_score = qualitative_details.get("score")
+    qualitative_status = qualitative_details.get("status")
+    evaluable_factors = qualitative_details.get(
+        "evaluable_factors",
+        0,
+    )
+    total_factors = qualitative_details.get(
+        "total_factors",
+        5,
+    )
+
+    st.markdown("#### 🧭 1. Qualitative Unternehmensanalyse (40%)")
+
+    analysis_dates = [
+        details.get("date")
+        for details in data.get(
+            "Qualitative Quality Factor Details",
+            {},
+        ).values()
+        if details.get("date")
+    ]
+
+    if analysis_dates:
+        latest_analysis_date = max(analysis_dates)
+
+        date_parts = str(latest_analysis_date).split("-")
+        if len(date_parts) == 3:
+            latest_analysis_date = (
+                f"{date_parts[2]}.{date_parts[1]}.{date_parts[0]}"
+            )
+
+        st.caption(
+            f"Letzte qualitative Analyse: {latest_analysis_date}"
+        )
+
+    if st.button(
+        "🔄 Qualitative Analyse aktualisieren (API-Kosten: ca. 1–2 Ct.)",
+        key=f"qualitative_research_{data.get('Ticker')}",
+    ):
+        try:
+            with st.spinner(
+                "Qualitative Unternehmensanalyse wird recherchiert ..."
+            ):
+                research_result = (
+                    research_qualitative_quality_with_gemini(
+                        api_key=st.secrets["GEMINI_API_KEY"],
+                        ticker=data.get("Ticker"),
+                        company_name=data.get("Name"),
+                        sector=data.get("Sektor"),
+                        industry=data.get("Branche"),
+                    )
+                )
+
+            st.session_state[
+                "qualitative_research_preview"
+            ] = research_result
+
+        except Exception as exc:
+            st.error(
+                "Die qualitative Analyse konnte nicht verarbeitet "
+                "werden. Bitte erneut versuchen."
+            )
+            st.caption(
+                f"Technischer Hinweis: {type(exc).__name__}"
+            )
+
+    research_preview = st.session_state.get(
+        "qualitative_research_preview"
+    )
+
+    if (
+        research_preview is not None
+        and research_preview.get("Ticker") == data.get("Ticker")
+    ):
+
+        preview_ratings = {
+            factor: details.get("Bewertung")
+            for factor, details in research_preview.get(
+                "Faktoren",
+                {},
+            ).items()
+        }
+
+        preview_score_details = (
+            calculate_qualitative_quality_score(
+                preview_ratings
+            )
+        )
+
+        qualitative_score = preview_score_details.get("score")
+        qualitative_status = preview_score_details.get("status")
+        evaluable_factors = preview_score_details.get(
             "evaluable_factors",
             0,
         )
-        total_factors = qualitative_details.get(
+        total_factors = preview_score_details.get(
             "total_factors",
             5,
         )
-
-        st.markdown("#### 🧭 1. Qualitative Unternehmensanalyse (40%)")
-
-        analysis_dates = [
-            details.get("date")
-            for details in data.get(
-                "Qualitative Quality Factor Details",
-                {},
-            ).values()
-            if details.get("date")
-        ]
-
-        if analysis_dates:
-            latest_analysis_date = max(analysis_dates)
-
-            date_parts = str(latest_analysis_date).split("-")
-            if len(date_parts) == 3:
-                latest_analysis_date = (
-                    f"{date_parts[2]}.{date_parts[1]}.{date_parts[0]}"
-                )
-
-            st.caption(
-                f"Letzte qualitative Analyse: {latest_analysis_date}"
-            )
-
-        if st.button(
-            "🔄 Qualitative Analyse aktualisieren (API-Kosten: ca. 1–2 Ct.)",
-            key=f"qualitative_research_{data.get('Ticker')}",
-        ):
-            try:
-                with st.spinner(
-                    "Qualitative Unternehmensanalyse wird recherchiert ..."
-                ):
-                    research_result = (
-                        research_qualitative_quality_with_gemini(
-                            api_key=st.secrets["GEMINI_API_KEY"],
-                            ticker=data.get("Ticker"),
-                            company_name=data.get("Name"),
-                            sector=data.get("Sektor"),
-                            industry=data.get("Branche"),
-                        )
-                    )
-
-                st.session_state[
-                    "qualitative_research_preview"
-                ] = research_result
-
-            except Exception as exc:
-                st.error(
-                    "Die qualitative Analyse konnte nicht verarbeitet "
-                    "werden. Bitte erneut versuchen."
-                )
-                st.caption(
-                    f"Technischer Hinweis: {type(exc).__name__}"
-                )
-
-        research_preview = st.session_state.get(
-            "qualitative_research_preview"
+        st.info(
+            "Neue qualitative Recherche – noch nicht gespeichert"
         )
 
-        if (
-            research_preview is not None
-            and research_preview.get("Ticker") == data.get("Ticker")
-        ):
-
-            preview_ratings = {
-                factor: details.get("Bewertung")
-                for factor, details in research_preview.get(
-                    "Faktoren",
-                    {},
-                ).items()
-            }
-
-            preview_score_details = (
-                calculate_qualitative_quality_score(
-                    preview_ratings
-                )
-            )
-
-            qualitative_score = preview_score_details.get("score")
-            qualitative_status = preview_score_details.get("status")
-            evaluable_factors = preview_score_details.get(
-                "evaluable_factors",
-                0,
-            )
-            total_factors = preview_score_details.get(
-                "total_factors",
-                5,
-            )
-            st.info(
-                "Neue qualitative Recherche – noch nicht gespeichert"
-            )
-
-            existing_ratings = qualitative_details.get(
-                "ratings",
-                {},
-            )
-
-            preview_icons = {
-                "Burggraben / Wettbewerbsposition": "🏰",
-                "Kapitalallokation": "💰",
-                "Management & Governance": "👔",
-                "Bilanzierungs-/Ergebnisqualität": "📘",
-                "Strukturelle Geschäftsrisiken": "⚠️",
-            }
-
-            for factor, details in research_preview["Faktoren"].items():
-                old_score = existing_ratings.get(factor)
-                new_score = details.get("Bewertung")
-
-                if new_score is not None:
-                    if new_score >= 4:
-                        traffic_light = "🟢"
-                    elif new_score >= 3:
-                        traffic_light = "🟡"
-                    elif new_score >= 2:
-                        traffic_light = "🟠"
-                    else:
-                        traffic_light = "🔴"
-
-                    points_text = f"{new_score * 4:.0f} / 20"
-                else:
-                    traffic_light = "⚪"
-                    points_text = "Nicht bewertbar"
-
-                factor_icon = preview_icons.get(factor, "•")
-
-                st.markdown(
-                    f"##### {traffic_light} {factor_icon} {factor}"
-                    f"<span style='float:right'>{points_text}</span>",
-                    unsafe_allow_html=True,
-                )
-
-                if (
-                    old_score is not None
-                    and new_score is not None
-                    and old_score != new_score
-                ):
-                    st.caption(
-                        f"Bisher: {old_score * 4:.0f} / 20 → "
-                        f"Neu: {new_score * 4:.0f} / 20"
-                    )
-
-                if details.get("Begründung"):
-                    st.caption(details["Begründung"])
-
-                competitors = details.get("Hauptkonkurrenten")
-
-                if (
-                    factor == "Burggraben / Wettbewerbsposition"
-                    and competitors
-                ):
-                    st.caption(
-                        "**Hauptkonkurrenten:** "
-                        + " · ".join(competitors)
-                    )
-
-            source_count = len(
-                research_preview.get("Quellen", [])
-            )
-            search_count = len(
-                research_preview.get("Suchanfragen", [])
-            )
-
-            if source_count > 0:
-                st.caption(
-                    f"Mit Web-Recherche · "
-                    f"{source_count} Quellen · "
-                    f"{search_count} Suchanfragen"
-                )
-            else:
-                st.warning(
-                    "Keine verifizierten Web-Quellen verfügbar. "
-                    "Die Bewertung basiert auf der Gemini-Analyse, "
-                    "ist aber nicht durch Grounding-Quellen belegt."
-                )
-
-            if st.button(
-                "Neue Bewertung übernehmen",
-                key=f"save_qualitative_research_{data.get('Ticker')}",
-                type="primary",
-            ):
-                save_qualitative_quality_research(
-                    research_preview
-                )
-                del st.session_state[
-                    "qualitative_research_preview"
-                ]
-                st.rerun()
-
-        if qualitative_score is not None:
-            st.markdown(
-                f"**{qualitative_score} / 100** · "
-                f"{evaluable_factors} von {total_factors} Faktoren bewertbar"
-            )
-        else:
-            st.markdown(
-                f"**{qualitative_status or 'Nicht ausreichend bewertbar'}** · "
-                f"{evaluable_factors} von {total_factors} Faktoren bewertbar"
-            )
-
-        qualitative_ratings = qualitative_details.get(
+        existing_ratings = qualitative_details.get(
             "ratings",
             {},
         )
 
-        factor_details = data.get(
-            "Qualitative Quality Factor Details",
-            {},
-        )
-
-        factor_icons = {
+        preview_icons = {
             "Burggraben / Wettbewerbsposition": "🏰",
             "Kapitalallokation": "💰",
             "Management & Governance": "👔",
@@ -888,36 +712,47 @@ def render_quality_section(data: dict) -> None:
             "Strukturelle Geschäftsrisiken": "⚠️",
         }
 
-        for factor, factor_score in qualitative_ratings.items():
-            if factor_score >= 4:
-                traffic_light = "🟢"
-            elif factor_score >= 3:
-                traffic_light = "🟡"
-            elif factor_score >= 2:
-                traffic_light = "🟠"
-            else:
-                traffic_light = "🔴"
+        for factor, details in research_preview["Faktoren"].items():
+            old_score = existing_ratings.get(factor)
+            new_score = details.get("Bewertung")
 
-            factor_icon = factor_icons.get(factor, "•")
+            if new_score is not None:
+                if new_score >= 4:
+                    traffic_light = "🟢"
+                elif new_score >= 3:
+                    traffic_light = "🟡"
+                elif new_score >= 2:
+                    traffic_light = "🟠"
+                else:
+                    traffic_light = "🔴"
+
+                points_text = f"{new_score * 4:.0f} / 20"
+            else:
+                traffic_light = "⚪"
+                points_text = "Nicht bewertbar"
+
+            factor_icon = preview_icons.get(factor, "•")
 
             st.markdown(
                 f"##### {traffic_light} {factor_icon} {factor}"
-                f"<span style='float:right'>{factor_score * 4:.0f} / 20</span>",
+                f"<span style='float:right'>{points_text}</span>",
                 unsafe_allow_html=True,
             )
 
-            reason = factor_details.get(
-                factor,
-                {},
-            ).get("reason")
+            if (
+                old_score is not None
+                and new_score is not None
+                and old_score != new_score
+            ):
+                st.caption(
+                    f"Bisher: {old_score * 4:.0f} / 20 → "
+                    f"Neu: {new_score * 4:.0f} / 20"
+                )
 
-            if reason:
-                st.caption(reason)
+            if details.get("Begründung"):
+                st.caption(details["Begründung"])
 
-            competitors = factor_details.get(
-                factor,
-                {},
-            ).get("competitors")
+            competitors = details.get("Hauptkonkurrenten")
 
             if (
                 factor == "Burggraben / Wettbewerbsposition"
@@ -925,362 +760,464 @@ def render_quality_section(data: dict) -> None:
             ):
                 st.caption(
                     "**Hauptkonkurrenten:** "
-                    + competitors
+                    + " · ".join(competitors)
                 )
 
-        st.divider()
+        source_count = len(
+            research_preview.get("Quellen", [])
+        )
+        search_count = len(
+            research_preview.get("Suchanfragen", [])
+        )
 
-        if data.get("Real Estate Quality") is not None:
-            _render_real_estate_quantitative_quality(data)
-            return
+        if source_count > 0:
+            st.caption(
+                f"Mit Web-Recherche · "
+                f"{source_count} Quellen · "
+                f"{search_count} Suchanfragen"
+            )
+        else:
+            st.warning(
+                "Keine verifizierten Web-Quellen verfügbar. "
+                "Die Bewertung basiert auf der Gemini-Analyse, "
+                "ist aber nicht durch Grounding-Quellen belegt."
+            )
+
+        if st.button(
+            "Neue Bewertung übernehmen",
+            key=f"save_qualitative_research_{data.get('Ticker')}",
+            type="primary",
+        ):
+            save_qualitative_quality_research(
+                research_preview
+            )
+            del st.session_state[
+                "qualitative_research_preview"
+            ]
+            st.rerun()
+
+    if qualitative_score is not None:
+        st.markdown(
+            f"**{qualitative_score} / 100** · "
+            f"{evaluable_factors} von {total_factors} Faktoren bewertbar"
+        )
+    else:
+        st.markdown(
+            f"**{qualitative_status or 'Nicht ausreichend bewertbar'}** · "
+            f"{evaluable_factors} von {total_factors} Faktoren bewertbar"
+        )
+
+    qualitative_ratings = qualitative_details.get(
+        "ratings",
+        {},
+    )
+
+    factor_details = data.get(
+        "Qualitative Quality Factor Details",
+        {},
+    )
+
+    factor_icons = {
+        "Burggraben / Wettbewerbsposition": "🏰",
+        "Kapitalallokation": "💰",
+        "Management & Governance": "👔",
+        "Bilanzierungs-/Ergebnisqualität": "📘",
+        "Strukturelle Geschäftsrisiken": "⚠️",
+    }
+
+    for factor, factor_score in qualitative_ratings.items():
+        if factor_score >= 4:
+            traffic_light = "🟢"
+        elif factor_score >= 3:
+            traffic_light = "🟡"
+        elif factor_score >= 2:
+            traffic_light = "🟠"
+        else:
+            traffic_light = "🔴"
+
+        factor_icon = factor_icons.get(factor, "•")
+
+        st.markdown(
+            f"##### {traffic_light} {factor_icon} {factor}"
+            f"<span style='float:right'>{factor_score * 4:.0f} / 20</span>",
+            unsafe_allow_html=True,
+        )
+
+        reason = factor_details.get(
+            factor,
+            {},
+        ).get("reason")
+
+        if reason:
+            st.caption(reason)
+
+        competitors = factor_details.get(
+            factor,
+            {},
+        ).get("competitors")
 
         if (
-            data.get("Sektor") == "Real Estate"
-            and data.get("Quantitative Quality") is None
+            factor == "Burggraben / Wettbewerbsposition"
+            and competitors
         ):
-            st.markdown(
-                "#### 📊 2. Kennzahlenbasierte Qualität (60%)"
-            )
-            st.info(
-                "Für diese Immobilienaktie ist noch kein spezifisches "
-                "Immobilien-Datenprofil hinterlegt. Die quantitative "
-                "Unternehmensqualität wird daher derzeit nicht bewertet."
-            )
-            return
-
-        st.markdown("#### 📊 2. Kennzahlenbasierte Qualität (60%)")
-
-        evaluable_quant_sections = sum(
-            value is not None
-            for value in breakdown.values()
-        )
-
-        total_quant_sections = len(breakdown)
-
-        if quantitative_quality is not None:
-            st.markdown(
-                f"**{quantitative_quality} / 100** · "
-                f"{evaluable_quant_sections} von "
-                f"{total_quant_sections} Bereichen bewertbar"
+            st.caption(
+                "**Hauptkonkurrenten:** "
+                + competitors
             )
 
-        _render_section_header(
-            "💰 Profitabilität",
-            breakdown["Profitabilität"],
-            40,
+    st.divider()
+
+    if data.get("Real Estate Quality") is not None:
+        _render_real_estate_quantitative_quality(data)
+        return
+
+    if (
+        data.get("Sektor") == "Real Estate"
+        and data.get("Quantitative Quality") is None
+    ):
+        st.markdown(
+            "#### 📊 2. Kennzahlenbasierte Qualität (60%)"
+        )
+        st.info(
+            "Für diese Immobilienaktie ist noch kein spezifisches "
+            "Immobilien-Datenprofil hinterlegt. Die quantitative "
+            "Unternehmensqualität wird daher derzeit nicht bewertet."
+        )
+        return
+
+    st.markdown("#### 📊 2. Kennzahlenbasierte Qualität (60%)")
+
+    evaluable_quant_sections = sum(
+        value is not None
+        for value in breakdown.values()
+    )
+
+    total_quant_sections = len(breakdown)
+
+    if quantitative_quality is not None:
+        st.markdown(
+            f"**{quantitative_quality} / 100** · "
+            f"{evaluable_quant_sections} von "
+            f"{total_quant_sections} Bereichen bewertbar"
         )
 
-        return_on_capital = data.get("Kapitalrendite")
+    _render_section_header(
+        "💰 Profitabilität",
+        breakdown["Profitabilität"],
+        40,
+    )
 
-        _render_metric_row(
-            "Kapitalrendite (ROC)",
-            _format_percentage(return_on_capital),
-            _score_rating(
-                profitability_breakdown["roc_score"],
-                profitability_breakdown["roc_max"],
+    return_on_capital = data.get("Kapitalrendite")
+
+    _render_metric_row(
+        "Kapitalrendite (ROC)",
+        _format_percentage(return_on_capital),
+        _score_rating(
+            profitability_breakdown["roc_score"],
+            profitability_breakdown["roc_max"],
+        ),
+        (
+            "Misst die Rendite auf das im operativen Geschäft "
+            "eingesetzte Kapital. Sie ist die wichtigste "
+            "Profitabilitätskennzahl im Quality Score und "
+            "fließt mit bis zu 25 von 40 Punkten ein. "
+            "Bewertet werden sowohl das absolute Niveau als "
+            "auch der Vergleich mit der Branche."
+        ),
+    )
+
+    _render_metric_row(
+        "ROE",
+        (
+            _format_percentage(roe)
+            if not profitability_breakdown["margin_fallback_used"]
+            else "Ersatzbewertung Margen"
+        ),
+        _score_rating(
+            (
+                profitability_breakdown["margin_fallback_score"]
+                if profitability_breakdown["margin_fallback_used"]
+                else profitability_breakdown["roe_score"]
             ),
             (
-                "Misst die Rendite auf das im operativen Geschäft "
-                "eingesetzte Kapital. Sie ist die wichtigste "
-                "Profitabilitätskennzahl im Quality Score und "
-                "fließt mit bis zu 25 von 40 Punkten ein. "
-                "Bewertet werden sowohl das absolute Niveau als "
-                "auch der Vergleich mit der Branche."
+                15
+                if profitability_breakdown["margin_fallback_used"]
+                else profitability_breakdown["roe_max"]
             ),
-        )
+        ),
+        (
+            "Eigenkapitalrendite: Zeigt, wie viel Gewinn "
+            "mit dem eingesetzten Eigenkapital erzielt wird. "
+            "Sie fließt mit bis zu 15 von 40 Punkten ein. "
+            "Auch hier werden absolutes Niveau und "
+            "Branchenvergleich berücksichtigt. Sehr hohe "
+            "Werte können durch Verschuldung oder "
+            "Aktienrückkäufe verzerrt sein."
+        ),
+    )
 
-        _render_metric_row(
-            "ROE",
-            (
-                _format_percentage(roe)
-                if not profitability_breakdown["margin_fallback_used"]
-                else "Ersatzbewertung Margen"
-            ),
-            _score_rating(
-                (
-                    profitability_breakdown["margin_fallback_score"]
-                    if profitability_breakdown["margin_fallback_used"]
-                    else profitability_breakdown["roe_score"]
-                ),
-                (
-                    15
-                    if profitability_breakdown["margin_fallback_used"]
-                    else profitability_breakdown["roe_max"]
-                ),
-            ),
-            (
-                "Eigenkapitalrendite: Zeigt, wie viel Gewinn "
-                "mit dem eingesetzten Eigenkapital erzielt wird. "
-                "Sie fließt mit bis zu 15 von 40 Punkten ein. "
-                "Auch hier werden absolutes Niveau und "
-                "Branchenvergleich berücksichtigt. Sehr hohe "
-                "Werte können durch Verschuldung oder "
-                "Aktienrückkäufe verzerrt sein."
-            ),
-        )
+    _render_metric_row(
+        "Nettomarge",
+        _format_percentage(margin),
+        "Diagnosekennzahl",
+        (
+            "Anteil des Umsatzes, der nach sämtlichen "
+            "Kosten als Gewinn verbleibt. Die Kennzahl "
+            "liefert zusätzlichen Kontext, fließt aber "
+            "nicht mehr separat in den Profitabilitätsscore ein."
+        ),
+    )
 
-        _render_metric_row(
-            "Nettomarge",
-            _format_percentage(margin),
-            "Diagnosekennzahl",
-            (
-                "Anteil des Umsatzes, der nach sämtlichen "
-                "Kosten als Gewinn verbleibt. Die Kennzahl "
-                "liefert zusätzlichen Kontext, fließt aber "
-                "nicht mehr separat in den Profitabilitätsscore ein."
-            ),
-        )
+    _render_metric_row(
+        "Operative Marge",
+        _format_percentage(operating_margin),
+        "Diagnosekennzahl",
+        (
+            "Anteil des Umsatzes, der aus dem operativen "
+            "Kerngeschäft als operativer Gewinn verbleibt. "
+            "Sie wird zur Einordnung angezeigt, erhält aber "
+            "keine eigenen Punkte, da die operative "
+            "Ertragskraft bereits in der Kapitalrendite "
+            "enthalten ist."
+        ),
+    )
 
-        _render_metric_row(
-            "Operative Marge",
-            _format_percentage(operating_margin),
-            "Diagnosekennzahl",
-            (
-                "Anteil des Umsatzes, der aus dem operativen "
-                "Kerngeschäft als operativer Gewinn verbleibt. "
-                "Sie wird zur Einordnung angezeigt, erhält aber "
-                "keine eigenen Punkte, da die operative "
-                "Ertragskraft bereits in der Kapitalrendite "
-                "enthalten ist."
-            ),
-        )
+    _render_section_header(
+        "📈 Wachstum",
+        breakdown["Wachstum"],
+        35,
+    )
 
-        _render_section_header(
-            "📈 Wachstum",
-            breakdown["Wachstum"],
-            35,
-        )
+    _render_metric_row(
+        "Umsatzwachstum",
+        _format_percentage(
+            growth_breakdown["revenue_growth"]
+        ),
+        _score_rating(
+            growth_breakdown["revenue_points"],
+            growth_breakdown["revenue_max"],
+        ),
+        (
+            "Bewertet wird die geglättete Umsatzentwicklung. "
+            "Wenn eine belastbare 3-Jahres-Historie vorliegt, "
+            "kann der Median statt des letzten Einzeljahres "
+            "verwendet werden."
+        ),
+    )
 
-        _render_metric_row(
-            "Umsatzwachstum",
-            _format_percentage(
-                growth_breakdown["revenue_growth"]
-            ),
-            _score_rating(
-                growth_breakdown["revenue_points"],
-                growth_breakdown["revenue_max"],
-            ),
+    _render_metric_row(
+        "Gewinnwachstum",
+        _format_percentage(
+            growth_breakdown["earnings_growth"]
+        ),
+        _score_rating(
+            growth_breakdown["earnings_points"],
+            growth_breakdown["earnings_max"],
+        ),
+        (
             (
-                "Bewertet wird die geglättete Umsatzentwicklung. "
+                "Trendbruch: Das jüngste Geschäftsjahr liegt bei "
+                f"{data.get('Gewinnwachstum Jahresabschluss'):.1f} %. "
+                "Die positive 3-Jahres-Entwicklung bleibt sichtbar, "
+                "die Bewertung wird wegen des deutlichen "
+                "Ergebnisrückgangs begrenzt."
+            )
+            if growth_breakdown.get("earnings_trend_break")
+            else (
+                "Bewertet wird die geglättete Gewinnentwicklung. "
                 "Wenn eine belastbare 3-Jahres-Historie vorliegt, "
                 "kann der Median statt des letzten Einzeljahres "
                 "verwendet werden."
+            )
+        ),
+    )
+
+    if (
+        (
+            data.get("Extremer Umsatzsprung")
+            or data.get("Gewinn Vorzeichenwechsel")
+        )
+        and not data.get("Research Bereinigung aktiv")
+    ):
+        st.warning(
+            "Außergewöhnliche Wachstumshistorie erkannt. "
+            "Starke Veränderungen können reales strukturelles Wachstum "
+            "abbilden oder durch Sondereffekte wie Akquisitionen, "
+            "Bilanzierung oder Restrukturierungen beeinflusst sein. "
+            "Eine zusätzliche fachliche Einordnung ist sinnvoll."
+        )
+
+    if data.get("Research Bereinigung aktiv"):
+        for adjustment in data.get("Research Bereinigungen", []):
+            original_value = adjustment.get("Originalwert")
+            replacement_value = adjustment.get("Ersatzwert")
+
+            value_text = ""
+
+            if (
+                original_value is not None
+                and replacement_value is not None
+            ):
+                value_text = (
+                    f" Originalwert: {original_value:.1f} %. "
+                    f"Research-Wert: {replacement_value:.1f} %."
+                )
+
+            source = adjustment.get("Quelle")
+            date = adjustment.get("Stand")
+
+            st.info(
+                f"Research-Hinweis: "
+                f"{adjustment.get('Kennzahl')} · "
+                f"{adjustment.get('Status')}."
+                f"{value_text} "
+                f"{adjustment.get('Begründung')}"
+            )
+
+            if source:
+                source_text = f"Quelle: {source}"
+
+                if date:
+                    source_text += f" ({date})"
+
+                st.caption(source_text)
+
+    st.caption(
+        "Growth V2 bewertet Umsatz- und Gewinnentwicklung "
+        "auf Basis der verfügbaren Jahresabschluss- und "
+        "Mehrjahresdaten."
+    )
+
+    st.divider()
+
+    _render_section_header(
+        "🏦 Bilanz",
+        breakdown["Bilanz"],
+        25,
+    )
+
+    if breakdown["Bilanz"] is None:
+        st.caption(
+            "Für dieses Geschäftsmodell sind die standardisierten "
+            "Verschuldungskennzahlen strukturell nicht sinnvoll "
+            "vergleichbar. Die Bilanz wird deshalb derzeit nicht "
+            "quantitativ bewertet."
+        )
+
+    else:
+        _render_metric_row(
+            "Net Debt / EBITDA",
+            (
+                "Nicht sinnvoll berechenbar"
+                if ebitda is not None and ebitda <= 0
+                else (
+                    f"{net_debt_to_ebitda:.2f}"
+                    if net_debt_to_ebitda is not None
+                    else "–"
+                )
+            ),
+            (
+                {"level": "poor", "label": "EBITDA negativ"}
+                if ebitda is not None and ebitda <= 0
+                else interpret_net_debt_to_ebitda(
+                    net_debt_to_ebitda
+                )
+            ),
+            (
+                "Verhältnis der Nettoverschuldung zum EBITDA. "
+                "Bei negativem EBITDA ist die Kennzahl nicht "
+                "wirtschaftlich sinnvoll interpretierbar."
             ),
         )
 
         _render_metric_row(
-            "Gewinnwachstum",
-            _format_percentage(
-                growth_breakdown["earnings_growth"]
-            ),
-            _score_rating(
-                growth_breakdown["earnings_points"],
-                growth_breakdown["earnings_max"],
-            ),
+            "Zinsdeckung",
             (
-                (
-                    "Trendbruch: Das jüngste Geschäftsjahr liegt bei "
-                    f"{data.get('Gewinnwachstum Jahresabschluss'):.1f} %. "
-                    "Die positive 3-Jahres-Entwicklung bleibt sichtbar, "
-                    "die Bewertung wird wegen des deutlichen "
-                    "Ergebnisrückgangs begrenzt."
-                )
-                if growth_breakdown.get("earnings_trend_break")
-                else (
-                    "Bewertet wird die geglättete Gewinnentwicklung. "
-                    "Wenn eine belastbare 3-Jahres-Historie vorliegt, "
-                    "kann der Median statt des letzten Einzeljahres "
-                    "verwendet werden."
-                )
+                f"{interest_coverage:.2f}"
+                if interest_coverage is not None
+                else "–"
+            ),
+            interpret_interest_coverage(interest_coverage),
+            (
+                "Verhältnis von EBIT zu Zinsaufwand. "
+                "Je höher der Wert, desto komfortabler kann das "
+                "Unternehmen seine Zinskosten aus dem operativen "
+                "Ergebnis decken."
             ),
         )
 
-        if (
+        _render_metric_row(
+            "Operativer Cashflow / Debt",
             (
-                data.get("Extremer Umsatzsprung")
-                or data.get("Gewinn Vorzeichenwechsel")
-            )
-            and not data.get("Research Bereinigung aktiv")
-        ):
-            st.warning(
-                "Außergewöhnliche Wachstumshistorie erkannt. "
-                "Starke Veränderungen können reales strukturelles Wachstum "
-                "abbilden oder durch Sondereffekte wie Akquisitionen, "
-                "Bilanzierung oder Restrukturierungen beeinflusst sein. "
-                "Eine zusätzliche fachliche Einordnung ist sinnvoll."
-            )
-
-        if data.get("Research Bereinigung aktiv"):
-            for adjustment in data.get("Research Bereinigungen", []):
-                original_value = adjustment.get("Originalwert")
-                replacement_value = adjustment.get("Ersatzwert")
-
-                value_text = ""
-
-                if (
-                    original_value is not None
-                    and replacement_value is not None
-                ):
-                    value_text = (
-                        f" Originalwert: {original_value:.1f} %. "
-                        f"Research-Wert: {replacement_value:.1f} %."
-                    )
-
-                source = adjustment.get("Quelle")
-                date = adjustment.get("Stand")
-
-                st.info(
-                    f"Research-Hinweis: "
-                    f"{adjustment.get('Kennzahl')} · "
-                    f"{adjustment.get('Status')}."
-                    f"{value_text} "
-                    f"{adjustment.get('Begründung')}"
-                )
-
-                if source:
-                    source_text = f"Quelle: {source}"
-
-                    if date:
-                        source_text += f" ({date})"
-
-                    st.caption(source_text)
-
-        st.caption(
-            "Growth V2 bewertet Umsatz- und Gewinnentwicklung "
-            "auf Basis der verfügbaren Jahresabschluss- und "
-            "Mehrjahresdaten."
+                f"{ocf_to_debt_ratio:.2f}"
+                if ocf_to_debt_ratio is not None
+                else "–"
+            ),
+            interpret_ocf_to_debt(ocf_to_debt_ratio),
+            (
+                "Verhältnis des operativen Cashflows zur "
+                "Gesamtverschuldung. Zeigt, wie stark die "
+                "Verschuldung durch die laufende operative "
+                "Mittelgenerierung getragen wird."
+            ),
         )
 
-        st.divider()
-
-        _render_section_header(
-            "🏦 Bilanz",
-            breakdown["Bilanz"],
-            25,
+        _render_metric_row(
+            "Cash / Debt",
+            (
+                f"{cash_to_debt_ratio:.2f}"
+                if cash_to_debt_ratio is not None
+                else "–"
+            ),
+            interpret_cash_to_debt(cash_to_debt_ratio),
+            (
+                "Verhältnis von liquiden Mitteln zur "
+                "Gesamtverschuldung. Je höher der Wert, desto "
+                "größer der finanzielle Puffer gegenüber den "
+                "bestehenden Schulden."
+            ),
         )
 
-        if breakdown["Bilanz"] is None:
+        if data.get("Branche") == "Auto Manufacturers":
             st.caption(
-                "Für dieses Geschäftsmodell sind die standardisierten "
-                "Verschuldungskennzahlen strukturell nicht sinnvoll "
-                "vergleichbar. Die Bilanz wird deshalb derzeit nicht "
-                "quantitativ bewertet."
+                "Bei Autoherstellern wird die Zinsdeckung stärker "
+                "gewichtet, da die ausgewiesene Verschuldung durch "
+                "Finanzierungstöchter strukturell verzerrt sein kann."
             )
-
         else:
-            _render_metric_row(
-                "Net Debt / EBITDA",
-                (
-                    "Nicht sinnvoll berechenbar"
-                    if ebitda is not None and ebitda <= 0
-                    else (
-                        f"{net_debt_to_ebitda:.2f}"
-                        if net_debt_to_ebitda is not None
-                        else "–"
-                    )
-                ),
-                (
-                    {"level": "poor", "label": "EBITDA negativ"}
-                    if ebitda is not None and ebitda <= 0
-                    else interpret_net_debt_to_ebitda(
-                        net_debt_to_ebitda
-                    )
-                ),
-                (
-                    "Verhältnis der Nettoverschuldung zum EBITDA. "
-                    "Bei negativem EBITDA ist die Kennzahl nicht "
-                    "wirtschaftlich sinnvoll interpretierbar."
-                ),
-            )
-
-            _render_metric_row(
-                "Zinsdeckung",
-                (
-                    f"{interest_coverage:.2f}"
-                    if interest_coverage is not None
-                    else "–"
-                ),
-                interpret_interest_coverage(interest_coverage),
-                (
-                    "Verhältnis von EBIT zu Zinsaufwand. "
-                    "Je höher der Wert, desto komfortabler kann das "
-                    "Unternehmen seine Zinskosten aus dem operativen "
-                    "Ergebnis decken."
-                ),
-            )
-
-            _render_metric_row(
-                "Operativer Cashflow / Debt",
-                (
-                    f"{ocf_to_debt_ratio:.2f}"
-                    if ocf_to_debt_ratio is not None
-                    else "–"
-                ),
-                interpret_ocf_to_debt(ocf_to_debt_ratio),
-                (
-                    "Verhältnis des operativen Cashflows zur "
-                    "Gesamtverschuldung. Zeigt, wie stark die "
-                    "Verschuldung durch die laufende operative "
-                    "Mittelgenerierung getragen wird."
-                ),
-            )
-
-            _render_metric_row(
-                "Cash / Debt",
-                (
-                    f"{cash_to_debt_ratio:.2f}"
-                    if cash_to_debt_ratio is not None
-                    else "–"
-                ),
-                interpret_cash_to_debt(cash_to_debt_ratio),
-                (
-                    "Verhältnis von liquiden Mitteln zur "
-                    "Gesamtverschuldung. Je höher der Wert, desto "
-                    "größer der finanzielle Puffer gegenüber den "
-                    "bestehenden Schulden."
-                ),
-            )
-
-            if data.get("Branche") == "Auto Manufacturers":
-                st.caption(
-                    "Bei Autoherstellern wird die Zinsdeckung stärker "
-                    "gewichtet, da die ausgewiesene Verschuldung durch "
-                    "Finanzierungstöchter strukturell verzerrt sein kann."
-                )
-            else:
-                st.caption(
-                    "Bilanz V2 bewertet Nettoverschuldung, Zinsdeckung, "
-                    "operative Schuldentragfähigkeit und Liquidität."
-                )
-
-        st.divider()
-
-        available_scores = [
-            score
-            for score in breakdown.values()
-            if score is not None
-        ]
-
-        available_maxima = [
-            maximum
-            for score, maximum in (
-                (breakdown["Profitabilität"], 40),
-                (breakdown["Wachstum"], 35),
-                (breakdown["Bilanz"], 25),
-            )
-            if score is not None
-        ]
-
-        achieved_points = sum(available_scores)
-        available_points = sum(available_maxima)
-
-        st.markdown(
-            f"**Gesamt: {quality_score} von 100 Punkten**"
-        )
-
-        if available_points < 100:
             st.caption(
-                f"{achieved_points} von {available_points} verfügbaren Punkten "
-                f"· auf 100 normiert "
-                f"({achieved_points} / {available_points} × 100 = {quality_score})"
+                "Bilanz V2 bewertet Nettoverschuldung, Zinsdeckung, "
+                "operative Schuldentragfähigkeit und Liquidität."
             )
+
+    st.divider()
+
+    available_scores = [
+        score
+        for score in breakdown.values()
+        if score is not None
+    ]
+
+    available_maxima = [
+        maximum
+        for score, maximum in (
+            (breakdown["Profitabilität"], 40),
+            (breakdown["Wachstum"], 35),
+            (breakdown["Bilanz"], 25),
+        )
+        if score is not None
+    ]
+
+    achieved_points = sum(available_scores)
+    available_points = sum(available_maxima)
+
+    st.markdown(
+        f"**Gesamt: {quality_score} von 100 Punkten**"
+    )
+
+    if available_points < 100:
+        st.caption(
+            f"{achieved_points} von {available_points} verfügbaren Punkten "
+            f"· auf 100 normiert "
+            f"({achieved_points} / {available_points} × 100 = {quality_score})"
+        )

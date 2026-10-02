@@ -13,10 +13,14 @@ from utils.analysis_pdf import build_analysis_pdf
 from components.investment_decision import (
     render_investment_decision,
 )
+from components.analysis_overview import (
+    render_analysis_overview,
+)
 from components.dividend_section import (
     render_dividend_section,
 )
 from components.opportunity_section import (
+    render_current_intelligence_section,
     render_opportunity_section,
 )
 from components.quality_section import (
@@ -38,6 +42,147 @@ from utils.market_data import (
 st.markdown(
     """
     <style>
+    /* ============================================================
+       InRA Redesign V1 · Analyse Design Foundation
+       ============================================================ */
+
+    /* Desktop-Arbeitsfläche:
+       breit genug für Research, aber nicht grenzenlos auseinandergezogen */
+    .stMainBlockContainer,
+    .block-container {
+        max-width: 1480px;
+        padding-left: 2.2rem;
+        padding-right: 2.2rem;
+        padding-top: 2rem;
+    }
+
+    /* Grundfläche bewusst nicht rein schwarz */
+    [data-testid="stAppViewContainer"] {
+        background:
+            radial-gradient(
+                circle at 50% -10%,
+                rgba(55, 65, 81, 0.22) 0%,
+                rgba(17, 24, 39, 0.08) 32%,
+                rgba(9, 13, 20, 0) 58%
+            ),
+            #090d14;
+    }
+
+    /* Haupttypografie etwas klarer und kontrastreicher */
+    [data-testid="stAppViewContainer"] h1,
+    [data-testid="stAppViewContainer"] h2,
+    [data-testid="stAppViewContainer"] h3 {
+        letter-spacing: -0.025em;
+    }
+
+    [data-testid="stAppViewContainer"] h1 {
+        font-weight: 750;
+    }
+
+    [data-testid="stAppViewContainer"] h2,
+    [data-testid="stAppViewContainer"] h3 {
+        font-weight: 700;
+    }
+
+    /* Drei Hauptbereiche 01–03 */
+    [data-testid="stVerticalBlockBorderWrapper"]:has(
+        .inra-main-section-marker
+    ) {
+        background: rgba(15, 23, 42, 0.38);
+        border-color: rgba(148, 163, 184, 0.18);
+        border-radius: 14px;
+    }
+
+    [data-testid="stVerticalBlockBorderWrapper"]:has(
+        .inra-main-section-marker
+    ) > div {
+        padding: 0.45rem 1.25rem 1.20rem 1.25rem;
+    }
+
+    /* Section-Header innerhalb der neuen Hauptcontainer */
+    [data-testid="stVerticalBlockBorderWrapper"]:has(
+        .inra-main-section-marker
+    ) .inra-section-header {
+        margin-top: 0.35rem;
+    }
+
+    /* Wiederverwendbare Bereichsüberschrift für 01–05 */
+    .inra-section-header {
+        margin-top: 0;
+        margin-bottom: 1.35rem;
+        padding: 0;
+        border-bottom: none;
+    }
+
+    .inra-section-kicker {
+        display: block;
+        margin-bottom: 0.55rem;
+        padding: 0;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        color: #94a3b8;
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+    }
+
+    .inra-section-title {
+        color: #f8fafc;
+        font-size: 1.55rem;
+        line-height: 1.2;
+        font-weight: 760;
+        letter-spacing: -0.025em;
+    }
+
+    .inra-section-subtitle {
+        margin-top: 0.38rem;
+        max-width: 850px;
+        color: #94a3b8;
+        font-size: 0.90rem;
+        line-height: 1.5;
+    }
+
+    /* Analyse-Überblick: drei Säulen immer gleich hoch */
+    div[data-testid="stHorizontalBlock"]:has(.inra-overview-card) {
+        align-items: stretch;
+    }
+
+    div[data-testid="stHorizontalBlock"]:has(.inra-overview-card)
+    > div[data-testid="stColumn"] {
+        display: flex;
+    }
+
+    div[data-testid="stHorizontalBlock"]:has(.inra-overview-card)
+    > div[data-testid="stColumn"]
+    > div {
+        width: 100%;
+        display: flex;
+    }
+
+    div[data-testid="stHorizontalBlock"]:has(.inra-overview-card)
+    .inra-overview-card {
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Oberflächen für spätere Cards */
+    .inra-surface {
+        background:
+            linear-gradient(
+                145deg,
+                rgba(31, 41, 55, 0.90),
+                rgba(17, 24, 39, 0.96)
+            );
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 16px;
+        box-shadow:
+            0 12px 32px rgba(0, 0, 0, 0.20),
+            inset 0 1px 0 rgba(255, 255, 255, 0.025);
+    }
+
     /* Analyse: Trefferliste der Aktiensuche klar hervorheben */
     div[data-baseweb="popover"] ul {
         background: #f4f6f8 !important;
@@ -516,21 +661,61 @@ if ticker:
         .replace("\\", "-")
     )
 
-    render_investment_decision(
-        data,
-        report_pdf_builder=build_report_pdf,
-        report_filename=(
-            f"InRA_Analyse_{ticker_for_filename}.pdf"
-        ),
+    with st.container(border=True):
+        st.html(
+            '<span class="inra-main-section-marker"></span>'
+        )
+        render_investment_decision(
+            data,
+            report_pdf_builder=build_report_pdf,
+            report_filename=(
+                f"InRA_Analyse_{ticker_for_filename}.pdf"
+            ),
+        )
+
+    st.markdown(
+        "<div style='height:18px;'></div>",
+        unsafe_allow_html=True,
     )
 
-    st.divider()
+    with st.container(border=True):
+        st.html(
+            '<span class="inra-main-section-marker"></span>'
+        )
+        render_analysis_overview(data)
 
-    render_quality_section(data)
-    st.divider()
+        active_detail = st.session_state.get(
+            "analysis_overview_detail"
+        )
 
-    render_dividend_section(data)
-    st.divider()
+        if active_detail:
+            if active_detail == "quality":
+                render_quality_section(data)
 
-    render_opportunity_section(data)
+            elif active_detail == "opportunity":
+                render_opportunity_section(data)
 
+            elif active_detail == "dividend":
+                render_dividend_section(data)
+
+    st.markdown(
+        "<div style='height:18px;'></div>",
+        unsafe_allow_html=True,
+    )
+
+    with st.container(border=True):
+        st.html(
+            '<span class="inra-main-section-marker"></span>'
+        )
+        st.markdown(
+            """
+            <div class="inra-section-header">
+                <div class="inra-section-kicker">
+                    03 · WAS BEWEGT DIE AKTIE?
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        render_current_intelligence_section(data)

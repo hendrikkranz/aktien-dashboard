@@ -392,50 +392,88 @@ def render_investment_decision(
     html = textwrap.dedent(
     f"""
 <div style="
-    background:#1b1f27;
-    border:3px solid {border};
-    border-radius:12px;
-    padding:26px 30px;
-    margin:8px 0 26px 0;
-    box-shadow:0 8px 28px rgba(0,0,0,0.35);
-">
-
-<div style="
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:16px;
+    margin:8px 0 10px 0;
 ">
     <div style="
-        color:#8b949e;
+        display:block;
+        margin-bottom:18px;
+        padding:0;
+        background:transparent;
+        border:none;
+        color:#94a3b8;
         font-size:12px;
-        font-weight:700;
+        font-weight:800;
+        letter-spacing:0.14em;
         text-transform:uppercase;
-        letter-spacing:1px;
     ">
-    Investment-Urteil
+        01 · Investment Decision
     </div>
-    {kursstand_html}
-</div>
 
-<div style="
-    color:white;
-    font-size:34px;
-    font-weight:700;
-    margin-top:10px;
-">
-{icon_html} {title}
-</div>
+    <div style="
+        background:
+            linear-gradient(
+                135deg,
+                rgba(31,41,55,0.98),
+                rgba(17,24,39,0.96)
+            );
+        border:1px solid {border};
+        border-left:5px solid {border};
+        border-radius:16px;
+        padding:30px 34px 32px 34px;
+        box-shadow:
+            0 18px 44px rgba(0,0,0,0.28),
+            inset 0 1px 0 rgba(255,255,255,0.035);
+    ">
 
-<div style="
-    color:#c9d1d9;
-    font-size:16px;
-    margin-top:12px;
-    line-height:1.5;
-">
-{text}
-</div>
+        <div style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:18px;
+        ">
+            <div style="
+                color:{border};
+                font-size:11px;
+                font-weight:800;
+                text-transform:uppercase;
+                letter-spacing:0.14em;
+            ">
+                Investmententscheidung
+            </div>
+            {kursstand_html}
+        </div>
 
+        <div style="
+            color:#f8fafc;
+            font-size:36px;
+            line-height:1.16;
+            font-weight:800;
+            letter-spacing:-0.025em;
+            margin-top:14px;
+        ">
+            {icon_html} {title}
+        </div>
+
+        <div style="
+            width:64px;
+            height:3px;
+            border-radius:999px;
+            background:{border};
+            margin-top:18px;
+            opacity:0.90;
+        "></div>
+
+        <div style="
+            color:#cbd5e1;
+            font-size:16px;
+            margin-top:18px;
+            line-height:1.65;
+            max-width:1080px;
+        ">
+            {text}
+        </div>
+
+    </div>
 </div>
 """
 ).strip()
