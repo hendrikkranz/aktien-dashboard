@@ -111,8 +111,6 @@ def render_dividend_section(data: dict) -> None:
 
         st.markdown(
             f"##### {icon_local} {title}"
-            f"<span style='float:right'>{score_text}</span>",
-            unsafe_allow_html=True,
         )
 
     def render_row(label, row_value, score, maximum):
@@ -162,61 +160,6 @@ def render_dividend_section(data: dict) -> None:
             </div>
             """
         )
-
-    # Kompakter Detailkopf mit wiederhergestelltem Rendite-Badge.
-    st.html(
-        f"""
-        <div style="
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:24px;
-            margin:2px 0 22px 0;
-        ">
-            <div style="
-                color:#8b949e;
-                font-size:13px;
-                line-height:1.5;
-            ">
-                Bewertung von Rendite, Tragfähigkeit, Wachstum,
-                Kontinuität und Kapitalallokation.
-            </div>
-
-            <div style="
-                width:66px;
-                height:66px;
-                box-sizing:border-box;
-                border:1px solid #ffffff;
-                border-radius:50%;
-                display:flex;
-                flex-direction:column;
-                align-items:center;
-                justify-content:center;
-                flex:0 0 66px;
-            ">
-                <div style="
-                    color:white;
-                    font-size:17px;
-                    font-weight:700;
-                    line-height:1.05;
-                ">
-                    {value}
-                </div>
-                <div style="
-                    color:#8b949e;
-                    font-size:8px;
-                    font-weight:700;
-                    margin-top:4px;
-                    letter-spacing:0.4px;
-                    text-transform:uppercase;
-                    white-space:nowrap;
-                ">
-                    Div.-Rendite
-                </div>
-            </div>
-        </div>
-        """
-    )
 
     render_section(
         "Dividendenrendite",

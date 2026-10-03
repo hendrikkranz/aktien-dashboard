@@ -87,11 +87,67 @@ def _overview_card(
     color,
     footer,
     detail_key,
+    badge=None,
 ):
     safe_title = html.escape(str(title))
     safe_rating = html.escape(str(rating))
     safe_summary = html.escape(str(summary))
     safe_footer = html.escape(str(footer))
+
+    if badge:
+        safe_badge = html.escape(str(badge))
+        divider_html = f"""
+            <div style="
+                position:relative;
+                border-top:1px solid rgba(148,163,184,0.14);
+                margin-top:0;
+                padding-top:32px;
+            ">
+                <div style="
+                    position:absolute;
+                    left:50%;
+                    top:0;
+                    transform:translate(-50%, -50%);
+                    width:52px;
+                    height:52px;
+                    box-sizing:border-box;
+                    border:1px solid rgba(248,250,252,0.92);
+                    border-radius:50%;
+                    background:#111827;
+                    display:flex;
+                    flex-direction:column;
+                    align-items:center;
+                    justify-content:center;
+                ">
+                    <div style="
+                        color:#f8fafc;
+                        font-size:0.82rem;
+                        font-weight:800;
+                        line-height:1;
+                    ">
+                        {safe_badge}
+                    </div>
+                    <div style="
+                        color:#8b949e;
+                        font-size:0.39rem;
+                        font-weight:800;
+                        margin-top:4px;
+                        letter-spacing:0.04em;
+                        text-transform:uppercase;
+                        white-space:nowrap;
+                    ">
+                        Div.-Rendite
+                    </div>
+                </div>
+        """
+    else:
+        divider_html = """
+            <div style="
+                border-top:1px solid rgba(148,163,184,0.14);
+                margin-top:0;
+                padding-top:32px;
+            ">
+        """
 
     ring = _score_ring(
         value=score,
@@ -198,15 +254,14 @@ def _overview_card(
                 {safe_summary}
             </div>
 
-            <div style="
-                border-top:1px solid rgba(148,163,184,0.14);
-                margin-top:0;
-                padding-top:32px;
-                color:#718096;
-                font-size:0.72rem;
-                line-height:1.45;
-            ">
-                {safe_footer}
+            {divider_html}
+                <div style="
+                    color:#718096;
+                    font-size:0.72rem;
+                    line-height:1.45;
+                ">
+                    {safe_footer}
+                </div>
             </div>
         </div>
         """
@@ -343,11 +398,11 @@ def render_analysis_overview(data: dict) -> None:
         "Kontinuität · Kapitalallokation"
     )
 
-    if dividend_yield is not None:
-        dividend_footer = (
-            f"Aktuelle Rendite {dividend_yield:.1f} % · "
-            + dividend_footer
-        )
+    dividend_badge = (
+        f"{dividend_yield:.1f} %"
+        if dividend_yield is not None
+        else None
+    )
 
     st.markdown(
         """
@@ -410,4 +465,5 @@ def render_analysis_overview(data: dict) -> None:
             dividend_color,
             dividend_footer,
             "dividend",
+            badge=dividend_badge,
         )
