@@ -2306,7 +2306,7 @@ def render_current_intelligence_section(data: dict) -> None:
     )
 
     if significant_moves:
-        st.markdown("##### Auffällige Handelstage")
+        st.markdown("##### 📊 Auffällige Handelstage")
 
         for move in significant_moves:
             event_date = _format_date_de(
