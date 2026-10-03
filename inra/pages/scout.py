@@ -537,10 +537,16 @@ display_universe = display_universe.sort_values(
     na_position="last",
 )
 
+display_universe["Rang"] = range(
+    1,
+    len(display_universe) + 1,
+)
+
 display_universe = display_universe[
     [
         "Auswahl",
         "Favorit",
+        "Rang",
         "Name",
         "Analysieren",
         "Ticker",
@@ -588,6 +594,7 @@ with overview_container:
         disabled=[
             "Name",
             "Ticker",
+            "Rang",
             "Scout-Score",
             "Unternehmensqualität",
             "Kaufchance",
@@ -619,6 +626,12 @@ with overview_container:
             "Ticker": st.column_config.TextColumn(
                 "Ticker",
                 width=90,
+            ),
+            "Rang": st.column_config.NumberColumn(
+                "#",
+                help="Rang nach Scout-Score innerhalb der aktuellen Auswahl",
+                width=55,
+                format="%d",
             ),
             "Scout-Score": st.column_config.NumberColumn(
                 "Scout-Score",
