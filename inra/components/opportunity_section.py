@@ -2363,169 +2363,122 @@ def render_current_intelligence_section(data: dict) -> None:
                 unsafe_allow_html=True,
             )
 
-    positive = result.get("Positive_Entwicklungen") or []
-    negative = result.get("Negative_Entwicklungen") or []
-
-    col_positive, col_negative = st.columns(2)
-
-    with col_positive:
-        st.markdown('<div style="font-size:1.18rem; font-weight:700; margin:0.8rem 0 0.65rem 0;">🟢 Rückenwind</div>', unsafe_allow_html=True)
-
-        if not positive:
-            st.caption(
-                "Aktuell kein wesentlicher neuer Rückenwind."
-            )
-
-        for index, item in enumerate(positive, start=1):
-            title = item.get("Titel", "Entwicklung")
-            event_date = item.get("Datum")
-            date_html = (
-                f' <span style="color:#9ca3af; '
-                f'font-size:0.8rem; font-weight:400;">'
-                f'· {_format_date_de(event_date)}</span>'
-                if event_date
-                else ""
-            )
-
-            st.markdown(
-                f'<div style="font-weight:700;">'
-                f'{index}. {_safe_intelligence_text(title)}'
-                f'{date_html}</div>',
-                unsafe_allow_html=True,
-            )
-
-            if item.get("Beschreibung"):
-                st.markdown(
-                    f'<div style="font-size:0.875rem; color:#9ca3af; margin-bottom:12px;">'
-                    f'{_safe_intelligence_text(item["Beschreibung"])}'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
-
-    with col_negative:
-        st.markdown('<div style="font-size:1.18rem; font-weight:700; margin:0.8rem 0 0.65rem 0;">🔴 Gegenwind</div>', unsafe_allow_html=True)
-
-        if not negative:
-            st.caption(
-                "Aktuell kein wesentlicher neuer Gegenwind."
-            )
-
-        for index, item in enumerate(negative, start=1):
-            title = item.get("Titel", "Entwicklung")
-            event_date = item.get("Datum")
-            date_html = (
-                f' <span style="color:#9ca3af; '
-                f'font-size:0.8rem; font-weight:400;">'
-                f'· {_format_date_de(event_date)}</span>'
-                if event_date
-                else ""
-            )
-
-            st.markdown(
-                f'<div style="font-weight:700;">'
-                f'{index}. {_safe_intelligence_text(title)}'
-                f'{date_html}</div>',
-                unsafe_allow_html=True,
-            )
-
-            if item.get("Beschreibung"):
-                st.markdown(
-                    f'<div style="font-size:0.875rem; color:#9ca3af; margin-bottom:12px;">'
-                    f'{_safe_intelligence_text(item["Beschreibung"])}'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
-
-    open_factors = result.get("Offene_Faktoren") or []
-
-    if open_factors:
-        st.markdown('<div style="font-size:1.18rem; font-weight:700; margin:1rem 0 0.65rem 0;">👀 Blick in die Zukunft</div>', unsafe_allow_html=True)
-
-        for index, item in enumerate(open_factors, start=1):
-            title = item.get(
-                "Titel",
-                "Offener Faktor",
-            )
-            description = item.get("Beschreibung")
-
-            st.markdown(f"**{index}. {title}**")
-
-            if description:
-                st.markdown(
-                    f'<div style="font-size:0.875rem; color:#9ca3af; margin-bottom:12px;">'
-                    f'{_safe_intelligence_text(description)}'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
-
     impact = result.get("Event_Impact_Vorschlag", 0)
 
     if impact > 0:
         impact_label = f"+{impact}"
-        impact_icon = "🟢"
-    elif impact < 0:
+    else:
         impact_label = str(impact)
-        impact_icon = "🔴"
-    else:
-        impact_label = "0"
-        impact_icon = "⚪"
 
-    if impact == 0:
-        st.markdown('<div style="font-size:1.18rem; font-weight:700; margin:1rem 0 0.65rem 0;">⚪ Event Impact = 0</div>', unsafe_allow_html=True)
-        st.caption(
-            "Nachrichtenlage verändert die Kaufchance nicht."
-        )
-    else:
-        st.markdown(
-            (
-                '<div style="font-size:1.18rem; font-weight:700; '
-                'margin:1rem 0 0.65rem 0;">'
-                f'{impact_icon} Event Impact: {impact_label} Punkte'
-                '</div>'
-            ),
-            unsafe_allow_html=True,
-        )
+    with st.expander(
+        f"ⓘ Warum Event Impact = {impact_label}?"
+    ):
+        positive = result.get("Positive_Entwicklungen") or []
+        negative = result.get("Negative_Entwicklungen") or []
+
+        col_positive, col_negative = st.columns(2)
+
+        with col_positive:
+            st.markdown('<div style="font-size:1.18rem; font-weight:700; margin:0.8rem 0 0.65rem 0;">🟢 Rückenwind</div>', unsafe_allow_html=True)
+
+            if not positive:
+                st.caption(
+                    "Aktuell kein wesentlicher neuer Rückenwind."
+                )
+
+            for index, item in enumerate(positive, start=1):
+                title = item.get("Titel", "Entwicklung")
+                event_date = item.get("Datum")
+                date_html = (
+                    f' <span style="color:#9ca3af; '
+                    f'font-size:0.8rem; font-weight:400;">'
+                    f'· {_format_date_de(event_date)}</span>'
+                    if event_date
+                    else ""
+                )
+
+                st.markdown(
+                    f'<div style="font-weight:700;">'
+                    f'{index}. {_safe_intelligence_text(title)}'
+                    f'{date_html}</div>',
+                    unsafe_allow_html=True,
+                )
+
+                if item.get("Beschreibung"):
+                    st.markdown(
+                        f'<div style="font-size:0.875rem; color:#9ca3af; margin-bottom:12px;">'
+                        f'{_safe_intelligence_text(item["Beschreibung"])}'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+
+        with col_negative:
+            st.markdown('<div style="font-size:1.18rem; font-weight:700; margin:0.8rem 0 0.65rem 0;">🔴 Gegenwind</div>', unsafe_allow_html=True)
+
+            if not negative:
+                st.caption(
+                    "Aktuell kein wesentlicher neuer Gegenwind."
+                )
+
+            for index, item in enumerate(negative, start=1):
+                title = item.get("Titel", "Entwicklung")
+                event_date = item.get("Datum")
+                date_html = (
+                    f' <span style="color:#9ca3af; '
+                    f'font-size:0.8rem; font-weight:400;">'
+                    f'· {_format_date_de(event_date)}</span>'
+                    if event_date
+                    else ""
+                )
+
+                st.markdown(
+                    f'<div style="font-weight:700;">'
+                    f'{index}. {_safe_intelligence_text(title)}'
+                    f'{date_html}</div>',
+                    unsafe_allow_html=True,
+                )
+
+                if item.get("Beschreibung"):
+                    st.markdown(
+                        f'<div style="font-size:0.875rem; color:#9ca3af; margin-bottom:12px;">'
+                        f'{_safe_intelligence_text(item["Beschreibung"])}'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+
+        open_factors = result.get("Offene_Faktoren") or []
+
+        if open_factors:
+            st.markdown('<div style="font-size:1.18rem; font-weight:700; margin:1rem 0 0.65rem 0;">👀 Blick in die Zukunft</div>', unsafe_allow_html=True)
+
+            for index, item in enumerate(open_factors, start=1):
+                title = item.get(
+                    "Titel",
+                    "Offener Faktor",
+                )
+                description = item.get("Beschreibung")
+
+                st.markdown(f"**{index}. {title}**")
+
+                if description:
+                    st.markdown(
+                        f'<div style="font-size:0.875rem; color:#9ca3af; margin-bottom:12px;">'
+                        f'{_safe_intelligence_text(description)}'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+
 
         if result.get("Event_Impact_Begruendung"):
             st.markdown(
-                f'<div style="font-size:0.875rem; color:#9ca3af;">'
+                '<div style="font-size:0.875rem; color:#9ca3af; '
+                'margin-top:0.8rem;">'
+                '<strong>Einordnung des Event Impact</strong><br>'
                 f'{_safe_intelligence_text(result["Event_Impact_Begruendung"])}'
-                f'</div>',
+                '</div>',
                 unsafe_allow_html=True,
             )
 
-    source_count = result.get("Verwendbare_Quellen")
-    strong_count = result.get("Starke_Quellen")
-    source_status = result.get("Event_Impact_Status")
-
-    source_parts = []
-
-    if source_status:
-        source_parts.append(source_status)
-
-    if source_count is not None:
-        source_parts.append(
-            f"{source_count} verwendbare Quellen"
-        )
-
-    if strong_count is not None:
-        source_parts.append(
-            f"{strong_count} starke Quellen"
-        )
-
-    if source_parts:
-        st.caption(" · ".join(source_parts))
-
-    if is_preview:
-        if st.button(
-            "Neue Analyse übernehmen",
-            key=f"save_current_intelligence_{ticker}",
-            type="primary",
-        ):
-            save_current_intelligence(result)
-            update_stock_in_benchmark_cache(ticker)
-            del st.session_state[preview_key]
-            st.rerun()
 
 
 def _render_current_intelligence(data: dict) -> None:
