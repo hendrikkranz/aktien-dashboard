@@ -9,7 +9,11 @@ from utils.company_localization import (
     localize_industry,
     localize_sector,
 )
-from utils.company_portrait import get_company_portrait
+from utils.company_portrait import (
+    create_company_portrait_with_gemini,
+    get_company_portrait,
+    save_company_portrait,
+)
 
 from utils.current_intelligence import (
     apply_current_intelligence,
@@ -483,21 +487,80 @@ if ticker:
                 )
 
                 if added:
+                    scout_error = None
+                    portrait_error = None
+                    portrait_created = False
+
                     try:
                         update_stock_in_benchmark_cache(
                             data["Ticker"]
                         )
+                    except Exception as error:
+                        scout_error = error
+
+                    try:
+                        if get_company_portrait(
+                            data["Ticker"]
+                        ) is None:
+                            portrait = (
+                                create_company_portrait_with_gemini(
+                                    api_key=st.secrets[
+                                        "GEMINI_API_KEY"
+                                    ],
+                                    company_name=data["Name"],
+                                    business_summary=data.get(
+                                        "Unternehmensbeschreibung"
+                                    ),
+                                    sector=data.get("Sektor"),
+                                    industry=data.get("Branche"),
+                                )
+                            )
+
+                            save_company_portrait(
+                                data["Ticker"],
+                                portrait,
+                            )
+                            portrait_created = True
+                    except Exception as error:
+                        portrait_error = error
+
+                    if (
+                        scout_error is None
+                        and portrait_error is None
+                    ):
+                        portrait_message = (
+                            "Unternehmensporträt wurde neu erstellt."
+                            if portrait_created
+                            else
+                            "Unternehmensporträt war bereits vorhanden."
+                        )
+
                         st.session_state["watchlist_message"] = (
                             "success",
                             "Aktie wurde zur Watchlist hinzugefügt "
-                            "und für den Scout aufbereitet.",
+                            "und für den Scout aufbereitet. "
+                            + portrait_message,
                         )
-                    except Exception as error:
+                    else:
+                        problems = []
+
+                        if scout_error is not None:
+                            problems.append(
+                                "Scout-Aufbereitung: "
+                                f"{scout_error}"
+                            )
+
+                        if portrait_error is not None:
+                            problems.append(
+                                "Unternehmensporträt: "
+                                f"{portrait_error}"
+                            )
+
                         st.session_state["watchlist_message"] = (
                             "warning",
-                            "Aktie wurde zur Watchlist hinzugefügt, "
-                            "konnte aber noch nicht für den Scout "
-                            f"aufbereitet werden: {error}",
+                            "Aktie wurde zur Watchlist hinzugefügt. "
+                            "Noch nicht vollständig abgeschlossen: "
+                            + " | ".join(problems),
                         )
 
                     st.rerun()
