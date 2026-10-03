@@ -116,24 +116,32 @@ st.markdown(
 
     .inra-section-kicker {
         display: block;
-        margin-bottom: 0.55rem;
+        margin-bottom: 0.45rem;
         padding: 0;
         background: transparent;
         border: none;
         border-radius: 0;
-        color: #94a3b8;
-        font-size: 0.76rem;
-        font-weight: 800;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-    }
-
-    .inra-section-title {
         color: #f8fafc;
         font-size: 1.55rem;
         line-height: 1.2;
         font-weight: 760;
         letter-spacing: -0.025em;
+        text-transform: uppercase;
+        text-shadow:
+            0 2px 2px rgba(0, 0, 0, 0.85),
+            0 3px 7px rgba(0, 0, 0, 0.55),
+            0 0 5px rgba(248, 250, 252, 0.55),
+            0 0 12px rgba(203, 213, 225, 0.38),
+            0 0 24px rgba(148, 163, 184, 0.22);
+    }
+
+    .inra-section-title {
+        color: #94a3b8;
+        font-size: 0.80rem;
+        line-height: 1.3;
+        font-weight: 800;
+        letter-spacing: 0.10em;
+        text-transform: uppercase;
     }
 
     .inra-section-subtitle {
@@ -709,7 +717,10 @@ if ticker:
         )
         st.markdown(
             """
-            <div class="inra-section-header">
+            <div
+                class="inra-section-header"
+                style="margin-bottom:0.55rem;"
+            >
                 <div class="inra-section-kicker">
                     03 · WAS BEWEGT DIE AKTIE?
                 </div>

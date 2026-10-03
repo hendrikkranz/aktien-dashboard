@@ -394,19 +394,11 @@ def render_investment_decision(
 <div style="
     margin:8px 0 10px 0;
 ">
-    <div style="
-        display:block;
-        margin-bottom:18px;
-        padding:0;
-        background:transparent;
-        border:none;
-        color:#94a3b8;
-        font-size:12px;
-        font-weight:800;
-        letter-spacing:0.14em;
-        text-transform:uppercase;
-    ">
-        01 · Investment Decision
+    <div class="inra-section-header">
+        <div class="inra-section-kicker">
+            <span>01</span>
+            INVESTMENT DECISION
+        </div>
     </div>
 
     <div style="

@@ -2117,12 +2117,31 @@ def render_current_intelligence_section(data: dict) -> None:
 
     preview_key = f"current_intelligence_preview_{ticker}"
 
-    st.markdown("### ⚡ Kursrelevante News")
+    st.markdown(
+        """
+        <div
+            class="inra-section-title"
+            style="margin-bottom:0.38rem;"
+        >
+            ⚡ Kursrelevante News
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    st.caption(
-        "Aktuelle Nachrichten und strategische Entwicklungen ergänzen "
-        "die bestehende Kaufchance. Der validierte Event Impact fließt "
-        "als begrenzter Zu- oder Abschlag ein."
+    st.markdown(
+        """
+        <div style="
+            color:#94a3b8;
+            font-size:0.90rem;
+            line-height:1.5;
+        ">
+            Aktuelle Nachrichten und strategische Entwicklungen ergänzen
+            die bestehende Kaufchance. Der validierte Event Impact fließt
+            als begrenzter Zu- oder Abschlag ein.
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
     if st.button(
