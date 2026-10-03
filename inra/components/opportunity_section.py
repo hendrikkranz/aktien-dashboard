@@ -2291,6 +2291,26 @@ def render_current_intelligence_section(data: dict) -> None:
             "noch nicht gespeichert"
         )
 
+        if st.button(
+            "💾 Recherche speichern",
+            key=f"current_intelligence_save_{ticker}",
+        ):
+            try:
+                save_current_intelligence(result)
+                st.session_state.pop(
+                    preview_key,
+                    None,
+                )
+                st.success(
+                    "Current-Intelligence-Recherche gespeichert."
+                )
+                st.rerun()
+            except Exception as exc:
+                st.error(
+                    "Die Current-Intelligence-Recherche konnte "
+                    f"nicht gespeichert werden: {exc}"
+                )
+
     analysis_date = result.get("Analyse_Datum")
 
     if analysis_date:
