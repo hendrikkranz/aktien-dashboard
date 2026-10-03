@@ -2278,12 +2278,6 @@ def render_current_intelligence_section(data: dict) -> None:
     if movement.get("Beschreibung"):
         st.write(movement["Beschreibung"])
 
-    causes = movement.get("Ursachen") or []
-
-    if causes:
-        for index, cause in enumerate(causes[:2], start=1):
-            st.markdown(f"**{index}.** {cause}")
-
     movement_meta = []
 
     if movement.get("Zeitraum"):
