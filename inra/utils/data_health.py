@@ -334,7 +334,7 @@ def check_market_risk_snapshot_health() -> dict:
             age_days=age_days,
         )
 
-    if age_days > 7 or coverage < 0.60:
+    if coverage < 0.60:
         status = "error"
     elif age_days > 5 or coverage < 0.80:
         status = "warning"
