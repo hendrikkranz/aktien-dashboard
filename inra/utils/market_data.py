@@ -1514,6 +1514,9 @@ def load_company_snapshot(ticker: str) -> dict:
             or ticker
         ),
         "Website": info.get("website"),
+        "Unternehmensbeschreibung": info.get(
+            "longBusinessSummary"
+        ),
         "Land": info.get("country"),
         "Börse": info.get("fullExchangeName"),
         "Sektor": info.get("sector"),

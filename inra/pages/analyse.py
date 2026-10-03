@@ -3,6 +3,14 @@ from urllib.parse import urlparse
 import altair as alt
 import streamlit as st
 
+from utils.company_localization import (
+    localize_country,
+    get_country_display,
+    localize_industry,
+    localize_sector,
+)
+from utils.company_portrait import get_company_portrait
+
 from utils.current_intelligence import (
     apply_current_intelligence,
     get_current_intelligence,
@@ -517,156 +525,339 @@ if ticker:
             unsafe_allow_html=True,
         )
 
-    col_title, col_period = st.columns([3, 2])
-
-    with col_title:
-        title_placeholder = st.empty()
-
-    with col_period:
-        period = st.segmented_control(
-            "Zeitraum",
-            options=["1M", "3M", "6M", "1J", "5J"],
-            default="6M",
-            label_visibility="collapsed",
-        )
-
-    period_map = {
-        "1M": "1mo",
-        "3M": "3mo",
-        "6M": "6mo",
-        "1J": "1y",
-        "5J": "5y",
-    }
-
-    price_history = load_price_history(
-        data["Ticker"],
-        period=period_map[period],
+    chart_col, portrait_col = st.columns(
+        [1, 1],
+        gap="large",
+        vertical_alignment="top",
     )
 
-    if not price_history.empty:
-        first_price = price_history["Schlusskurs"].iloc[0]
-        last_price = price_history["Schlusskurs"].iloc[-1]
-
-        performance = (
-            ((last_price / first_price) - 1) * 100
-            if first_price
-            else 0
+    with chart_col:
+        chart_title_col, period_col = st.columns(
+            [1.15, 1.85],
+            vertical_alignment="center",
         )
 
-        performance_icon = "🟢" if performance >= 0 else "🔴"
+        with chart_title_col:
+            title_placeholder = st.empty()
 
-        title_placeholder.markdown(
-            f"### Kursverlauf &nbsp; "
-            f"<span style='font-size:0.78em;'>"
-            f"{performance_icon} {performance:+.1f} %"
-            f"</span>",
-            unsafe_allow_html=True,
+        with period_col:
+            period = st.segmented_control(
+                "Zeitraum",
+                options=["1M", "3M", "6M", "1J", "5J"],
+                default="6M",
+                label_visibility="collapsed",
+                key="analysis_chart_period",
+            )
+
+        period_map = {
+            "1M": "1mo",
+            "3M": "3mo",
+            "6M": "6mo",
+            "1J": "1y",
+            "5J": "5y",
+        }
+
+        price_history = load_price_history(
+            data["Ticker"],
+            period=period_map[period],
         )
-        minimum_price = price_history["Schlusskurs"].min()
-        maximum_price = price_history["Schlusskurs"].max()
 
-        price_range = maximum_price - minimum_price
+        if not price_history.empty:
+            first_price = price_history["Schlusskurs"].iloc[0]
+            last_price = price_history["Schlusskurs"].iloc[-1]
 
-        if price_range > 0:
-            axis_padding = price_range * 0.04
-        else:
-            axis_padding = maximum_price * 0.05
-
-        y_min = max(
-            0,
-            minimum_price - axis_padding,
-        )
-        y_max = maximum_price + axis_padding
-
-        history_start = price_history["Datum"].min()
-        history_end = price_history["Datum"].max()
-        history_days = (
-            history_end - history_start
-        ).days
-
-        if history_days >= 730:
-            x_axis = alt.Axis(
-                format="%Y",
-                tickMinStep=365 * 24 * 60 * 60 * 1000,
-                labelAngle=0,
-                grid=True,
-                gridColor="#5b6575",
-                gridOpacity=0.25,
-            )
-        elif history_days >= 180:
-            x_axis = alt.Axis(
-                format="%m/%Y",
-                tickCount="month",
-                labelAngle=0,
-            )
-        else:
-            x_axis = alt.Axis(
-                format="%d.%m.",
-                labelAngle=0,
+            performance = (
+                ((last_price / first_price) - 1) * 100
+                if first_price
+                else 0
             )
 
-        chart = (
-            alt.Chart(price_history)
-            .mark_line()
-            .encode(
-                x=alt.X(
-                    "Datum:T",
-                    title=None,
-                    axis=x_axis,
-                ),
-                y=alt.Y(
-                    "Schlusskurs:Q",
-                    title=None,
-                    scale=alt.Scale(
-                        domain=[y_min, y_max],
-                        zero=False,
-                        nice=False,
-                    ),
-                ),
-                tooltip=[
-                    alt.Tooltip(
+            performance_icon = (
+                "🟢" if performance >= 0 else "🔴"
+            )
+
+            title_placeholder.markdown(
+                f"### Kursverlauf &nbsp; "
+                f"<span style='font-size:0.78em;'>"
+                f"{performance_icon} {performance:+.1f} %"
+                f"</span>",
+                unsafe_allow_html=True,
+            )
+
+            minimum_price = price_history["Schlusskurs"].min()
+            maximum_price = price_history["Schlusskurs"].max()
+            price_range = maximum_price - minimum_price
+
+            if price_range > 0:
+                axis_padding = price_range * 0.04
+            else:
+                axis_padding = maximum_price * 0.05
+
+            y_min = max(
+                0,
+                minimum_price - axis_padding,
+            )
+            y_max = maximum_price + axis_padding
+
+            history_start = price_history["Datum"].min()
+            history_end = price_history["Datum"].max()
+            history_days = (
+                history_end - history_start
+            ).days
+
+            if history_days >= 730:
+                x_axis = alt.Axis(
+                    format="%Y",
+                    tickMinStep=365 * 24 * 60 * 60 * 1000,
+                    labelAngle=0,
+                    grid=True,
+                    gridColor="#5b6575",
+                    gridOpacity=0.25,
+                )
+            elif history_days >= 180:
+                x_axis = alt.Axis(
+                    format="%m/%Y",
+                    tickCount="month",
+                    labelAngle=0,
+                )
+            else:
+                x_axis = alt.Axis(
+                    format="%d.%m.",
+                    labelAngle=0,
+                )
+
+            chart = (
+                alt.Chart(price_history)
+                .mark_line()
+                .encode(
+                    x=alt.X(
                         "Datum:T",
-                        title="Datum",
-                        format="%d.%m.%Y",
+                        title=None,
+                        axis=x_axis,
                     ),
-                    alt.Tooltip(
+                    y=alt.Y(
                         "Schlusskurs:Q",
-                        title="Kurs",
-                        format=".2f",
+                        title=None,
+                        scale=alt.Scale(
+                            domain=[y_min, y_max],
+                            zero=False,
+                            nice=False,
+                        ),
                     ),
-                ],
+                    tooltip=[
+                        alt.Tooltip(
+                            "Datum:T",
+                            title="Datum",
+                            format="%d.%m.%Y",
+                        ),
+                        alt.Tooltip(
+                            "Schlusskurs:Q",
+                            title="Kurs",
+                            format=".2f",
+                        ),
+                    ],
+                )
+                .properties(height=280)
             )
-            .properties(
-                height=280,
+
+            st.altair_chart(
+                chart,
+                use_container_width=True,
             )
+
+            requested_days = {
+                "1M": 30,
+                "3M": 90,
+                "6M": 180,
+                "1J": 365,
+                "5J": 1825,
+            }[period]
+
+            if history_days < requested_days * 0.80:
+                st.caption(
+                    "ℹ️ Für diesen Titel ist nur eine kürzere "
+                    "Kurshistorie verfügbar: "
+                    f"{history_start:%d.%m.%Y} bis "
+                    f"{history_end:%d.%m.%Y}."
+                )
+        else:
+            title_placeholder.markdown("### Kursverlauf")
+            st.info(
+                "Für den gewählten Zeitraum liegen "
+                "keine Kursdaten vor."
+            )
+
+    with portrait_col:
+        portrait_sector = localize_sector(
+            data.get("Sektor")
+        )
+        portrait_industry = localize_industry(
+            data.get("Branche")
+        )
+        portrait_country = get_country_display(
+            data.get("Land")
+        )
+        portrait_country_name = portrait_country["name"]
+        portrait_country_flag = portrait_country["flag"]
+
+        portrait = get_company_portrait(
+            data.get("Ticker")
         )
 
-        st.altair_chart(
-            chart,
-            use_container_width=True,
-        )
-
-        requested_days = {
-            "1M": 30,
-            "3M": 90,
-            "6M": 180,
-            "1J": 365,
-            "5J": 1825,
-        }[period]
-
-        if history_days < requested_days * 0.80:
-            st.caption(
-                "ℹ️ Für diesen Titel ist nur eine kürzere "
-                "Kurshistorie verfügbar: "
-                f"{history_start:%d.%m.%Y} bis "
-                f"{history_end:%d.%m.%Y}."
+        if portrait:
+            portrait_description = (
+                portrait.get("Kurzbeschreibung") or
+                "Keine Kurzbeschreibung verfügbar."
             )
-    else:
-        st.info(
-            "Für den gewählten Zeitraum liegen keine Kursdaten vor."
+            portrait_core_business = (
+                portrait.get("Kerngeschaeft") or []
+            )
+        else:
+            portrait_description = (
+                "Noch kein deutsches Unternehmensporträt "
+                "gespeichert."
+            )
+            portrait_core_business = []
+
+        portrait_core_text = (
+            "<br>".join(portrait_core_business)
+            if portrait_core_business
+            else "Noch nicht verfügbar"
         )
 
-        st.divider()
+        st.html(
+            f"""
+            <div style="
+                min-height:322px;
+                box-sizing:border-box;
+                border:1px solid rgba(148,163,184,0.16);
+                border-radius:14px;
+                padding:22px 24px;
+                background:
+                    linear-gradient(
+                        145deg,
+                        rgba(31,41,55,0.70),
+                        rgba(15,23,42,0.78)
+                    );
+            ">
+                <div style="
+                    color:#64748b;
+                    font-size:0.70rem;
+                    font-weight:800;
+                    letter-spacing:0.14em;
+                    margin-bottom:14px;
+                ">
+                    UNTERNEHMENSPORTRÄT
+                </div>
+
+                <div style="
+                    color:#f8fafc;
+                    font-size:1.05rem;
+                    font-weight:800;
+                    margin-bottom:8px;
+                ">
+                    Was macht {data["Name"]}?
+                </div>
+
+                <div style="
+                    color:#9ca3af;
+                    font-size:0.86rem;
+                    line-height:1.55;
+                    min-height:86px;
+                ">
+                    {portrait_description}
+                </div>
+
+                <div style="
+                    border-top:1px solid rgba(148,163,184,0.14);
+                    margin-top:14px;
+                    padding-top:14px;
+                    display:grid;
+                    grid-template-columns:1fr 1fr;
+                    gap:14px 20px;
+                ">
+                    <div>
+                        <div style="
+                            color:#64748b;
+                            font-size:0.68rem;
+                            font-weight:700;
+                            text-transform:uppercase;
+                        ">
+                            Sektor
+                        </div>
+                        <div style="
+                            color:#cbd5e1;
+                            font-size:0.84rem;
+                            margin-top:3px;
+                        ">
+                            {portrait_sector}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style="
+                            color:#64748b;
+                            font-size:0.68rem;
+                            font-weight:700;
+                            text-transform:uppercase;
+                        ">
+                            Branche
+                        </div>
+                        <div style="
+                            color:#cbd5e1;
+                            font-size:0.84rem;
+                            margin-top:3px;
+                        ">
+                            {portrait_industry}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style="
+                            color:#64748b;
+                            font-size:0.68rem;
+                            font-weight:700;
+                            text-transform:uppercase;
+                        ">
+                            Sitz / Markt
+                        </div>
+                        <div style="
+                            color:#cbd5e1;
+                            font-size:0.84rem;
+                            margin-top:3px;
+                        ">
+                            {portrait_country_name}
+                            {
+                                f'<div style="font-size:1.9rem; '
+                                f'line-height:1; margin-top:5px;">'
+                                f'{portrait_country_flag}</div>'
+                                if portrait_country_flag
+                                else ""
+                            }
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style="
+                            color:#64748b;
+                            font-size:0.68rem;
+                            font-weight:700;
+                            text-transform:uppercase;
+                        ">
+                            Kerngeschäft
+                        </div>
+                        <div style="
+                            color:#cbd5e1;
+                            font-size:0.84rem;
+                            margin-top:3px;
+                        ">
+                            {portrait_core_text}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """
+        )
 
     # Current Intelligence wirkt als begrenztes Overlay auf
     # die Kaufchance. Nur persistent übernommene Analysen zählen.
