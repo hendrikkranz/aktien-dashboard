@@ -378,13 +378,16 @@ if ticker:
     )
 
     if logo_domain:
-        logo_col, title_col = st.columns(
-            [0.055, 0.945],
+        logo_col, title_col, watchlist_col = st.columns(
+            [0.055, 0.695, 0.25],
             gap="small",
             vertical_alignment="center",
         )
         with logo_col:
-            st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+            st.markdown(
+                "<div style='height: 6px;'></div>",
+                unsafe_allow_html=True,
+            )
             st.image(
                 "https://www.google.com/s2/favicons"
                 f"?domain={logo_domain}&sz=128",
@@ -405,19 +408,25 @@ if ticker:
                 unsafe_allow_html=True,
             )
     else:
-        st.markdown(
-            f"""
-            <div style="display:flex; flex-direction:column;">
-                <h1 style="margin:0; padding:0;">{data["Name"]}</h1>
-                {
-                    f'<div style="margin-top:2px; color:#9ca3af; font-size:0.875rem;">{company_profile_text}</div>'
-                    if company_profile_text
-                    else ""
-                }
-            </div>
-            """,
-            unsafe_allow_html=True,
+        title_col, watchlist_col = st.columns(
+            [0.75, 0.25],
+            gap="small",
+            vertical_alignment="center",
         )
+        with title_col:
+            st.markdown(
+                f"""
+                <div style="display:flex; flex-direction:column;">
+                    <h1 style="margin:0; padding:0;">{data["Name"]}</h1>
+                    {
+                        f'<div style="margin-top:2px; color:#9ca3af; font-size:0.875rem;">{company_profile_text}</div>'
+                        if company_profile_text
+                        else ""
+                    }
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
     header_details = [
         data["Ticker"],
@@ -448,37 +457,39 @@ if ticker:
             st.warning(message_text)
 
     if not is_ticker_in_universe(data["Ticker"]):
-        if st.button(
-            "➕ Zur Watchlist hinzufügen",
-            key=f"add_to_watchlist_{data['Ticker']}",
-        ):
-            added = add_stock_to_universe(
-                name=data["Name"],
-                ticker=data["Ticker"],
-                sector=data.get("Sektor"),
-                industry=data.get("Branche"),
-                country=data.get("Land"),
-            )
+        with watchlist_col:
+            if st.button(
+                "➕ Zur Watchlist hinzufügen",
+                key=f"add_to_watchlist_{data['Ticker']}",
+                use_container_width=True,
+            ):
+                added = add_stock_to_universe(
+                    name=data["Name"],
+                    ticker=data["Ticker"],
+                    sector=data.get("Sektor"),
+                    industry=data.get("Branche"),
+                    country=data.get("Land"),
+                )
 
-            if added:
-                try:
-                    update_stock_in_benchmark_cache(
-                        data["Ticker"]
-                    )
-                    st.session_state["watchlist_message"] = (
-                        "success",
-                        "Aktie wurde zur Watchlist hinzugefügt "
-                        "und für den Scout aufbereitet.",
-                    )
-                except Exception as error:
-                    st.session_state["watchlist_message"] = (
-                        "warning",
-                        "Aktie wurde zur Watchlist hinzugefügt, "
-                        "konnte aber noch nicht für den Scout "
-                        f"aufbereitet werden: {error}",
-                    )
+                if added:
+                    try:
+                        update_stock_in_benchmark_cache(
+                            data["Ticker"]
+                        )
+                        st.session_state["watchlist_message"] = (
+                            "success",
+                            "Aktie wurde zur Watchlist hinzugefügt "
+                            "und für den Scout aufbereitet.",
+                        )
+                    except Exception as error:
+                        st.session_state["watchlist_message"] = (
+                            "warning",
+                            "Aktie wurde zur Watchlist hinzugefügt, "
+                            "konnte aber noch nicht für den Scout "
+                            f"aufbereitet werden: {error}",
+                        )
 
-                st.rerun()
+                    st.rerun()
 
     meta_spacer, meta_col = st.columns([2.45, 2])
 
