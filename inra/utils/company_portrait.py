@@ -68,18 +68,27 @@ Aufgabe:
    was das Unternehmen macht und womit es hauptsächlich
    Geld verdient.
 
-2. Nenne maximal 3 zentrale Geschäftsfelder oder
-   Produktbereiche. Jeder Begriff soll möglichst kurz sein.
+2. Nenne genau 3 zentrale wirtschaftliche Geschäftsfelder,
+   sofern der Quelltext drei sinnvoll unterscheidbare Felder
+   hergibt. Jeder Begriff soll möglichst kurz sein.
 
 Regeln:
 - Verwende ausschließlich Informationen aus dem Quelltext.
+- Die Geschäftsfelder müssen auf Deutsch formuliert sein.
+- Englische Segmentnamen nicht einfach übernehmen, sondern
+  ihren wirtschaftlichen Inhalt knapp auf Deutsch benennen.
+- Wähle Geschäftsfelder auf vergleichbarem Abstraktionsniveau.
+- Bevorzuge tragende Geschäftsbereiche gegenüber einzelnen
+  Produkten, Marken oder Produktvarianten.
+- Einzelne Produkte nur nennen, wenn sie selbst einen
+  wesentlichen eigenständigen Geschäftsbereich darstellen.
+- Firmennamen und etablierte Produkt- oder Markennamen dürfen
+  in der Kurzbeschreibung unverändert bleiben.
 - Keine Bewertung des Unternehmens.
 - Keine Anlageempfehlung.
 - Keine erfundenen Fakten.
 - Keine allgemeinen Marketingformulierungen.
 - Schreibe verständliches, präzises Deutsch.
-- Firmennamen und etablierte Produktnamen dürfen
-  unverändert bleiben.
 - Antworte ausschließlich als gültiges JSON-Objekt.
 
 Exaktes Format:
@@ -149,9 +158,37 @@ Exaktes Format:
             "Gemini hat keine Kurzbeschreibung geliefert."
         )
 
+    usage = getattr(
+        response,
+        "usage_metadata",
+        None,
+    )
+
     return {
         "Kurzbeschreibung": description,
         "Kerngeschaeft": core_business,
+        "Usage": {
+            "Prompt Tokens": getattr(
+                usage,
+                "prompt_token_count",
+                None,
+            ),
+            "Output Tokens": getattr(
+                usage,
+                "candidates_token_count",
+                None,
+            ),
+            "Thinking Tokens": getattr(
+                usage,
+                "thoughts_token_count",
+                None,
+            ),
+            "Total Tokens": getattr(
+                usage,
+                "total_token_count",
+                None,
+            ),
+        },
     }
 
 
