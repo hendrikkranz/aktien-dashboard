@@ -718,6 +718,32 @@ def _render_opportunity_breakdown(
             )
 
         if (
+            criterion == "Analystenpotenzial"
+            and data.get("Analystenziel") is not None
+        ):
+            analyst_target = data.get("Analystenziel")
+            current_price = data.get("Kurs")
+            currency = data.get("Währung") or ""
+
+            details = []
+
+            if current_price is not None:
+                details.append(
+                    f"Aktueller Kurs: "
+                    f"{_format_value(current_price)} {currency}"
+                )
+
+            details.append(
+                f"Ø Analystenziel: "
+                f"{_format_value(analyst_target)} {currency}"
+            )
+            details.append(
+                "typischer Zielhorizont: ca. 12 Monate"
+            )
+
+            st.caption(" · ".join(details))
+
+        if (
             criterion == "Forward KGV"
             and eps_0 is not None
             and eps_1 is not None
