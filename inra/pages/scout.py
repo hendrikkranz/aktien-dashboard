@@ -517,8 +517,22 @@ display_universe.insert(
     False,
 )
 
+quality = pd.to_numeric(
+    display_universe["Unternehmensqualität"],
+    errors="coerce",
+)
+
+opportunity = pd.to_numeric(
+    display_universe["Kaufchance"],
+    errors="coerce",
+)
+
+display_universe["Scout-Score"] = (
+    quality * opportunity
+) ** 0.5
+
 display_universe = display_universe.sort_values(
-    by="Kaufchance",
+    by="Scout-Score",
     ascending=False,
     na_position="last",
 )
@@ -530,6 +544,7 @@ display_universe = display_universe[
         "Name",
         "Analysieren",
         "Ticker",
+        "Scout-Score",
         "Unternehmensqualität",
         "Kaufchance",
         "Investment-Urteil",
@@ -573,6 +588,7 @@ with overview_container:
         disabled=[
             "Name",
             "Ticker",
+            "Scout-Score",
             "Unternehmensqualität",
             "Kaufchance",
             "Investment-Urteil",
@@ -603,6 +619,15 @@ with overview_container:
             "Ticker": st.column_config.TextColumn(
                 "Ticker",
                 width=90,
+            ),
+            "Scout-Score": st.column_config.NumberColumn(
+                "Scout-Score",
+                help=(
+                    "Geometrisches Mittel aus "
+                    "Unternehmensqualität und Kaufchance"
+                ),
+                width=105,
+                format="%.1f",
             ),
             "Unternehmensqualität": st.column_config.NumberColumn(
                 "Qualität",
