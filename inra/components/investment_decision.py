@@ -548,12 +548,73 @@ def render_inra_fazit_section(data: dict) -> None:
         else None
     )
 
-    if not isinstance(inra_fazit, dict):
-        st.caption(
-            "Noch kein InRA-Fazit verfügbar. "
-            "Es wird mit der Analyse der aktuellen Entwicklungen erstellt."
-        )
-        return
+    uses_current_intelligence = isinstance(inra_fazit, dict)
+
+    if not uses_current_intelligence:
+        decision = get_investment_decision(data)
+
+        quality_score = data.get("Unternehmensqualität")
+        buy_score = data.get("Kaufchance")
+        entry_setup = str(
+            data.get("Entry Setup") or "noch nicht belastbar bewertet"
+        ).strip()
+
+        if quality_score is None:
+            quality_text = (
+                "Die Unternehmensqualität ist noch nicht vollständig "
+                "bewertbar"
+            )
+        elif quality_score >= 85:
+            quality_text = "Sehr hohe Unternehmensqualität"
+        elif quality_score >= 70:
+            quality_text = "Hohe Unternehmensqualität"
+        elif quality_score >= 55:
+            quality_text = "Solide Unternehmensqualität"
+        elif quality_score >= 40:
+            quality_text = "Schwache Unternehmensqualität"
+        else:
+            quality_text = "Sehr schwache Unternehmensqualität"
+
+        if buy_score is None:
+            opportunity_text = (
+                "die Kaufchance ist noch nicht vollständig bewertbar"
+            )
+        elif buy_score >= 68:
+            opportunity_text = "eine attraktive Kaufkonstellation"
+        elif buy_score >= 51:
+            opportunity_text = "eine insgesamt gemischte Kaufkonstellation"
+        else:
+            opportunity_text = "eine derzeit unattraktive Kaufkonstellation"
+
+        if entry_setup == "Extrem überdehnt – Einstieg abwarten":
+            dagegen = (
+                "Die Aktie ist technisch derzeit extrem überdehnt. "
+                "Für einen Neueinstieg ist das Chance-Risiko-Verhältnis "
+                "deshalb aktuell ungünstig."
+            )
+            worauf = (
+                "Entscheidend ist, ob sich nach der starken "
+                "Kursbeschleunigung ein günstigeres und technisch "
+                "belastbares Entry Setup entwickelt."
+            )
+        else:
+            dagegen = (
+                f"Das aktuelle Entry Setup „{entry_setup}“ begrenzt "
+                "derzeit die Qualität eines unmittelbaren Einstiegs."
+            )
+            worauf = (
+                "Entscheidend ist, ob sich das technische Entry Setup "
+                "verbessert oder bestätigt."
+            )
+
+        inra_fazit = {
+            "Kernaussage": decision.get("text") or "",
+            "Dafuer": (
+                f"{quality_text} trifft auf {opportunity_text}."
+            ),
+            "Dagegen": dagegen,
+            "Worauf_es_ankommt": worauf,
+        }
 
     kernaussage = str(
         inra_fazit.get("Kernaussage") or ""
@@ -578,10 +639,6 @@ def render_inra_fazit_section(data: dict) -> None:
         or fazit_text
         or worauf
     ):
-        st.caption(
-            "Noch kein InRA-Fazit verfügbar. "
-            "Es wird mit der Analyse der aktuellen Entwicklungen erstellt."
-        )
         return
 
     st.markdown(
@@ -742,5 +799,12 @@ def render_inra_fazit_section(data: dict) -> None:
             </div>
             """,
             unsafe_allow_html=True,
+        )
+
+
+    if not uses_current_intelligence:
+        st.caption(
+            "Aktualität: Kursrelevante News sind noch nicht berücksichtigt. "
+            "Für ein vollständigeres Gesamtbild Bereich 03 aktualisieren."
         )
 
