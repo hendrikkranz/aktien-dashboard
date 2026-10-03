@@ -2274,7 +2274,6 @@ def render_current_intelligence_section(data: dict) -> None:
 
     movement = result.get("Kursbewegung") or {}
 
-    st.markdown("#### 📈 Was bewegt die Aktie?")
 
     if movement.get("Beschreibung"):
         st.write(movement["Beschreibung"])
@@ -2350,7 +2349,7 @@ def render_current_intelligence_section(data: dict) -> None:
     col_positive, col_negative = st.columns(2)
 
     with col_positive:
-        st.markdown("#### 🟢 Rückenwind")
+        st.markdown('<div style="font-size:1.18rem; font-weight:700; margin:0.8rem 0 0.65rem 0;">🟢 Rückenwind</div>', unsafe_allow_html=True)
 
         if not positive:
             st.caption(
@@ -2384,7 +2383,7 @@ def render_current_intelligence_section(data: dict) -> None:
                 )
 
     with col_negative:
-        st.markdown("#### 🔴 Gegenwind")
+        st.markdown('<div style="font-size:1.18rem; font-weight:700; margin:0.8rem 0 0.65rem 0;">🔴 Gegenwind</div>', unsafe_allow_html=True)
 
         if not negative:
             st.caption(
@@ -2420,7 +2419,7 @@ def render_current_intelligence_section(data: dict) -> None:
     open_factors = result.get("Offene_Faktoren") or []
 
     if open_factors:
-        st.markdown("#### 👀 Darauf kommt es jetzt an")
+        st.markdown('<div style="font-size:1.18rem; font-weight:700; margin:1rem 0 0.65rem 0;">👀 Blick in die Zukunft</div>', unsafe_allow_html=True)
 
         for index, item in enumerate(open_factors, start=1):
             title = item.get(
@@ -2452,14 +2451,19 @@ def render_current_intelligence_section(data: dict) -> None:
         impact_icon = "⚪"
 
     if impact == 0:
-        st.markdown("#### ⚪ Event Impact = 0")
+        st.markdown('<div style="font-size:1.18rem; font-weight:700; margin:1rem 0 0.65rem 0;">⚪ Event Impact = 0</div>', unsafe_allow_html=True)
         st.caption(
             "Nachrichtenlage verändert die Kaufchance nicht."
         )
     else:
         st.markdown(
-            f"#### {impact_icon} Event Impact: "
-            f"{impact_label} Punkte"
+            (
+                '<div style="font-size:1.18rem; font-weight:700; '
+                'margin:1rem 0 0.65rem 0;">'
+                f'{impact_icon} Event Impact: {impact_label} Punkte'
+                '</div>'
+            ),
+            unsafe_allow_html=True,
         )
 
         if result.get("Event_Impact_Begruendung"):

@@ -536,6 +536,9 @@ def render_investment_decision(
 
                 st.rerun()
 
+
+
+def render_inra_fazit_section(data: dict) -> None:
     ticker = str(data.get("Ticker") or "").strip().upper()
 
     current_intelligence = get_current_intelligence(ticker)
@@ -545,62 +548,199 @@ def render_investment_decision(
         else None
     )
 
-    if isinstance(inra_fazit, dict):
-        kernaussage = str(
-            inra_fazit.get("Kernaussage") or ""
-        ).strip()
-        dafuer = str(
-            inra_fazit.get("Dafuer") or ""
-        ).strip()
-        dagegen = str(
-            inra_fazit.get("Dagegen") or ""
-        ).strip()
-        fazit_text = str(
-            inra_fazit.get("Text") or ""
-        ).strip()
-        worauf = str(
-            inra_fazit.get("Worauf_es_ankommt") or ""
-        ).strip()
+    if not isinstance(inra_fazit, dict):
+        st.caption(
+            "Noch kein InRA-Fazit verfügbar. "
+            "Es wird mit der Analyse der aktuellen Entwicklungen erstellt."
+        )
+        return
 
-        if (
-            kernaussage
-            or dafuer
-            or dagegen
-            or fazit_text
-            or worauf
-        ):
-            st.markdown("#### InRA-Fazit")
+    kernaussage = str(
+        inra_fazit.get("Kernaussage") or ""
+    ).strip()
+    dafuer = str(
+        inra_fazit.get("Dafuer") or ""
+    ).strip()
+    dagegen = str(
+        inra_fazit.get("Dagegen") or ""
+    ).strip()
+    fazit_text = str(
+        inra_fazit.get("Text") or ""
+    ).strip()
+    worauf = str(
+        inra_fazit.get("Worauf_es_ankommt") or ""
+    ).strip()
 
-            if kernaussage:
-                st.markdown(f"**{kernaussage}**")
+    if not (
+        kernaussage
+        or dafuer
+        or dagegen
+        or fazit_text
+        or worauf
+    ):
+        st.caption(
+            "Noch kein InRA-Fazit verfügbar. "
+            "Es wird mit der Analyse der aktuellen Entwicklungen erstellt."
+        )
+        return
 
+    st.markdown(
+        """
+        <div style="
+            color:#94a3b8;
+            font-size:0.76rem;
+            font-weight:800;
+            letter-spacing:0.14em;
+            text-transform:uppercase;
+            margin-bottom:0.55rem;
+        ">
+            DAS WICHTIGSTE AUF EINEN BLICK
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if kernaussage:
+        st.markdown(
+            f"""
+            <div style="
+                color:#f8fafc;
+                font-size:1.18rem;
+                font-weight:700;
+                line-height:1.55;
+                margin-bottom:1.15rem;
+            ">
+                {kernaussage}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    if dafuer or dagegen:
+        pro_col, contra_col = st.columns(
+            2,
+            gap="medium",
+        )
+
+        with pro_col:
             if dafuer:
                 st.markdown(
-                    '<span style="color:#9ca3af;'
-                    'font-size:0.9em;font-weight:600;">'
-                    'Was dafür spricht</span><br>'
-                    f'{dafuer}',
+                    f"""
+                    <div style="
+                        height:100%;
+                        padding:1rem 1.1rem;
+                        background:rgba(31,41,55,0.48);
+                        border:1px solid rgba(148,163,184,0.16);
+                        border-radius:10px;
+                    ">
+                        <div style="
+                            color:#94a3b8;
+                            font-size:0.76rem;
+                            font-weight:800;
+                            letter-spacing:0.08em;
+                            text-transform:uppercase;
+                            margin-bottom:0.55rem;
+                        ">
+                            <span style="
+                                display:inline-block;
+                                width:7px;
+                                height:7px;
+                                border-radius:50%;
+                                background:#45c995;
+                                box-shadow:0 0 8px rgba(69,201,149,0.75);
+                                margin-right:7px;
+                                vertical-align:1px;
+                            "></span>
+                            Was dafür spricht
+                        </div>
+                        <div style="
+                            color:#d7dee8;
+                            font-size:0.92rem;
+                            line-height:1.6;
+                        ">
+                            {dafuer}
+                        </div>
+                    </div>
+                    """,
                     unsafe_allow_html=True,
                 )
 
+        with contra_col:
             if dagegen:
                 st.markdown(
-                    '<span style="color:#9ca3af;'
-                    'font-size:0.9em;font-weight:600;">'
-                    'Was bremst</span><br>'
-                    f'{dagegen}',
+                    f"""
+                    <div style="
+                        height:100%;
+                        padding:1rem 1.1rem;
+                        background:rgba(31,41,55,0.48);
+                        border:1px solid rgba(148,163,184,0.16);
+                        border-radius:10px;
+                    ">
+                        <div style="
+                            color:#94a3b8;
+                            font-size:0.76rem;
+                            font-weight:800;
+                            letter-spacing:0.08em;
+                            text-transform:uppercase;
+                            margin-bottom:0.55rem;
+                        ">
+                            <span style="
+                                display:inline-block;
+                                width:7px;
+                                height:7px;
+                                border-radius:50%;
+                                background:#f87171;
+                                box-shadow:0 0 8px rgba(248,113,113,0.70);
+                                margin-right:7px;
+                                vertical-align:1px;
+                            "></span>
+                            Was bremst
+                        </div>
+                        <div style="
+                            color:#d7dee8;
+                            font-size:0.92rem;
+                            line-height:1.6;
+                        ">
+                            {dagegen}
+                        </div>
+                    </div>
+                    """,
                     unsafe_allow_html=True,
                 )
 
-            # Fallback für ältere gespeicherte Analysen.
-            if fazit_text and not (dafuer or dagegen):
-                st.write(fazit_text)
+    # Fallback für ältere gespeicherte Analysen.
+    if fazit_text and not (dafuer or dagegen):
+        st.markdown(fazit_text)
 
-            if worauf:
-                st.markdown(
-                    '<span style="color:#9ca3af;'
-                    'font-size:0.9em;font-weight:600;">'
-                    'Worauf es jetzt ankommt</span><br>'
-                    f'{worauf}',
-                    unsafe_allow_html=True,
-                )
+    if worauf:
+        st.markdown(
+            f"""
+            <div style="
+                margin-top:1rem;
+                padding:1rem 1.1rem;
+                background:rgba(15,23,42,0.52);
+                border:1px solid rgba(148,163,184,0.20);
+                border-radius:10px;
+            ">
+                <div style="
+                    color:#94a3b8;
+                    font-size:0.76rem;
+                    font-weight:800;
+                    letter-spacing:0.08em;
+                    text-transform:uppercase;
+                    margin-bottom:0.55rem;
+                ">
+                    Worauf es jetzt ankommt
+                </div>
+                <div style="
+                    color:#f1f5f9;
+                    font-size:0.94rem;
+                    line-height:1.6;
+                ">
+                    {worauf}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+

@@ -16,6 +16,9 @@ from components.investment_decision import (
 from components.analysis_overview import (
     render_analysis_overview,
 )
+from components.investment_decision import (
+    render_inra_fazit_section,
+)
 from components.dividend_section import (
     render_dividend_section,
 )
@@ -741,3 +744,28 @@ if ticker:
         )
 
         render_current_intelligence_section(data)
+
+    st.markdown(
+        "<div style='height:18px;'></div>",
+        unsafe_allow_html=True,
+    )
+
+    with st.container(border=True):
+        st.html(
+            '<span class="inra-main-section-marker"></span>'
+        )
+        st.markdown(
+            """
+            <div
+                class="inra-section-header"
+                style="margin-bottom:0.55rem;"
+            >
+                <div class="inra-section-kicker">
+                    04 · INRA-FAZIT
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        render_inra_fazit_section(data)
