@@ -438,18 +438,59 @@ def search_stock_candidates(
 
     def listing_preference(candidate):
         ticker = candidate["Ticker"].strip()
+        exchange = str(
+            candidate.get("Exchange") or ""
+        ).strip().casefold()
 
-        # Bei gleich guten Namens-Treffern bevorzugen wir
-        # die typische Hauptnotierung ohne Börsensuffix.
-        # Exakte Tickereingaben bleiben durch rank() vorrangig.
-        return 0 if "." not in ticker else 1
+        primary_exchanges = {
+            "nasdaq",
+            "nyse",
+            "new york stock exchange",
+            "xetra",
+            "london stock exchange",
+            "tokyo stock exchange",
+            "tse",
+            "euronext",
+            "six swiss exchange",
+            "hong kong stock exchange",
+            "toronto stock exchange",
+        }
+
+        otc_exchanges = {
+            "otc markets",
+            "otcm",
+            "oqx",
+            "oqb",
+            "pink sheets",
+        }
+
+        if exchange in primary_exchanges:
+            return 0
+
+        if exchange in otc_exchanges:
+            return 3
+
+        # US-Hauptnotierungen besitzen typischerweise
+        # keinen Börsensuffix. Bei unbekanntem Handelsplatz
+        # ist das weiterhin ein schwaches positives Signal.
+        if "." not in ticker:
+            return 1
+
+        return 2
 
     return sorted(
         relevant_candidates,
         key=lambda candidate: (
+            0
+            if (
+                candidate.get("AliasMatch")
+                or candidate["Ticker"].strip().casefold()
+                == query_normalized
+            )
+            else 1,
+            0 if candidate["Source"] == "Universe" else 1,
             rank(candidate),
             listing_preference(candidate),
-            0 if candidate["Source"] == "Universe" else 1,
             candidate["Name"].casefold(),
             candidate["Ticker"].casefold(),
         ),
