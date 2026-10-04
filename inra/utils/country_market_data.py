@@ -54,6 +54,16 @@ FRANCE_INDICES = {
 }
 
 
+SWITZERLAND_INDICES = {
+    "SMI": {
+        "name": "SMI",
+        "ticker": "^SSMI",
+        "members": 20,
+        "slug": "smi",
+    },
+}
+
+
 USA_INDICES = {
     "Dow Jones": {
         "name": "Dow Jones",
@@ -86,6 +96,11 @@ COUNTRY_MARKETS = {
         "flag": "🇫🇷",
         "indices": FRANCE_INDICES,
     },
+    "Switzerland": {
+        "name": "Schweiz",
+        "flag": "🇨🇭",
+        "indices": SWITZERLAND_INDICES,
+    },
 }
 
 
@@ -98,6 +113,7 @@ def _get_index_config(index_name: str) -> dict:
         GERMANY_INDICES,
         USA_INDICES,
         FRANCE_INDICES,
+        SWITZERLAND_INDICES,
     ):
         for name, config in indices.items():
             if name.casefold() == normalized:
@@ -1009,6 +1025,7 @@ def get_ticker_index_memberships(
         ("germany", GERMANY_INDICES),
         ("usa", USA_INDICES),
         ("france", FRANCE_INDICES),
+        ("switzerland", SWITZERLAND_INDICES),
     )
 
     for country_key, indices in markets:

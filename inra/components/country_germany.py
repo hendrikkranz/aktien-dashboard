@@ -5,6 +5,7 @@ import streamlit as st
 from utils.country_market_data import (
     FRANCE_INDICES,
     GERMANY_INDICES,
+    SWITZERLAND_INDICES,
     USA_INDICES,
     get_index_market_snapshot,
 )
@@ -406,5 +407,15 @@ def render_france():
         indices=FRANCE_INDICES,
         default_index="CAC 40",
         key_prefix="france",
+    )
+
+
+def render_switzerland():
+    render_country(
+        country_name="Schweiz",
+        flag="🇨🇭",
+        indices=SWITZERLAND_INDICES,
+        default_index="SMI",
+        key_prefix="switzerland",
     )
 
