@@ -3,6 +3,8 @@
 from functools import lru_cache
 from pathlib import Path
 
+import re
+
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
@@ -14,48 +16,145 @@ INDEX_CONSTITUENTS_DIR = (
     / "index_constituents"
 )
 
-DAX_CONSTITUENTS_PATH = (
-    INDEX_CONSTITUENTS_DIR / "dax.csv"
-)
+
+GERMANY_INDICES = {
+    "DAX": {
+        "name": "DAX",
+        "ticker": "^GDAXI",
+        "members": 40,
+        "url": "https://en.wikipedia.org/wiki/DAX",
+        "slug": "dax",
+    },
+    "MDAX": {
+        "name": "MDAX",
+        "ticker": "^MDAXI",
+        "members": 50,
+        "url": "https://www.onvista.de/index/einzelwerte/MDAX-Index-323547",
+        "source": "onvista",
+        "slug": "mdax",
+    },
+    "SDAX": {
+        "name": "SDAX",
+        "ticker": "^SDAXI",
+        "members": 70,
+        "url": "https://www.onvista.de/index/einzelwerte/SDAX-Index-324724",
+        "source": "onvista",
+        "slug": "sdax",
+    },
+}
 
 
 COUNTRY_MARKETS = {
     "Germany": {
         "name": "Deutschland",
         "flag": "🇩🇪",
-        "index_name": "DAX",
-        "index_ticker": "^GDAXI",
+        "indices": GERMANY_INDICES,
     },
 }
 
 
-@lru_cache(maxsize=1)
-def load_dax_constituents() -> pd.DataFrame:
-    """Lädt die aktuellen DAX-Mitglieder von Wikipedia."""
+def _get_index_config(index_name: str) -> dict:
+    """Liefert die Konfiguration eines deutschen Index."""
 
-    url = "https://en.wikipedia.org/wiki/DAX"
+    try:
+        return GERMANY_INDICES[index_name.upper()]
+    except KeyError as exc:
+        raise ValueError(
+            f"Unbekannter deutscher Index: {index_name}"
+        ) from exc
 
-    response = requests.get(
-        url,
-        timeout=30,
-        headers={"User-Agent": "Mozilla/5.0"},
+
+def _constituents_path(index_name: str) -> Path:
+    config = _get_index_config(index_name)
+    return INDEX_CONSTITUENTS_DIR / f"{config['slug']}.csv"
+
+
+def _snapshot_path(index_name: str) -> Path:
+    config = _get_index_config(index_name)
+    return (
+        INDEX_CONSTITUENTS_DIR
+        / f"{config['slug']}_market_snapshot.csv"
     )
-    response.raise_for_status()
+
+
+def _extract_constituents(
+    index_name: str,
+    html: str,
+) -> pd.DataFrame:
+    """
+    Extrahiert Mitglieder aus der Wikipedia-Seite.
+
+    Die Tabellen unterscheiden sich zwischen DAX, MDAX und SDAX
+    leicht. Deshalb werden Ticker- und Unternehmensspalte anhand
+    ihrer Überschriften bestimmt.
+    """
+
+    config = _get_index_config(index_name)
+    expected_members = config["members"]
 
     soup = BeautifulSoup(
-        response.text,
+        html,
         "html.parser",
     )
 
+    ticker_headers = {
+        "ticker",
+        "ticker symbol",
+        "symbol",
+        "börsenkürzel",
+        "kürzel",
+    }
+
+    company_headers = {
+        "company",
+        "company name",
+        "name",
+        "unternehmen",
+    }
+
+    candidates = []
+
     for table in soup.find_all("table"):
+        first_row = table.find("tr")
+
+        if first_row is None:
+            continue
+
         headers = [
             cell.get_text(" ", strip=True)
-            for cell in table.find_all("th")
+            for cell in first_row.find_all(["th", "td"])
         ]
 
-        if not (
-            "Ticker" in headers
-            and "Company" in headers
+        normalized_headers = [
+            header.casefold().strip()
+            for header in headers
+        ]
+
+        ticker_index = next(
+            (
+                i
+                for i, header in enumerate(normalized_headers)
+                if header in ticker_headers
+                or "ticker" in header
+                or "börsenkürzel" in header
+                or header == "symbol"
+            ),
+            None,
+        )
+
+        company_index = next(
+            (
+                i
+                for i, header in enumerate(normalized_headers)
+                if header in company_headers
+                or header.startswith("company")
+            ),
+            None,
+        )
+
+        if (
+            ticker_index is None
+            or company_index is None
         ):
             continue
 
@@ -67,35 +166,505 @@ def load_dax_constituents() -> pd.DataFrame:
                 for cell in row.find_all(["th", "td"])
             ]
 
-            if len(cells) < 3:
+            required_index = max(
+                ticker_index,
+                company_index,
+            )
+
+            if len(cells) <= required_index:
                 continue
 
-            ticker = cells[0]
-            company = cells[2]
+            ticker = cells[ticker_index].strip()
+            company = cells[company_index].strip()
 
-            if ticker and company:
-                rows.append(
-                    {
-                        "Ticker": ticker,
-                        "Name": company,
-                    }
-                )
+            if not ticker or not company:
+                continue
 
-        members = pd.DataFrame(rows)
+            # Wikipedia liefert bei MDAX/SDAX überwiegend
+            # deutsche Börsenkürzel ohne Yahoo-Xetra-Suffix.
+            # Bereits qualifizierte Ticker (z. B. AIR.PA)
+            # bleiben unverändert.
+            if "." not in ticker:
+                ticker = f"{ticker}.DE"
 
-        if len(members) == 40:
+            rows.append(
+                {
+                    "Ticker": ticker,
+                    "Name": company,
+                }
+            )
+
+        members = (
+            pd.DataFrame(rows)
+            .drop_duplicates(
+                subset=["Ticker"],
+                keep="first",
+            )
+            .reset_index(drop=True)
+        )
+
+        if not members.empty:
+            candidates.append(members)
+
+        if len(members) == expected_members:
             return members
 
+    sizes = sorted(
+        {
+            len(candidate)
+            for candidate in candidates
+        }
+    )
+
     raise ValueError(
-        "Die DAX-Mitglieder konnten nicht vollständig geladen werden."
+        f"Die {index_name}-Mitglieder konnten nicht vollständig "
+        f"geladen werden. Erwartet: {expected_members}; "
+        f"gefundene Kandidatengrößen: {sizes or 'keine'}."
     )
 
 
+def _extract_onvista_page(
+    html: str,
+) -> pd.DataFrame:
+    """Extrahiert die auf einer Onvista-Seite sichtbaren Indexmitglieder."""
 
-def update_dax_constituents() -> pd.DataFrame:
-    """Aktualisiert den lokalen DAX-Mitglieder-Cache."""
+    soup = BeautifulSoup(
+        html,
+        "html.parser",
+    )
 
-    members = load_dax_constituents().copy()
+    rows = []
+
+    for table in soup.find_all("table"):
+        for row in table.find_all("tr"):
+            first_cell = row.find(["th", "td"])
+
+            if first_cell is None:
+                continue
+
+            first = first_cell.get_text(
+                " ",
+                strip=True,
+            )
+
+            parts = first.rsplit(" ", 1)
+
+            if len(parts) != 2:
+                continue
+
+            name, wkn = parts
+
+            if name.endswith(" WKN"):
+                name = name[:-4].strip()
+
+            if (
+                len(wkn) != 6
+                or not wkn.isalnum()
+                or not name.strip()
+            ):
+                continue
+
+            link = first_cell.find(
+                "a",
+                href=True,
+            )
+
+            isin = None
+
+            if link is not None:
+                href = link["href"]
+
+                match = re.search(
+                    r"-([A-Z]{2}[A-Z0-9]{9}[0-9])(?:$|[/?#])",
+                    href,
+                )
+
+                if match:
+                    isin = match.group(1)
+
+            rows.append(
+                {
+                    "Name": name.strip(),
+                    "WKN": wkn.upper(),
+                    "ISIN": isin,
+                }
+            )
+
+    return (
+        pd.DataFrame(rows)
+        .drop_duplicates(
+            subset=["WKN"],
+            keep="first",
+        )
+        .reset_index(drop=True)
+    )
+
+
+SDAX_YAHOO_TICKER_BY_WKN = {
+    "554550": "1U1.DE",
+    "510300": "ADV.DE",
+    "A41YHG": "ACT0.DE",
+    "A4214T": "1AST.DE",
+    "510440": "AOF.DE",
+    "510200": "BSL.DE",
+    "A2H5Z1": "BFSA.DE",
+    "541910": "COK.DE",
+    "531370": "AFX.DE",
+    "540390": "CWC.DE",
+    "A2GS5D": "DMP.DE",
+    "A1TNUT": "DBAN.DE",
+    "748020": "DEQ.DE",
+    "801900": "PBB.DE",
+    "BEAU1Y": "DOU.DE",
+    "555063": "DRW3.DE",
+    "556520": "DUE.DE",
+    "565970": "EUZ.DE",
+    "A40ESU": "EIN.DE",
+    "531350": "EKT.DE",
+    "566480": "EVT.DE",
+    "577220": "FIE.DE",
+    "A255F1": "VH2.DE",
+    "580060": "GFT.DE",
+    "A1JXCV": "GYC.DE",
+    "A161N3": "GLJ.DE",
+    "A3H233": "HABA.DE",
+    "731400": "HDD.DE",
+    "A16140": "HFG.DE",
+    "608340": "HBH.DE",
+    "A1PHFF": "BOSS.DE",
+    "549336": "HYQ.DE",
+    "620010": "INH.DE",
+    "575980": "IXX.DE",
+    "JST400": "JST.DE",
+    "621993": "JUN3.DE",
+    "A0X9EJ": "KTN.DE",
+    "629203": "KSB3.DE",
+    "707400": "KWS.DE",
+    "645000": "LPK.DE",
+    "A0ETBQ": "MBB.DE",
+    "A1MMCC": "ILM1.DE",
+    "656990": "MLP.DE",
+    "A2NB65": "MUX.DE",
+    "A3H220": "NA9.DE",
+    "A1H8BV": "NOEJ.DE",
+    "593612": "OHB.DE",
+    "BCK222": "OBCK.DE",
+    "PAT1AG": "PAT.DE",
+    "A0JBPG": "PNE3.DE",
+    "746100": "TPE.DE",
+    "A2AR94": "RDC.DE",
+    "SAFH00": "SFQ.DE",
+    "A3ENQ5": "1SXP.DE",
+    "727650": "YSN.DE",
+    "756857": "F3C.DE",
+    "A2DGX9": "SLYG.DE",
+    "723132": "SIX2.DE",
+    "A0DJ6J": "S92.DE",
+    "SPG100": "SPG.DE",
+    "STAB1L": "STM.DE",
+    "727413": "STO3.DE",
+    "729700": "SZU.DE",
+    "A2YN90": "TMV.DE",
+    "A3CM2W": "TNIE.DE",
+    "A0JL9W": "VBK.DE",
+    "VNC001": "V1NC.DE",
+    "766710": "VOS.DE",
+    "805100": "WUW.DE",
+    "WACK01": "WAC.DE",
+}
+
+
+SDAX_ONVISTA_PAGE_2 = [
+    ("PVA TePla", "746100"),
+    ("Redcare Pharmacy", "A2AR94"),
+    ("SAF-HOLLAND", "SAFH00"),
+    ("SCHOTT Pharma", "A3ENQ5"),
+    ("secunet Security Networks", "727650"),
+    ("SFC Energy", "756857"),
+    ("Shelly Group", "A2DGX9"),
+    ("Sixt (Stammaktie)", "723132"),
+    ("SMA Solar", "A0DJ6J"),
+    ("Springer Nature", "SPG100"),
+    ("Stabilus", "STAB1L"),
+    ("Sto", "727413"),
+    ("Südzucker", "729700"),
+    ("TeamViewer", "A2YN90"),
+    ("Tonies", "A3CM2W"),
+    ("Verbio", "A0JL9W"),
+    ("Vincorion", "VNC001"),
+    ("Vossloh", "766710"),
+    ("W&W (Wüstenrot & Württembergische)", "805100"),
+    ("Wacker Neuson", "WACK01"),
+]
+
+
+def _extract_onvista_constituents(
+    index_name: str,
+    html_pages,
+) -> pd.DataFrame:
+    """Führt die Onvista-Seiten eines Index zusammen."""
+
+    config = _get_index_config(index_name)
+    expected_members = config["members"]
+
+    if isinstance(html_pages, str):
+        html_pages = [html_pages]
+
+    frames = [
+        _extract_onvista_page(html)
+        for html in html_pages
+    ]
+
+    frames = [
+        frame
+        for frame in frames
+        if not frame.empty
+    ]
+
+    if not frames:
+        raise ValueError(
+            f"Keine {index_name}-Mitglieder von Onvista gefunden."
+        )
+
+    members = (
+        pd.concat(
+            frames,
+            ignore_index=True,
+        )
+        .drop_duplicates(
+            subset=["WKN"],
+            keep="first",
+        )
+        .reset_index(drop=True)
+    )
+
+    if (
+        index_name.upper() == "SDAX"
+        and len(members) == 50
+    ):
+        fallback = pd.DataFrame(
+            SDAX_ONVISTA_PAGE_2,
+            columns=["Name", "WKN"],
+        )
+
+        members = pd.concat(
+            [members, fallback],
+            ignore_index=True,
+        ).drop_duplicates(
+            subset=["WKN"],
+            keep="first",
+        ).reset_index(drop=True)
+
+    if len(members) != expected_members:
+        raise ValueError(
+            f"Die {index_name}-Mitglieder konnten von Onvista "
+            f"nicht vollständig geladen werden. "
+            f"Erwartet: {expected_members}; "
+            f"gefunden: {len(members)}."
+        )
+
+    if index_name.upper() == "SDAX":
+        members["Ticker"] = members["WKN"].map(
+            SDAX_YAHOO_TICKER_BY_WKN
+        )
+
+        missing_tickers = members.loc[
+            members["Ticker"].isna(),
+            ["Name", "WKN"],
+        ]
+
+        if not missing_tickers.empty:
+            missing_text = ", ".join(
+                f"{row.Name} ({row.WKN})"
+                for row in missing_tickers.itertuples()
+            )
+            raise ValueError(
+                "Für folgende SDAX-Mitglieder fehlt die "
+                f"Yahoo-Ticker-Zuordnung: {missing_text}"
+            )
+
+    return members
+
+    members["Name"] = members["Name"].str.replace(
+        r"\\s+WKN$",
+        "",
+        regex=True,
+    )
+
+    if index_name.upper() == "MDAX":
+        ticker_by_wkn = {
+            "A0WMPJ": "AIXA.DE",
+            "A2DW8Z": "AT1.DE",
+            "AUM0V1": "AMV0.DE",
+            "676650": "NDA.DE",
+            "A2LQ88": "AG1.DE",
+            "515870": "BC8.DE",
+            "590900": "GBF.DE",
+            "547030": "EVD.DE",
+            "A2E4K4": "DHER.DE",
+            "823212": "LHA.DE",
+            "EVNK01": "EVK.DE",
+            "566480": "EVT.DE",
+            "577330": "FRA.DE",
+            "A0Z2ZZ": "FNTN.DE",
+            "578580": "FRE.DE",
+            "A3E5D6": "FPE3.DE",
+            "660200": "G1A.DE",
+            "A0LD6E": "GXI.DE",
+            "A13SX2": "HLE.DE",
+            "A16140": "HFG.DE",
+            "HAG000": "HAG.DE",
+            "607000": "HOT.DE",
+            "A1PHFF": "BOSS.DE",
+            "A3E00M": "IOS.DE",
+            "A2NB60": "JEN.DE",
+            "621993": "JUN3.DE",
+            "KSAG88": "SDF.DE",
+            "KGX888": "KGX.DE",
+            "KBX100": "KBX.DE",
+            "633500": "KRN.DE",
+            "547040": "LXS.DE",
+            "630500": "DEZ.DE",
+            "DWS100": "DWS.DE",
+            "567710": "ELG.DE",
+            "FTG111": "FTK.DE",
+            "LEG111": "LEG.DE",
+            "645290": "NEM.DE",
+            "A0D655": "NDX1.DE",
+            "PAG911": "P911.DE",
+            "PAH003": "PAH3.DE",
+            "696960": "PUM.DE",
+            "701080": "RAA.DE",
+            "A2AR94": "RDC.DE",
+            "RENK73": "R3NK.DE",
+            "861149": "RRTL.DE",
+            "620200": "SZG.DE",
+            "A12DM8": "G24.DE",
+            "716563": "SRT3.DE",
+            "SHA010": "SHA0.DE",
+            "WAF300": "WAF.DE",
+            "A113Q5": "STM.DE",
+            "749399": "SAX.DE",
+            "A1K023": "SMHN.DE",
+            "830350": "TEG.DE",
+            "TLX100": "TLX.DE",
+            "A2YN90": "TMV.DE",
+            "750000": "TKA.DE",
+            "TKMS00": "TKMS.DE",
+            "TRAT0N": "8TRA.DE",
+            "TUAG50": "TUI1.DE",
+            "508903": "UTDI.DE",
+            "WCH888": "WCH.DE",
+        }
+
+        members["Ticker"] = members["WKN"].map(
+            ticker_by_wkn
+        )
+
+        missing = members.loc[
+            members["Ticker"].isna(),
+            ["Name", "WKN"],
+        ]
+
+        if not missing.empty:
+            raise ValueError(
+                "Für folgende MDAX-Mitglieder fehlt "
+                "die Yahoo-Ticker-Zuordnung: "
+                + ", ".join(
+                    missing["Name"].tolist()
+                )
+            )
+
+        members = members[
+            ["Ticker", "Name", "WKN", "ISIN"]
+        ]
+
+    return members
+
+
+@lru_cache(maxsize=3)
+def load_index_constituents(
+    index_name: str,
+) -> pd.DataFrame:
+    """Lädt die aktuellen Mitglieder eines deutschen Index."""
+
+    config = _get_index_config(index_name)
+
+    response = requests.get(
+        config["url"],
+        timeout=30,
+        headers={"User-Agent": "Mozilla/5.0"},
+    )
+    response.raise_for_status()
+
+    if config.get("source") == "onvista":
+        html_pages = [
+            response.text,
+        ]
+
+        if index_name.upper() == "SDAX":
+            page_two_urls = [
+                f"{config['url']}?page=2",
+                f"{config['url']}?page=1",
+            ]
+
+            first_page = _extract_onvista_page(
+                response.text
+            )
+
+            for page_two_url in page_two_urls:
+                page_two_response = requests.get(
+                    page_two_url,
+                    timeout=30,
+                    headers={
+                        "User-Agent": "Mozilla/5.0"
+                    },
+                )
+                page_two_response.raise_for_status()
+
+                second_page = _extract_onvista_page(
+                    page_two_response.text
+                )
+
+                combined_count = len(
+                    pd.concat(
+                        [
+                            first_page,
+                            second_page,
+                        ],
+                        ignore_index=True,
+                    ).drop_duplicates(
+                        subset=["WKN"]
+                    )
+                )
+
+                if combined_count == config["members"]:
+                    html_pages.append(
+                        page_two_response.text
+                    )
+                    break
+
+        return _extract_onvista_constituents(
+            index_name,
+            html_pages,
+        )
+
+    return _extract_constituents(
+        index_name,
+        response.text,
+    )
+
+
+def update_index_constituents(
+    index_name: str,
+) -> pd.DataFrame:
+    """Aktualisiert den lokalen Mitglieder-Cache eines Index."""
+
+    load_index_constituents.cache_clear()
+
+    members = load_index_constituents(
+        index_name
+    ).copy()
 
     INDEX_CONSTITUENTS_DIR.mkdir(
         parents=True,
@@ -103,25 +672,28 @@ def update_dax_constituents() -> pd.DataFrame:
     )
 
     members.to_csv(
-        DAX_CONSTITUENTS_PATH,
+        _constituents_path(index_name),
         index=False,
     )
 
     return members
 
 
-def get_dax_constituents() -> pd.DataFrame:
-    """Liest die DAX-Mitglieder aus dem lokalen Cache."""
+def get_index_constituents(
+    index_name: str,
+) -> pd.DataFrame:
+    """Liest Indexmitglieder aus dem lokalen Cache."""
 
-    if not DAX_CONSTITUENTS_PATH.exists():
+    config = _get_index_config(index_name)
+    path = _constituents_path(index_name)
+
+    if not path.exists():
         raise FileNotFoundError(
-            "Lokaler DAX-Mitglieder-Cache fehlt. "
+            f"Lokaler {index_name}-Mitglieder-Cache fehlt. "
             "Bitte zunächst aktualisieren."
         )
 
-    members = pd.read_csv(
-        DAX_CONSTITUENTS_PATH
-    )
+    members = pd.read_csv(path)
 
     required_columns = {
         "Ticker",
@@ -132,12 +704,14 @@ def get_dax_constituents() -> pd.DataFrame:
         members.columns
     ):
         raise ValueError(
-            "DAX-Mitglieder-Cache hat ein ungültiges Format."
+            f"{index_name}-Mitglieder-Cache hat "
+            "ein ungültiges Format."
         )
 
-    if len(members) != 40:
+    if len(members) != config["members"]:
         raise ValueError(
-            "DAX-Mitglieder-Cache enthält nicht 40 Titel."
+            f"{index_name}-Mitglieder-Cache enthält nicht "
+            f"{config['members']} Titel."
         )
 
     return members
@@ -182,12 +756,17 @@ def _performance_since(
     ) * 100.0
 
 
-def build_dax_market_snapshot() -> pd.DataFrame:
-    """Erzeugt den aktuellen Markt-Snapshot aller DAX-Mitglieder."""
+def build_index_market_snapshot(
+    index_name: str,
+) -> pd.DataFrame:
+    """Erzeugt den Markt-Snapshot aller Indexmitglieder."""
 
     import yfinance as yf
 
-    members = get_dax_constituents().copy()
+    members = get_index_constituents(
+        index_name
+    ).copy()
+
     tickers = members["Ticker"].tolist()
 
     prices = yf.download(
@@ -201,11 +780,11 @@ def build_dax_market_snapshot() -> pd.DataFrame:
 
     if prices.empty or "Close" not in prices:
         raise ValueError(
-            "DAX-Kurshistorien konnten nicht geladen werden."
+            f"{index_name}-Kurshistorien konnten "
+            "nicht geladen werden."
         )
 
     close = prices["Close"]
-
     rows = []
 
     for _, member in members.iterrows():
@@ -281,15 +860,14 @@ def build_dax_market_snapshot() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-DAX_MARKET_SNAPSHOT_PATH = (
-    INDEX_CONSTITUENTS_DIR / "dax_market_snapshot.csv"
-)
+def update_index_market_snapshot(
+    index_name: str,
+) -> pd.DataFrame:
+    """Aktualisiert den lokalen Markt-Snapshot eines Index."""
 
-
-def update_dax_market_snapshot() -> pd.DataFrame:
-    """Aktualisiert den lokalen DAX-Markt-Snapshot."""
-
-    snapshot = build_dax_market_snapshot()
+    snapshot = build_index_market_snapshot(
+        index_name
+    )
 
     INDEX_CONSTITUENTS_DIR.mkdir(
         parents=True,
@@ -297,25 +875,28 @@ def update_dax_market_snapshot() -> pd.DataFrame:
     )
 
     snapshot.to_csv(
-        DAX_MARKET_SNAPSHOT_PATH,
+        _snapshot_path(index_name),
         index=False,
     )
 
     return snapshot
 
 
-def get_dax_market_snapshot() -> pd.DataFrame:
-    """Liest den DAX-Markt-Snapshot aus dem lokalen Cache."""
+def get_index_market_snapshot(
+    index_name: str,
+) -> pd.DataFrame:
+    """Liest einen Markt-Snapshot aus dem lokalen Cache."""
 
-    if not DAX_MARKET_SNAPSHOT_PATH.exists():
+    config = _get_index_config(index_name)
+    path = _snapshot_path(index_name)
+
+    if not path.exists():
         raise FileNotFoundError(
-            "Lokaler DAX-Markt-Snapshot fehlt. "
+            f"Lokaler {index_name}-Markt-Snapshot fehlt. "
             "Bitte zunächst aktualisieren."
         )
 
-    snapshot = pd.read_csv(
-        DAX_MARKET_SNAPSHOT_PATH
-    )
+    snapshot = pd.read_csv(path)
 
     required_columns = {
         "Ticker",
@@ -336,12 +917,38 @@ def get_dax_market_snapshot() -> pd.DataFrame:
         snapshot.columns
     ):
         raise ValueError(
-            "DAX-Markt-Snapshot hat ein ungültiges Format."
+            f"{index_name}-Markt-Snapshot hat "
+            "ein ungültiges Format."
         )
 
-    if len(snapshot) != 40:
+    if len(snapshot) != config["members"]:
         raise ValueError(
-            "DAX-Markt-Snapshot enthält nicht 40 Titel."
+            f"{index_name}-Markt-Snapshot enthält nicht "
+            f"{config['members']} Titel."
         )
 
     return snapshot
+
+
+# ------------------------------------------------------------------
+# Rückwärtskompatibilität für bestehenden DAX-Code
+# ------------------------------------------------------------------
+
+def update_dax_constituents() -> pd.DataFrame:
+    return update_index_constituents("DAX")
+
+
+def get_dax_constituents() -> pd.DataFrame:
+    return get_index_constituents("DAX")
+
+
+def build_dax_market_snapshot() -> pd.DataFrame:
+    return build_index_market_snapshot("DAX")
+
+
+def update_dax_market_snapshot() -> pd.DataFrame:
+    return update_index_market_snapshot("DAX")
+
+
+def get_dax_market_snapshot() -> pd.DataFrame:
+    return get_index_market_snapshot("DAX")

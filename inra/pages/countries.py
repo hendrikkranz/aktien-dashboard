@@ -3,7 +3,8 @@ import pandas as pd
 import streamlit as st
 
 from utils.country_market_data import (
-    get_dax_market_snapshot,
+    GERMANY_INDICES,
+    get_index_market_snapshot,
 )
 from utils.data_loader import (
     load_benchmark_cache,
@@ -19,27 +20,42 @@ st.caption(
 )
 
 st.markdown("## 🇩🇪 Deutschland")
-st.caption("DAX · 40 führende deutsche Aktiengesellschaften")
+st.caption(
+    "DAX · MDAX · SDAX"
+)
+
+index_name = st.segmented_control(
+    "Index",
+    options=list(GERMANY_INDICES),
+    default="DAX",
+    key="germany_index",
+    label_visibility="collapsed",
+)
+
+if index_name is None:
+    index_name = "DAX"
+
+index_config = GERMANY_INDICES[index_name]
 
 
 # ------------------------------------------------------------------
-# DAX-Chart
+# Index-Chart
 # ------------------------------------------------------------------
 
 try:
-    dax_history = load_price_history(
-        "^GDAXI",
+    index_history = load_price_history(
+        index_config["ticker"],
         period="max",
     )
 
     if (
-        dax_history is not None
-        and not dax_history.empty
-        and "Datum" in dax_history.columns
-        and "Schlusskurs" in dax_history.columns
+        index_history is not None
+        and not index_history.empty
+        and "Datum" in index_history.columns
+        and "Schlusskurs" in index_history.columns
     ):
         chart_data = (
-            dax_history[
+            index_history[
                 ["Datum", "Schlusskurs"]
             ]
             .dropna()
@@ -55,7 +71,7 @@ try:
             "Zeitraum",
             options=["1J", "3J", "5J", "Max"],
             default="1J",
-            key="dax_chart_period",
+            key=f"{index_name.lower()}_chart_period",
             label_visibility="collapsed",
         )
 
@@ -124,7 +140,7 @@ try:
                     ),
                     alt.Tooltip(
                         "Schlusskurs:Q",
-                        title="DAX",
+                        title=index_name,
                         format=",.2f",
                     ),
                 ],
@@ -140,22 +156,35 @@ try:
         )
     else:
         st.info(
-            "Für den DAX-Chart sind aktuell keine Kursdaten verfügbar."
+            f"Für den {index_name}-Chart sind aktuell "
+            "keine Kursdaten verfügbar."
         )
 
 except Exception as exc:
     st.warning(
-        f"DAX-Chart konnte nicht geladen werden: {exc}"
+        f"{index_name}-Chart konnte nicht geladen werden: {exc}"
     )
 
 
 # ------------------------------------------------------------------
-# DAX-Ranking
+# Index-Ranking
 # ------------------------------------------------------------------
 
-st.markdown("### DAX-Ranking")
+st.markdown(
+    f"### {index_name}-Ranking"
+)
 
-snapshot = get_dax_market_snapshot()
+try:
+    snapshot = get_index_market_snapshot(
+        index_name
+    )
+except FileNotFoundError:
+    st.info(
+        f"Der lokale {index_name}-Markt-Snapshot "
+        "wurde noch nicht erzeugt."
+    )
+    st.stop()
+
 benchmark = load_benchmark_cache()
 
 score_columns = [
@@ -224,7 +253,7 @@ table_state = st.dataframe(
     ranking[display_columns],
     width="stretch",
     hide_index=True,
-    key="dax_ranking",
+    key=f"{index_name.lower()}_ranking",
     on_select="rerun",
     selection_mode="single-row",
     column_config={
@@ -246,7 +275,7 @@ table_state = st.dataframe(
         "Marktkapitalisierung Mrd.": (
             st.column_config.NumberColumn(
                 "Market Cap",
-                help="Marktkapitalisierung in Mrd. EUR",
+                help="Marktkapitalisierung in Mrd. der Handelswährung",
                 width=105,
                 format="%.1f",
             )
@@ -326,6 +355,6 @@ inra_count = ranking[
 ].notna().sum()
 
 st.caption(
-    f"{len(ranking)} DAX-Mitglieder · "
+    f"{len(ranking)} {index_name}-Mitglieder · "
     f"{inra_count} davon aktuell mit InRA-Bewertung"
 )
