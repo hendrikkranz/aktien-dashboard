@@ -3,6 +3,10 @@ from urllib.parse import urlparse
 import altair as alt
 import streamlit as st
 
+from utils.country_market_data import (
+    get_ticker_index_memberships,
+)
+
 from utils.company_localization import (
     localize_country,
     get_country_display,
@@ -457,6 +461,10 @@ if ticker:
         ),
     ]
 
+    index_memberships = get_ticker_index_memberships(
+        data["Ticker"]
+    )
+
 
     watchlist_message = st.session_state.pop(
         "watchlist_message",
@@ -587,6 +595,57 @@ if ticker:
             """,
             unsafe_allow_html=True,
         )
+
+    if index_memberships:
+        index_label = (
+            "Index"
+            if len(index_memberships) == 1
+            else "Indizes"
+        )
+
+        column_widths = [
+            0.32,
+            *([0.72] * len(index_memberships)),
+            3.3,
+        ]
+
+        columns = st.columns(
+            column_widths,
+            gap="small",
+            vertical_alignment="center",
+        )
+
+        label_col = columns[0]
+        index_cols = columns[1:-1]
+
+        with label_col:
+            st.caption(f"{index_label}:")
+
+        for index_col, membership in zip(
+            index_cols,
+            index_memberships,
+        ):
+            with index_col:
+                if st.button(
+                    membership["index"],
+                    key=(
+                        "open_index_"
+                        f"{membership['country']}_"
+                        f"{membership['index']}"
+                    ),
+                    type="tertiary",
+                ):
+                    st.session_state[
+                        "country_market_view"
+                    ] = membership["country"]
+
+                    st.session_state[
+                        "country_market_index"
+                    ] = membership["index"]
+
+                    st.switch_page(
+                        "pages/countries.py"
+                    )
 
     chart_col, portrait_col = st.columns(
         [1, 1],

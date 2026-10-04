@@ -44,24 +44,52 @@ GERMANY_INDICES = {
 }
 
 
+USA_INDICES = {
+    "Dow Jones": {
+        "name": "Dow Jones",
+        "ticker": "^DJI",
+        "members": 30,
+        "slug": "dow_jones",
+    },
+    "Nasdaq 100": {
+        "name": "Nasdaq 100",
+        "ticker": "^NDX",
+        "members": 101,
+        "slug": "nasdaq_100",
+    },
+}
+
+
 COUNTRY_MARKETS = {
     "Germany": {
         "name": "Deutschland",
         "flag": "🇩🇪",
         "indices": GERMANY_INDICES,
     },
+    "USA": {
+        "name": "USA",
+        "flag": "🇺🇸",
+        "indices": USA_INDICES,
+    },
 }
 
 
 def _get_index_config(index_name: str) -> dict:
-    """Liefert die Konfiguration eines deutschen Index."""
+    """Liefert die Konfiguration eines unterstützten Index."""
 
-    try:
-        return GERMANY_INDICES[index_name.upper()]
-    except KeyError as exc:
-        raise ValueError(
-            f"Unbekannter deutscher Index: {index_name}"
-        ) from exc
+    normalized = index_name.casefold()
+
+    for indices in (
+        GERMANY_INDICES,
+        USA_INDICES,
+    ):
+        for name, config in indices.items():
+            if name.casefold() == normalized:
+                return config
+
+    raise ValueError(
+        f"Unbekannter Index: {index_name}"
+    )
 
 
 def _constituents_path(index_name: str) -> Path:
@@ -952,3 +980,51 @@ def update_dax_market_snapshot() -> pd.DataFrame:
 
 def get_dax_market_snapshot() -> pd.DataFrame:
     return get_index_market_snapshot("DAX")
+
+
+def get_ticker_index_memberships(
+    ticker: str,
+) -> list[dict]:
+    """Ermittelt Indexzugehörigkeiten aus den lokalen Mitglieder-Caches."""
+
+    memberships = []
+
+    markets = (
+        ("germany", GERMANY_INDICES),
+        ("usa", USA_INDICES),
+    )
+
+    for country_key, indices in markets:
+        for index_name, config in indices.items():
+            path = (
+                INDEX_CONSTITUENTS_DIR
+                / f"{config['slug']}.csv"
+            )
+
+            if not path.exists():
+                continue
+
+            try:
+                members = pd.read_csv(
+                    path,
+                    usecols=["Ticker"],
+                )
+            except (ValueError, pd.errors.EmptyDataError):
+                continue
+
+            member_tickers = (
+                members["Ticker"]
+                .dropna()
+                .astype(str)
+                .str.casefold()
+            )
+
+            if ticker.casefold() in set(member_tickers):
+                memberships.append(
+                    {
+                        "country": country_key,
+                        "index": index_name,
+                    }
+                )
+
+    return memberships
