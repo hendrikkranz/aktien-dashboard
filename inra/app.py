@@ -28,9 +28,9 @@ pages = {
             icon="📊",
         ),
         st.Page(
-            "pages/research.py",
-            title="Research",
-            icon="📚",
+            "pages/countries.py",
+            title="Länder",
+            icon="🌍",
         ),
         st.Page(
             "pages/systemstatus.py",
