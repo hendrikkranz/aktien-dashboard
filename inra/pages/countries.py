@@ -1,6 +1,7 @@
 import streamlit as st
 
 from components.country_germany import (
+    render_france,
     render_germany,
     render_usa,
 )
@@ -39,6 +40,18 @@ elif country == "usa":
         st.rerun()
 
     render_usa()
+
+
+# ------------------------------------------------------------------
+# Frankreich
+# ------------------------------------------------------------------
+
+elif country == "france":
+    if st.button("← Länder & Märkte"):
+        st.session_state["country_market_view"] = "overview"
+        st.rerun()
+
+    render_france()
 
 
 # ------------------------------------------------------------------
@@ -81,12 +94,15 @@ else:
         with st.container(border=True):
             st.markdown("### 🇫🇷 Frankreich")
             st.caption("CAC 40")
-            st.button(
-                "Noch nicht verfügbar",
+            if st.button(
+                "Frankreich öffnen",
                 use_container_width=True,
-                disabled=True,
                 key="open_france",
-            )
+            ):
+                st.session_state[
+                    "country_market_view"
+                ] = "france"
+                st.rerun()
 
     row_2 = st.columns(3)
 

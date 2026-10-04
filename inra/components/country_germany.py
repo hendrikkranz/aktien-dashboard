@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 
 from utils.country_market_data import (
+    FRANCE_INDICES,
     GERMANY_INDICES,
     USA_INDICES,
     get_index_market_snapshot,
@@ -395,5 +396,15 @@ def render_usa():
         indices=USA_INDICES,
         default_index="Dow Jones",
         key_prefix="usa",
+    )
+
+
+def render_france():
+    render_country(
+        country_name="Frankreich",
+        flag="🇫🇷",
+        indices=FRANCE_INDICES,
+        default_index="CAC 40",
+        key_prefix="france",
     )
 
