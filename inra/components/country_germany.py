@@ -12,6 +12,7 @@ from utils.country_market_data import (
     JAPAN_INDICES,
     NETHERLANDS_INDICES,
     NORDIC_INDICES,
+    CANADA_INDICES,
     SWITZERLAND_INDICES,
     UK_INDICES,
     USA_INDICES,
@@ -139,6 +140,11 @@ def render_country(
     # ------------------------------------------------------------------
     # Index-Chart
     # ------------------------------------------------------------------
+
+    if index_name == "S&P/TSX 60":
+        st.caption(
+            "Chart: iShares S&P/TSX 60 Index ETF (XIU) · ETF-Proxy"
+        )
 
     try:
         if index_name == "NASDAQ OMX Nordic 120":
@@ -690,5 +696,15 @@ def render_nordics():
         indices=NORDIC_INDICES,
         default_index="NASDAQ OMX Nordic 120",
         key_prefix="nordics",
+    )
+
+
+def render_canada():
+    render_country(
+        country_name="Kanada",
+        flag="🇨🇦",
+        indices=CANADA_INDICES,
+        default_index="S&P/TSX 60",
+        key_prefix="canada",
     )
 

@@ -1,6 +1,7 @@
 import streamlit as st
 
 from components.country_germany import (
+    render_canada,
     render_france,
     render_germany,
     render_japan,
@@ -117,6 +118,18 @@ elif country == "nordics":
         st.rerun()
 
     render_nordics()
+
+
+# ------------------------------------------------------------------
+# Kanada
+# ------------------------------------------------------------------
+
+elif country == "canada":
+    if st.button("← Länder & Märkte"):
+        st.session_state["country_market_view"] = "overview"
+        st.rerun()
+
+    render_canada()
 
 
 # ------------------------------------------------------------------
@@ -243,4 +256,19 @@ else:
                 st.session_state[
                     "country_market_view"
                 ] = "nordics"
+                st.rerun()
+
+
+    with row_3[2]:
+        with st.container(border=True):
+            st.markdown("### 🇨🇦 Kanada")
+            st.caption("S&P/TSX 60")
+            if st.button(
+                "Kanada öffnen",
+                use_container_width=True,
+                key="open_canada",
+            ):
+                st.session_state[
+                    "country_market_view"
+                ] = "canada"
                 st.rerun()

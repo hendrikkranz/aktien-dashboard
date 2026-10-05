@@ -94,6 +94,16 @@ NORDIC_INDICES = {
 }
 
 
+CANADA_INDICES = {
+    "S&P/TSX 60": {
+        "name": "S&P/TSX 60",
+        "ticker": "XIU.TO",
+        "members": 60,
+        "slug": "tsx_60",
+    },
+}
+
+
 JAPAN_INDICES = {
     "Nikkei 225": {
         "name": "Nikkei 225",
@@ -156,6 +166,11 @@ COUNTRY_MARKETS = {
         "flag": "🇸🇪 🇩🇰 🇫🇮 🇳🇴",
         "indices": NORDIC_INDICES,
     },
+    "Canada": {
+        "name": "Kanada",
+        "flag": "🇨🇦",
+        "indices": CANADA_INDICES,
+    },
     "Japan": {
         "name": "Japan",
         "flag": "🇯🇵",
@@ -178,6 +193,7 @@ def _get_index_config(index_name: str) -> dict:
         JAPAN_INDICES,
         NETHERLANDS_INDICES,
         NORDIC_INDICES,
+        CANADA_INDICES,
     ):
         for name, config in indices.items():
             if name.casefold() == normalized:
