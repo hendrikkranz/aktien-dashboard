@@ -145,7 +145,7 @@ else:
             st.caption("DAX · MDAX · SDAX")
 
             if st.button(
-                "Deutschland öffnen",
+                "Öffnen",
                 use_container_width=True,
                 key="open_germany",
             ):
@@ -159,7 +159,7 @@ else:
             st.markdown("### 🇺🇸 USA")
             st.caption("Dow Jones · Nasdaq 100")
             if st.button(
-                "USA öffnen",
+                "Öffnen",
                 use_container_width=True,
                 key="open_usa",
             ):
@@ -173,7 +173,7 @@ else:
             st.markdown("### 🇫🇷 Frankreich")
             st.caption("CAC 40")
             if st.button(
-                "Frankreich öffnen",
+                "Öffnen",
                 use_container_width=True,
                 key="open_france",
             ):
@@ -189,7 +189,7 @@ else:
             st.markdown("### 🇬🇧 Großbritannien")
             st.caption("FTSE 100")
             if st.button(
-                "Großbritannien öffnen",
+                "Öffnen",
                 use_container_width=True,
                 key="open_uk",
             ):
@@ -203,7 +203,7 @@ else:
             st.markdown("### 🇨🇭 Schweiz")
             st.caption("SMI")
             if st.button(
-                "Schweiz öffnen",
+                "Öffnen",
                 use_container_width=True,
                 key="open_switzerland",
             ):
@@ -217,7 +217,7 @@ else:
             st.markdown("### 🇯🇵 Japan")
             st.caption("Nikkei 225")
             if st.button(
-                "Japan öffnen",
+                "Öffnen",
                 use_container_width=True,
                 key="open_japan",
             ):
@@ -234,7 +234,7 @@ else:
             st.markdown("### 🇳🇱 Niederlande")
             st.caption("AEX")
             if st.button(
-                "Niederlande öffnen",
+                "Öffnen",
                 use_container_width=True,
                 key="open_netherlands",
             ):
@@ -249,7 +249,7 @@ else:
             st.markdown("### 🇸🇪 🇩🇰 🇫🇮 🇳🇴 Nordics")
             st.caption("NASDAQ OMX Nordic 120")
             if st.button(
-                "Skandinavien öffnen",
+                "Öffnen",
                 use_container_width=True,
                 key="open_nordics",
             ):
@@ -264,7 +264,7 @@ else:
             st.markdown("### 🇨🇦 Kanada")
             st.caption("S&P/TSX 60")
             if st.button(
-                "Kanada öffnen",
+                "Öffnen",
                 use_container_width=True,
                 key="open_canada",
             ):
