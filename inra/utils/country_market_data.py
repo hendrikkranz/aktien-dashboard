@@ -169,6 +169,42 @@ def _snapshot_path(index_name: str) -> Path:
     )
 
 
+def _inra_update_timestamp_path(
+    index_name: str,
+) -> Path:
+    config = _get_index_config(index_name)
+    return (
+        INDEX_CONSTITUENTS_DIR
+        / f"{config['slug']}_inra_update.txt"
+    )
+
+
+def get_index_inra_update_timestamp(
+    index_name: str,
+):
+    path = _inra_update_timestamp_path(index_name)
+
+    if not path.exists():
+        return None
+
+    value = path.read_text().strip()
+    return value or None
+
+
+def save_index_inra_update_timestamp(
+    index_name: str,
+    value: str,
+) -> None:
+    INDEX_CONSTITUENTS_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    _inra_update_timestamp_path(
+        index_name
+    ).write_text(value)
+
+
 def _extract_constituents(
     index_name: str,
     html: str,
@@ -1096,3 +1132,117 @@ def get_ticker_index_memberships(
                 )
 
     return memberships
+
+
+def update_missing_index_inra_scores(
+    index_name: str,
+    progress_callback=None,
+) -> dict:
+    """
+    Ergänzt fehlende quantitative InRA-Daten eines Index.
+
+    Verwendet ausschließlich load_company_snapshot().
+    Kein Current Intelligence, keine qualitative KI-Recherche.
+    """
+    from utils.data_loader import (
+        BENCHMARK_CACHE_PATH,
+        load_benchmark_cache,
+    )
+    from utils.market_data import load_company_snapshot
+
+    members = get_index_constituents(index_name)
+    cache = load_benchmark_cache()
+
+    existing = set()
+
+    if (
+        not cache.empty
+        and "Ticker" in cache.columns
+    ):
+        existing = set(
+            cache["Ticker"]
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+
+    tickers = (
+        members["Ticker"]
+        .dropna()
+        .astype(str)
+        .str.strip()
+        .str.upper()
+        .tolist()
+    )
+
+    missing_tickers = [
+        ticker
+        for ticker in tickers
+        if ticker not in existing
+    ]
+
+    total = len(missing_tickers)
+
+    if total == 0:
+        return {
+            "total": 0,
+            "updated": 0,
+            "failed": [],
+        }
+
+    results = []
+    failed = []
+
+    for position, ticker in enumerate(
+        missing_tickers,
+        start=1,
+    ):
+        if progress_callback is not None:
+            progress_callback(
+                (position - 1) / total,
+                f"{position}/{total} · {ticker} wird quantitativ bewertet …",
+            )
+
+        try:
+            data = load_company_snapshot(ticker)
+            results.append(data)
+
+        except Exception as error:
+            failed.append(
+                {
+                    "ticker": ticker,
+                    "error": str(error),
+                }
+            )
+
+    if results:
+        new_rows = pd.DataFrame(results)
+
+        if cache.empty:
+            updated_cache = new_rows
+        else:
+            updated_cache = pd.concat(
+                [
+                    cache,
+                    new_rows,
+                ],
+                ignore_index=True,
+            )
+
+        updated_cache.to_csv(
+            BENCHMARK_CACHE_PATH,
+            index=False,
+        )
+
+    if progress_callback is not None:
+        progress_callback(
+            1.0,
+            "Quantitative InRA-Bewertungen aktualisiert.",
+        )
+
+    return {
+        "total": total,
+        "updated": len(results),
+        "failed": failed,
+    }

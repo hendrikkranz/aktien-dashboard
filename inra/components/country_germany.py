@@ -1,3 +1,6 @@
+import time
+from datetime import datetime
+
 import altair as alt
 import pandas as pd
 import streamlit as st
@@ -9,7 +12,10 @@ from utils.country_market_data import (
     SWITZERLAND_INDICES,
     UK_INDICES,
     USA_INDICES,
+    get_index_inra_update_timestamp,
     get_index_market_snapshot,
+    save_index_inra_update_timestamp,
+    update_missing_index_inra_scores,
 )
 from utils.data_loader import (
     load_benchmark_cache,
@@ -207,6 +213,84 @@ def render_country(
             "wurde noch nicht erzeugt."
         )
         st.stop()
+
+    update_key = (
+        f"{key_prefix}_{index_name.lower()}_inra_last_update"
+    )
+
+    button_col, date_col = st.columns(
+        [0.42, 0.58],
+        vertical_alignment="center",
+    )
+
+    with button_col:
+        update_clicked = st.button(
+            "🔄 Fehlende InRA-Bewertungen ergänzen",
+            key=f"{key_prefix}_{index_name.lower()}_inra_update",
+            help=(
+                "Ergänzt ausschließlich fehlende quantitative "
+                "InRA-Bewertungen. Keine KI-Recherche und keine "
+                "kostenpflichtigen API-Aufrufe."
+            ),
+        )
+
+    with date_col:
+        last_update = (
+            get_index_inra_update_timestamp(index_name)
+        )
+
+        if last_update:
+            st.caption(
+                f"Zuletzt aktualisiert: {last_update}"
+            )
+        else:
+            st.caption("Noch nicht aktualisiert")
+
+    if update_clicked:
+        progress = st.progress(0)
+        status = st.empty()
+
+        def update_progress(value, label):
+            progress.progress(
+                min(max(float(value), 0.0), 1.0)
+            )
+            status.caption(label)
+
+        result = update_missing_index_inra_scores(
+            index_name,
+            progress_callback=update_progress,
+        )
+
+        if result["total"] == 0:
+            status.success(
+                "Alle Indexmitglieder sind bereits im "
+                "Benchmark-Cache vorhanden."
+            )
+        else:
+            status.success(
+                f"{result['updated']} von "
+                f"{result['total']} fehlenden Aktien "
+                "quantitativ ergänzt."
+            )
+
+            if result["failed"]:
+                st.warning(
+                    f"{len(result['failed'])} Aktien konnten "
+                    "nicht aktualisiert werden."
+                )
+
+        update_timestamp = (
+            datetime.now().strftime("%d.%m.%Y %H:%M")
+        )
+
+        save_index_inra_update_timestamp(
+            index_name,
+            update_timestamp,
+        )
+
+        time.sleep(5)
+        status.empty()
+        progress.empty()
 
     benchmark = load_benchmark_cache()
 
