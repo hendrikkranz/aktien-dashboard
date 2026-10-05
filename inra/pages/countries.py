@@ -5,6 +5,7 @@ from components.country_germany import (
     render_germany,
     render_japan,
     render_netherlands,
+    render_nordics,
     render_switzerland,
     render_uk,
     render_usa,
@@ -104,6 +105,18 @@ elif country == "netherlands":
         st.rerun()
 
     render_netherlands()
+
+
+# ------------------------------------------------------------------
+# Skandinavien
+# ------------------------------------------------------------------
+
+elif country == "nordics":
+    if st.button("← Länder & Märkte"):
+        st.session_state["country_market_view"] = "overview"
+        st.rerun()
+
+    render_nordics()
 
 
 # ------------------------------------------------------------------
@@ -215,4 +228,19 @@ else:
                 st.session_state[
                     "country_market_view"
                 ] = "netherlands"
+                st.rerun()
+
+
+    with row_3[1]:
+        with st.container(border=True):
+            st.markdown("### 🇸🇪 🇩🇰 🇫🇮 🇳🇴 Nordics")
+            st.caption("NASDAQ OMX Nordic 120")
+            if st.button(
+                "Skandinavien öffnen",
+                use_container_width=True,
+                key="open_nordics",
+            ):
+                st.session_state[
+                    "country_market_view"
+                ] = "nordics"
                 st.rerun()

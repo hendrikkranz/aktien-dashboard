@@ -10,6 +10,7 @@ from utils.country_market_data import (
     GERMANY_INDICES,
     JAPAN_INDICES,
     NETHERLANDS_INDICES,
+    NORDIC_INDICES,
     SWITZERLAND_INDICES,
     UK_INDICES,
     USA_INDICES,
@@ -607,5 +608,15 @@ def render_netherlands():
         indices=NETHERLANDS_INDICES,
         default_index="AEX",
         key_prefix="netherlands",
+    )
+
+
+def render_nordics():
+    render_country(
+        country_name="Skandinavien",
+        flag="🇸🇪 🇩🇰 🇫🇮 🇳🇴",
+        indices=NORDIC_INDICES,
+        default_index="NASDAQ OMX Nordic 120",
+        key_prefix="nordics",
     )
 
