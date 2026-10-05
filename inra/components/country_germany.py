@@ -3,6 +3,7 @@ from datetime import datetime
 
 import altair as alt
 import pandas as pd
+import requests
 import streamlit as st
 
 from utils.country_market_data import (
@@ -25,6 +26,72 @@ from utils.data_loader import (
 from utils.market_data import (
     load_price_history,
 )
+
+
+def _load_nasdaq_index_history(
+    symbol: str,
+) -> pd.DataFrame:
+    base = "https://indexes.nasdaqomx.com"
+
+    session = requests.Session()
+    session.headers.update(
+        {
+            "User-Agent": "Mozilla/5.0",
+            "Referer": f"{base}/Index/History/{symbol}",
+        }
+    )
+
+    session.get(
+        f"{base}/Index/History/{symbol}",
+        timeout=30,
+    ).raise_for_status()
+
+    end_date = pd.Timestamp.now().normalize()
+    start_date = pd.Timestamp("2000-01-01")
+
+    response = session.post(
+        f"{base}/Index/HistoryChartData",
+        data={
+            "id": symbol,
+            "startDate": start_date.strftime(
+                "%Y-%m-%dT00:00:00"
+            ),
+            "endDate": end_date.strftime(
+                "%Y-%m-%dT00:00:00"
+            ),
+        },
+        timeout=30,
+    )
+    response.raise_for_status()
+
+    rows = response.json()
+
+    if not rows:
+        return pd.DataFrame(
+            columns=["Datum", "Schlusskurs"]
+        )
+
+    history = pd.DataFrame(rows)
+
+    history["Datum"] = pd.to_datetime(
+        history["x"],
+        unit="ms",
+        utc=True,
+    ).dt.tz_localize(None)
+
+    history["Schlusskurs"] = pd.to_numeric(
+        history["y"],
+        errors="coerce",
+    )
+
+    return (
+        history[
+            ["Datum", "Schlusskurs"]
+        ]
+        .dropna()
+        .sort_values("Datum")
+        .reset_index(drop=True)
+    )
 
 
 def render_country(
@@ -74,10 +141,15 @@ def render_country(
     # ------------------------------------------------------------------
 
     try:
-        index_history = load_price_history(
-            index_config["ticker"],
-            period="max",
-        )
+        if index_name == "NASDAQ OMX Nordic 120":
+            index_history = _load_nasdaq_index_history(
+                "NOMXN120"
+            )
+        else:
+            index_history = load_price_history(
+                index_config["ticker"],
+                period="max",
+            )
 
         if (
             index_history is not None
