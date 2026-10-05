@@ -7,6 +7,8 @@ from components.country_germany import (
     render_japan,
     render_netherlands,
     render_nordics,
+    render_spain,
+    render_italy,
     render_switzerland,
     render_uk,
     render_usa,
@@ -130,6 +132,30 @@ elif country == "canada":
         st.rerun()
 
     render_canada()
+
+
+# ------------------------------------------------------------------
+# Spanien
+# ------------------------------------------------------------------
+
+elif country == "spain":
+    if st.button("← Länder & Märkte"):
+        st.session_state["country_market_view"] = "overview"
+        st.rerun()
+
+    render_spain()
+
+
+# ------------------------------------------------------------------
+# Italien
+# ------------------------------------------------------------------
+
+elif country == "italy":
+    if st.button("← Länder & Märkte"):
+        st.session_state["country_market_view"] = "overview"
+        st.rerun()
+
+    render_italy()
 
 
 # ------------------------------------------------------------------
@@ -271,4 +297,36 @@ else:
                 st.session_state[
                     "country_market_view"
                 ] = "canada"
+                st.rerun()
+
+
+    row_4 = st.columns(3)
+
+    with row_4[0]:
+        with st.container(border=True):
+            st.markdown("### 🇪🇸 Spanien")
+            st.caption("IBEX 35")
+            if st.button(
+                "Öffnen",
+                use_container_width=True,
+                key="open_spain",
+            ):
+                st.session_state[
+                    "country_market_view"
+                ] = "spain"
+                st.rerun()
+
+
+    with row_4[1]:
+        with st.container(border=True):
+            st.markdown("### 🇮🇹 Italien")
+            st.caption("FTSE MIB")
+            if st.button(
+                "Öffnen",
+                use_container_width=True,
+                key="open_italy",
+            ):
+                st.session_state[
+                    "country_market_view"
+                ] = "italy"
                 st.rerun()

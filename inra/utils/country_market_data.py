@@ -104,6 +104,26 @@ CANADA_INDICES = {
 }
 
 
+SPAIN_INDICES = {
+    "IBEX 35": {
+        "name": "IBEX 35",
+        "ticker": "^IBEX",
+        "members": 35,
+        "slug": "ibex_35",
+    },
+}
+
+
+ITALY_INDICES = {
+    "FTSE MIB": {
+        "name": "FTSE MIB",
+        "ticker": "FTSEMIB.MI",
+        "members": 40,
+        "slug": "ftse_mib",
+    },
+}
+
+
 JAPAN_INDICES = {
     "Nikkei 225": {
         "name": "Nikkei 225",
@@ -171,6 +191,16 @@ COUNTRY_MARKETS = {
         "flag": "🇨🇦",
         "indices": CANADA_INDICES,
     },
+    "Spain": {
+        "name": "Spanien",
+        "flag": "🇪🇸",
+        "indices": SPAIN_INDICES,
+    },
+    "Italy": {
+        "name": "Italien",
+        "flag": "🇮🇹",
+        "indices": ITALY_INDICES,
+    },
     "Japan": {
         "name": "Japan",
         "flag": "🇯🇵",
@@ -194,6 +224,8 @@ def _get_index_config(index_name: str) -> dict:
         NETHERLANDS_INDICES,
         NORDIC_INDICES,
         CANADA_INDICES,
+        SPAIN_INDICES,
+        ITALY_INDICES,
     ):
         for name, config in indices.items():
             if name.casefold() == normalized:

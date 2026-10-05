@@ -13,6 +13,8 @@ from utils.country_market_data import (
     NETHERLANDS_INDICES,
     NORDIC_INDICES,
     CANADA_INDICES,
+    SPAIN_INDICES,
+    ITALY_INDICES,
     SWITZERLAND_INDICES,
     UK_INDICES,
     USA_INDICES,
@@ -706,5 +708,25 @@ def render_canada():
         indices=CANADA_INDICES,
         default_index="S&P/TSX 60",
         key_prefix="canada",
+    )
+
+
+def render_spain():
+    render_country(
+        country_name="Spanien",
+        flag="🇪🇸",
+        indices=SPAIN_INDICES,
+        default_index="IBEX 35",
+        key_prefix="spain",
+    )
+
+
+def render_italy():
+    render_country(
+        country_name="Italien",
+        flag="🇮🇹",
+        indices=ITALY_INDICES,
+        default_index="FTSE MIB",
+        key_prefix="italy",
     )
 
