@@ -340,6 +340,48 @@ def render_country(
         / 1_000_000_000
     )
 
+    # Synthetische Median-Zeile.
+    # Sie wird Bestandteil der Tabelle und bei jeder
+    # Spaltensortierung wie eine normale Zeile mitsortiert.
+    median_columns = [
+        "Marktkapitalisierung Mrd.",
+        "Dividendenrendite",
+        "1M",
+        "3M",
+        "6M",
+        "1J",
+        "3J",
+        "5J",
+        "Max",
+        "Unternehmensqualität",
+        "Kaufchance",
+        "Scout-Score",
+    ]
+
+    median_row = {
+        column: None
+        for column in ranking.columns
+    }
+
+    median_row["Rang"] = None
+    median_row["Name"] = f"MEDIAN {index_name}"
+    median_row["Ticker"] = ""
+
+    for column in median_columns:
+        if column in ranking.columns:
+            median_row[column] = pd.to_numeric(
+                ranking[column],
+                errors="coerce",
+            ).median()
+
+    ranking_display = pd.concat(
+        [
+            ranking,
+            pd.DataFrame([median_row]),
+        ],
+        ignore_index=True,
+    )
+
     display_columns = [
         "Rang",
         "Name",
@@ -358,8 +400,29 @@ def render_country(
         "Scout-Score",
     ]
 
+    def highlight_median_row(row):
+        if str(row.get("Name", "")).startswith("MEDIAN "):
+            return [
+                "color: #2563eb; font-weight: 700"
+                for _ in row
+            ]
+
+        return ["" for _ in row]
+
+    styled_ranking = (
+        ranking_display[display_columns]
+        .style.apply(
+            highlight_median_row,
+            axis=1,
+        )
+        .map(
+            lambda value: "font-weight: 600",
+            subset=["Name"],
+        )
+    )
+
     table_state = st.dataframe(
-        ranking[display_columns],
+        styled_ranking,
         width="stretch",
         height=770,
         hide_index=True,
@@ -456,14 +519,15 @@ def render_country(
 
     if selected_rows:
         selected_row = selected_rows[0]
-        selected_ticker = ranking.iloc[
+        selected_ticker = ranking_display.iloc[
             selected_row
         ]["Ticker"]
 
-        st.session_state["analyse_ticker"] = (
-            selected_ticker
-        )
-        st.switch_page("pages/analyse.py")
+        if selected_ticker:
+            st.session_state["analyse_ticker"] = (
+                selected_ticker
+            )
+            st.switch_page("pages/analyse.py")
 
 
     inra_count = ranking[
