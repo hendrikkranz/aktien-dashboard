@@ -5,6 +5,7 @@ import streamlit as st
 from utils.country_market_data import (
     FRANCE_INDICES,
     GERMANY_INDICES,
+    JAPAN_INDICES,
     SWITZERLAND_INDICES,
     UK_INDICES,
     USA_INDICES,
@@ -437,5 +438,15 @@ def render_uk():
         indices=UK_INDICES,
         default_index="FTSE 100",
         key_prefix="uk",
+    )
+
+
+def render_japan():
+    render_country(
+        country_name="Japan",
+        flag="🇯🇵",
+        indices=JAPAN_INDICES,
+        default_index="Nikkei 225",
+        key_prefix="japan",
     )
 

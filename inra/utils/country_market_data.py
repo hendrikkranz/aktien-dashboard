@@ -74,6 +74,16 @@ UK_INDICES = {
 }
 
 
+JAPAN_INDICES = {
+    "Nikkei 225": {
+        "name": "Nikkei 225",
+        "ticker": "^N225",
+        "members": 225,
+        "slug": "nikkei_225",
+    },
+}
+
+
 USA_INDICES = {
     "Dow Jones": {
         "name": "Dow Jones",
@@ -116,6 +126,11 @@ COUNTRY_MARKETS = {
         "flag": "🇬🇧",
         "indices": UK_INDICES,
     },
+    "Japan": {
+        "name": "Japan",
+        "flag": "🇯🇵",
+        "indices": JAPAN_INDICES,
+    },
 }
 
 
@@ -130,6 +145,7 @@ def _get_index_config(index_name: str) -> dict:
         FRANCE_INDICES,
         SWITZERLAND_INDICES,
         UK_INDICES,
+        JAPAN_INDICES,
     ):
         for name, config in indices.items():
             if name.casefold() == normalized:
@@ -1043,6 +1059,7 @@ def get_ticker_index_memberships(
         ("france", FRANCE_INDICES),
         ("switzerland", SWITZERLAND_INDICES),
         ("uk", UK_INDICES),
+        ("japan", JAPAN_INDICES),
     )
 
     for country_key, indices in markets:
