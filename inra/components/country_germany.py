@@ -213,6 +213,7 @@ def render_country(
         column
         for column in (
             "Ticker",
+            "Dividendenrendite",
             "Unternehmensqualität",
             "Kaufchance",
         )
@@ -259,6 +260,7 @@ def render_country(
         "Name",
         "Ticker",
         "Marktkapitalisierung Mrd.",
+        "Dividendenrendite",
         "1M",
         "3M",
         "6M",
@@ -274,6 +276,7 @@ def render_country(
     table_state = st.dataframe(
         ranking[display_columns],
         width="stretch",
+        height=770,
         hide_index=True,
         key=f"{key_prefix}_{index_name.lower()}_ranking",
         on_select="rerun",
@@ -298,9 +301,15 @@ def render_country(
                 st.column_config.NumberColumn(
                     "Market Cap",
                     help="Marktkapitalisierung in Mrd. der Handelswährung",
-                    width=105,
+                    width=80,
                     format="%.1f",
                 )
+            ),
+            "Dividendenrendite": st.column_config.NumberColumn(
+                "Div. %",
+                help="Aktuelle Dividendenrendite",
+                width=70,
+                format="%.1f %%",
             ),
             "1M": st.column_config.NumberColumn(
                 "1M",
@@ -337,13 +346,13 @@ def render_country(
             "Unternehmensqualität": (
                 st.column_config.NumberColumn(
                     "Qualität",
-                    width=80,
+                    width=65,
                     format="%.0f",
                 )
             ),
             "Kaufchance": st.column_config.NumberColumn(
                 "Kaufchance",
-                width=95,
+                width=75,
                 format="%.0f",
             ),
             "Scout-Score": st.column_config.NumberColumn(
@@ -352,7 +361,7 @@ def render_country(
                     "Geometrisches Mittel aus "
                     "Unternehmensqualität und Kaufchance"
                 ),
-                width=75,
+                width=60,
                 format="%.1f",
             ),
         },
