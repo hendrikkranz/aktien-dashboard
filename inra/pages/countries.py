@@ -4,6 +4,7 @@ from components.country_germany import (
     render_france,
     render_germany,
     render_switzerland,
+    render_uk,
     render_usa,
 )
 
@@ -68,6 +69,18 @@ elif country == "switzerland":
 
 
 # ------------------------------------------------------------------
+# Großbritannien
+# ------------------------------------------------------------------
+
+elif country == "uk":
+    if st.button("← Länder & Märkte"):
+        st.session_state["country_market_view"] = "overview"
+        st.rerun()
+
+    render_uk()
+
+
+# ------------------------------------------------------------------
 # Länderübersicht
 # ------------------------------------------------------------------
 
@@ -123,12 +136,15 @@ else:
         with st.container(border=True):
             st.markdown("### 🇬🇧 Großbritannien")
             st.caption("FTSE 100")
-            st.button(
-                "Noch nicht verfügbar",
+            if st.button(
+                "Großbritannien öffnen",
                 use_container_width=True,
-                disabled=True,
                 key="open_uk",
-            )
+            ):
+                st.session_state[
+                    "country_market_view"
+                ] = "uk"
+                st.rerun()
 
     with row_2[1]:
         with st.container(border=True):
