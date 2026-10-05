@@ -9,6 +9,7 @@ from utils.country_market_data import (
     FRANCE_INDICES,
     GERMANY_INDICES,
     JAPAN_INDICES,
+    NETHERLANDS_INDICES,
     SWITZERLAND_INDICES,
     UK_INDICES,
     USA_INDICES,
@@ -596,5 +597,15 @@ def render_japan():
         indices=JAPAN_INDICES,
         default_index="Nikkei 225",
         key_prefix="japan",
+    )
+
+
+def render_netherlands():
+    render_country(
+        country_name="Niederlande",
+        flag="🇳🇱",
+        indices=NETHERLANDS_INDICES,
+        default_index="AEX",
+        key_prefix="netherlands",
     )
 

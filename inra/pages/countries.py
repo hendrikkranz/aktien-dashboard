@@ -4,6 +4,7 @@ from components.country_germany import (
     render_france,
     render_germany,
     render_japan,
+    render_netherlands,
     render_switzerland,
     render_uk,
     render_usa,
@@ -91,6 +92,18 @@ elif country == "japan":
         st.rerun()
 
     render_japan()
+
+
+# ------------------------------------------------------------------
+# Niederlande
+# ------------------------------------------------------------------
+
+elif country == "netherlands":
+    if st.button("← Länder & Märkte"):
+        st.session_state["country_market_view"] = "overview"
+        st.rerun()
+
+    render_netherlands()
 
 
 # ------------------------------------------------------------------
@@ -185,4 +198,21 @@ else:
                 st.session_state[
                     "country_market_view"
                 ] = "japan"
+                st.rerun()
+
+
+    row_3 = st.columns(3)
+
+    with row_3[0]:
+        with st.container(border=True):
+            st.markdown("### 🇳🇱 Niederlande")
+            st.caption("AEX")
+            if st.button(
+                "Niederlande öffnen",
+                use_container_width=True,
+                key="open_netherlands",
+            ):
+                st.session_state[
+                    "country_market_view"
+                ] = "netherlands"
                 st.rerun()
