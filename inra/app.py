@@ -50,6 +50,13 @@ navigation = st.navigation(pages)
 st.markdown(
     """
     <style>
+    /* Hauptinhalt auf großen Displays kompakt halten */
+    [data-testid="stMainBlockContainer"] {
+        max-width: 1560px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
     /* Kompakte InRA-Navigation */
     [data-testid="stSidebar"] {
         width: 210px !important;
