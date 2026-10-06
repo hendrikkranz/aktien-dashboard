@@ -9,6 +9,7 @@ from components.country_germany import (
     render_nordics,
     render_spain,
     render_italy,
+    render_rest_of_world,
     render_switzerland,
     render_uk,
     render_usa,
@@ -156,6 +157,18 @@ elif country == "italy":
         st.rerun()
 
     render_italy()
+
+
+# ------------------------------------------------------------------
+# Weitere Märkte
+# ------------------------------------------------------------------
+
+elif country == "rest_of_world":
+    if st.button("← Länder & Märkte"):
+        st.session_state["country_market_view"] = "overview"
+        st.rerun()
+
+    render_rest_of_world()
 
 
 # ------------------------------------------------------------------
@@ -329,4 +342,19 @@ else:
                 st.session_state[
                     "country_market_view"
                 ] = "italy"
+                st.rerun()
+
+
+    with row_4[2]:
+        with st.container(border=True):
+            st.markdown("### 🌍 Weitere Märkte")
+            st.caption("108 global relevante Unternehmen")
+            if st.button(
+                "Öffnen",
+                use_container_width=True,
+                key="open_rest_of_world",
+            ):
+                st.session_state[
+                    "country_market_view"
+                ] = "rest_of_world"
                 st.rerun()

@@ -124,6 +124,17 @@ ITALY_INDICES = {
 }
 
 
+REST_OF_WORLD_INDICES = {
+    "Weitere Märkte": {
+        "name": "Weitere Märkte",
+        "ticker": None,
+        "members": 108,
+        "slug": "rest_of_world",
+        "has_chart": False,
+    },
+}
+
+
 JAPAN_INDICES = {
     "Nikkei 225": {
         "name": "Nikkei 225",
@@ -226,6 +237,7 @@ def _get_index_config(index_name: str) -> dict:
         CANADA_INDICES,
         SPAIN_INDICES,
         ITALY_INDICES,
+        REST_OF_WORLD_INDICES,
     ):
         for name, config in indices.items():
             if name.casefold() == normalized:
@@ -995,9 +1007,62 @@ def build_index_market_snapshot(
     close = prices["Close"]
     rows = []
 
+    fx_to_usd = {}
+
+    if index_name == "Weitere Märkte":
+        currencies = (
+            members["Ticker"]
+            .map(
+                lambda ticker: (
+                    yf.Ticker(ticker).fast_info.get("currency")
+                )
+            )
+            .dropna()
+            .unique()
+        )
+
+        for currency in currencies:
+            if currency == "USD":
+                fx_to_usd[currency] = 1.0
+                continue
+
+            if currency == "ILA":
+                fx_ticker = "ILSUSD=X"
+                divisor = 100.0
+            else:
+                fx_ticker = f"{currency}USD=X"
+                divisor = 1.0
+
+            try:
+                fx_history = yf.download(
+                    fx_ticker,
+                    period="5d",
+                    interval="1d",
+                    auto_adjust=True,
+                    progress=False,
+                )
+                fx_close = fx_history["Close"].dropna()
+
+                if not fx_close.empty:
+                    value = fx_close.iloc[-1]
+                    if hasattr(value, "iloc"):
+                        value = value.iloc[0]
+
+                    fx_to_usd[currency] = (
+                        float(value) / divisor
+                    )
+            except Exception:
+                pass
+
     for _, member in members.iterrows():
         ticker = member["Ticker"]
         name = member["Name"]
+
+        member_metadata = {
+            column: member[column]
+            for column in ("Land", "Region")
+            if column in members.columns
+        }
 
         series = (
             close[ticker].dropna()
@@ -1014,6 +1079,17 @@ def build_index_market_snapshot(
             currency = fast_info.get("currency")
         except Exception:
             pass
+
+        market_cap_usd = None
+
+        if (
+            market_cap is not None
+            and currency in fx_to_usd
+        ):
+            market_cap_usd = (
+                float(market_cap)
+                * fx_to_usd[currency]
+            )
 
         if series.empty:
             max_performance = None
@@ -1034,8 +1110,10 @@ def build_index_market_snapshot(
             {
                 "Ticker": ticker,
                 "Name": name,
+                **member_metadata,
                 "Marktkapitalisierung": market_cap,
                 "Währung": currency,
+                "Marktkapitalisierung USD": market_cap_usd,
                 "1M": _performance_since(
                     series,
                     months=1,

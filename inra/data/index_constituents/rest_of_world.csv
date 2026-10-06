@@ -1,0 +1,109 @@
+Ticker,Name,Land,Region
+0700.HK,Tencent,China/Hongkong,China/Hongkong
+1398.HK,ICBC,China/Hongkong,China/Hongkong
+1288.HK,Agricultural Bank of China,China/Hongkong,China/Hongkong
+9988.HK,Alibaba,China/Hongkong,China/Hongkong
+0857.HK,PetroChina,China/Hongkong,China/Hongkong
+0939.HK,China Construction Bank,China/Hongkong,China/Hongkong
+3988.HK,Bank of China,China/Hongkong,China/Hongkong
+300750.SZ,CATL,China,China/Hongkong
+0941.HK,China Mobile,China/Hongkong,China/Hongkong
+600519.SS,Kweichow Moutai,China,China/Hongkong
+2318.HK,Ping An,China/Hongkong,China/Hongkong
+1810.HK,Xiaomi,China/Hongkong,China/Hongkong
+PDD,PDD Holdings,China,China/Hongkong
+3968.HK,China Merchants Bank,China/Hongkong,China/Hongkong
+1211.HK,BYD,China/Hongkong,China/Hongkong
+0883.HK,CNOOC,China/Hongkong,China/Hongkong
+1299.HK,AIA Group,Hongkong,China/Hongkong
+2899.HK,Zijin Mining,China/Hongkong,China/Hongkong
+3690.HK,Meituan,China/Hongkong,China/Hongkong
+000333.SZ,Midea,China,China/Hongkong
+9999.HK,NetEase,China/Hongkong,China/Hongkong
+0388.HK,Hong Kong Exchanges,Hongkong,China/Hongkong
+9618.HK,JD.com,China/Hongkong,China/Hongkong
+9888.HK,Baidu,China/Hongkong,China/Hongkong
+2330.TW,TSMC,Taiwan,Taiwan
+2454.TW,MediaTek,Taiwan,Taiwan
+2308.TW,Delta Electronics,Taiwan,Taiwan
+2317.TW,Hon Hai / Foxconn,Taiwan,Taiwan
+3711.TW,ASE Technology,Taiwan,Taiwan
+2881.TW,Fubon Financial,Taiwan,Taiwan
+2382.TW,Quanta Computer,Taiwan,Taiwan
+3037.TW,Unimicron,Taiwan,Taiwan
+005930.KS,Samsung Electronics,Südkorea,Südkorea
+000660.KS,SK Hynix,Südkorea,Südkorea
+402340.KS,SK Square,Südkorea,Südkorea
+207940.KS,Samsung Biologics,Südkorea,Südkorea
+005380.KS,Hyundai Motor,Südkorea,Südkorea
+000270.KS,Kia,Südkorea,Südkorea
+373220.KS,LG Energy Solution,Südkorea,Südkorea
+068270.KS,Celltrion,Südkorea,Südkorea
+009150.KS,Samsung Electro-Mechanics,Südkorea,Südkorea
+105560.KS,KB Financial,Südkorea,Südkorea
+RELIANCE.NS,Reliance Industries,Indien,Indien
+HDFCBANK.NS,HDFC Bank,Indien,Indien
+BHARTIARTL.NS,Bharti Airtel,Indien,Indien
+TCS.NS,TCS,Indien,Indien
+ICICIBANK.NS,ICICI Bank,Indien,Indien
+SBIN.NS,State Bank of India,Indien,Indien
+BAJFINANCE.NS,Bajaj Finance,Indien,Indien
+HINDUNILVR.NS,Hindustan Unilever,Indien,Indien
+INFY.NS,Infosys,Indien,Indien
+LT.NS,Larsen & Toubro,Indien,Indien
+KOTAKBANK.NS,Kotak Mahindra Bank,Indien,Indien
+M&M.NS,Mahindra & Mahindra,Indien,Indien
+AXISBANK.NS,Axis Bank,Indien,Indien
+ITC.NS,ITC,Indien,Indien
+BHP.AX,BHP,Australien,Australien
+CBA.AX,Commonwealth Bank,Australien,Australien
+NAB.AX,National Australia Bank,Australien,Australien
+WBC.AX,Westpac,Australien,Australien
+CSL.AX,CSL,Australien,Australien
+WES.AX,Wesfarmers,Australien,Australien
+ANZ.AX,ANZ,Australien,Australien
+MQG.AX,Macquarie,Australien,Australien
+WDS.AX,Woodside Energy,Australien,Australien
+2222.SR,Saudi Aramco,Saudi-Arabien,Nahost
+1120.SR,Al Rajhi Bank,Saudi-Arabien,Nahost
+7010.SR,STC,Saudi-Arabien,Nahost
+1180.SR,Saudi National Bank,Saudi-Arabien,Nahost
+EMIRATESNBD.AE,Emirates NBD,VAE,Nahost
+QNBK.QA,Qatar National Bank,Katar,Nahost
+PETR4.SA,Petrobras,Brasilien,Lateinamerika
+VALE3.SA,Vale,Brasilien,Lateinamerika
+ITUB4.SA,Itau Unibanco,Brasilien,Lateinamerika
+NU,Nu Holdings,Brasilien,Lateinamerika
+WEGE3.SA,WEG,Brasilien,Lateinamerika
+BBAS3.SA,Banco do Brasil,Brasilien,Lateinamerika
+AMXB.MX,America Movil,Mexiko,Lateinamerika
+WALMEX.MX,Walmart de Mexico,Mexiko,Lateinamerika
+GMEXICOB.MX,Grupo Mexico,Mexiko,Lateinamerika
+SQM,SQM,Chile,Lateinamerika
+MELI,MercadoLibre,Argentinien,Lateinamerika
+D05.SI,DBS,Singapur,Südostasien
+SE,Sea,Singapur,Südostasien
+O39.SI,OCBC,Singapur,Südostasien
+U11.SI,UOB,Singapur,Südostasien
+BBCA.JK,Bank Central Asia,Indonesien,Südostasien
+BBRI.JK,Bank Rakyat Indonesia,Indonesien,Südostasien
+BMRI.JK,Bank Mandiri,Indonesien,Südostasien
+1155.KL,Maybank,Malaysia,Südostasien
+1295.KL,Public Bank,Malaysia,Südostasien
+PTT.BK,PTT,Thailand,Südostasien
+AOT.BK,Airports of Thailand,Thailand,Südostasien
+NPN.JO,Naspers,Südafrika,Afrika
+SBK.JO,Standard Bank,Südafrika,Afrika
+GFI.JO,Gold Fields,Südafrika,Afrika
+MTN.JO,MTN,Südafrika,Afrika
+CHKP,Check Point,Israel,Weitere
+TEVA.TA,Teva,Israel,Weitere
+LUMI.TA,Bank Leumi,Israel,Weitere
+ESLT.TA,Elbit Systems,Israel,Weitere
+PKO.WA,PKO BP,Polen,Weitere
+PKN.WA,Orlen,Polen,Weitere
+DNP.WA,Dino Polska,Polen,Weitere
+AKBNK.IS,Akbank,Türkei,Weitere
+BIMAS.IS,BIM,Türkei,Weitere
+EBS.VI,Erste Group,Österreich,Weitere
+OMV.VI,OMV,Österreich,Weitere

@@ -730,3 +730,193 @@ def render_italy():
         key_prefix="italy",
     )
 
+
+
+def render_rest_of_world():
+    st.markdown("## 🌍 Weitere Märkte")
+    st.caption(
+        "108 global relevante Unternehmen außerhalb "
+        "der bestehenden InRA-Kernmärkte"
+    )
+
+    snapshot = get_index_market_snapshot("Weitere Märkte")
+
+    region_order = [
+        "Alle",
+        "China/Hongkong",
+        "Taiwan",
+        "Südkorea",
+        "Indien",
+        "Australien",
+        "Nahost",
+        "Lateinamerika",
+        "Südostasien",
+        "Afrika",
+        "Weitere",
+    ]
+
+    region = st.segmented_control(
+        "Region",
+        region_order,
+        default="Alle",
+        key="rest_of_world_region",
+    )
+
+    if region and region != "Alle":
+        snapshot = snapshot[
+            snapshot["Region"] == region
+        ].copy()
+
+    st.caption(
+        f"{len(snapshot)} Unternehmen"
+        + (
+            " · alle Regionen"
+            if region == "Alle"
+            else f" · {region}"
+        )
+    )
+
+    benchmark = load_benchmark_cache()
+
+    score_columns = [
+        column
+        for column in (
+            "Ticker",
+            "Dividendenrendite",
+            "Unternehmensqualität",
+            "Kaufchance",
+        )
+        if column in benchmark.columns
+    ]
+
+    benchmark_scores = (
+        benchmark[score_columns]
+        .drop_duplicates(subset=["Ticker"], keep="last")
+    )
+
+    snapshot = snapshot.merge(
+        benchmark_scores,
+        on="Ticker",
+        how="left",
+    )
+
+    snapshot["Scout-Score"] = (
+        snapshot["Unternehmensqualität"]
+        * snapshot["Kaufchance"]
+    ) ** 0.5
+
+    snapshot["Market Cap Mrd. USD"] = (
+        snapshot["Marktkapitalisierung USD"]
+        / 1_000_000_000
+    )
+
+    snapshot = snapshot.sort_values(
+        ["Scout-Score", "Unternehmensqualität"],
+        ascending=[False, False],
+        na_position="last",
+    ).reset_index(drop=True)
+
+    snapshot["Rang"] = range(
+        1,
+        len(snapshot) + 1,
+    )
+
+    display = snapshot[
+        [
+            "Rang",
+            "Name",
+            "Ticker",
+            "Land",
+            "Market Cap Mrd. USD",
+            "Dividendenrendite",
+            "1M",
+            "3M",
+            "6M",
+            "1J",
+            "3J",
+            "5J",
+            "Unternehmensqualität",
+            "Kaufchance",
+            "Scout-Score",
+        ]
+    ].copy()
+
+    table_state = st.dataframe(
+        display,
+        hide_index=True,
+        use_container_width=True,
+        key="rest_of_world_ranking",
+        on_select="rerun",
+        selection_mode="single-row",
+        column_config={
+            "Rang": st.column_config.NumberColumn(
+                "Rang",
+                format="%d",
+                width="small",
+            ),
+            "Name": st.column_config.TextColumn(
+                "Unternehmen",
+                help="Zeile auswählen, um die InRA-Analyse zu öffnen",
+            ),
+            "Ticker": st.column_config.TextColumn("Ticker"),
+            "Land": st.column_config.TextColumn("Land"),
+            "Market Cap Mrd. USD": st.column_config.NumberColumn(
+                "MCap $ Mrd.",
+                format="%.1f",
+            ),
+            "Dividendenrendite": st.column_config.NumberColumn(
+                "Div.-Rendite",
+                format="%.1f %%",
+            ),
+            "1M": st.column_config.NumberColumn(
+                "1M",
+                format="%.1f %%",
+            ),
+            "3M": st.column_config.NumberColumn(
+                "3M",
+                format="%.1f %%",
+            ),
+            "6M": st.column_config.NumberColumn(
+                "6M",
+                format="%.1f %%",
+            ),
+            "1J": st.column_config.NumberColumn(
+                "1J",
+                format="%.1f %%",
+            ),
+            "3J": st.column_config.NumberColumn(
+                "3J",
+                format="%.1f %%",
+            ),
+            "5J": st.column_config.NumberColumn(
+                "5J",
+                format="%.1f %%",
+            ),
+            "Unternehmensqualität": st.column_config.NumberColumn(
+                "Qualität",
+                format="%.0f",
+            ),
+            "Kaufchance": st.column_config.NumberColumn(
+                "Kaufchance",
+                format="%.0f",
+            ),
+            "Scout-Score": st.column_config.NumberColumn(
+                "Scout",
+                format="%.0f",
+            ),
+        },
+    )
+
+    selected_rows = table_state.selection.rows
+
+    if selected_rows:
+        selected_row = selected_rows[0]
+        selected_ticker = display.iloc[
+            selected_row
+        ]["Ticker"]
+
+        if selected_ticker:
+            st.session_state["analyse_ticker"] = (
+                selected_ticker
+            )
+            st.switch_page("pages/analyse.py")
