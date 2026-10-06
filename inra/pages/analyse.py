@@ -4,6 +4,8 @@ from urllib.parse import urlparse
 import altair as alt
 import streamlit as st
 
+from utils.radar_store import add_to_radar, is_on_radar
+
 from utils.country_market_data import (
     get_ticker_index_memberships,
 )
@@ -574,9 +576,54 @@ if ticker:
 
                     st.rerun()
 
+
+    radar_ticker = data["Ticker"]
+
+    radar_message = st.session_state.pop(
+        "radar_message",
+        None,
+    )
+
+    if radar_message:
+        st.success(radar_message)
+
     meta_spacer, meta_col = st.columns([2.45, 2])
 
     with meta_col:
+        if is_on_radar(radar_ticker):
+            st.markdown(
+                """
+                <div style="
+                    text-align:center;
+                    color:#9ca3af;
+                    font-size:0.875rem;
+                    margin-top:-26px;
+                    margin-bottom:6px;
+                ">
+                    📡 Aktie ist auf dem Radar
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        else:
+            if st.button(
+                "📡 Auf Radar setzen",
+                key=f"add_to_radar_{radar_ticker}",
+                use_container_width=True,
+            ):
+                added_to_radar = add_to_radar(
+                    ticker=radar_ticker,
+                    name=data["Name"],
+                    reference_price=data.get("Kurs"),
+                )
+
+                if added_to_radar:
+                    st.session_state["radar_message"] = (
+                        f"{data['Name']} wurde auf den Radar gesetzt."
+                    )
+
+                st.rerun()
+
         st.markdown(
             f"""
             <div style="

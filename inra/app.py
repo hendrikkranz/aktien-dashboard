@@ -23,6 +23,11 @@ pages = {
             icon="🔎",
         ),
         st.Page(
+            "pages/radar.py",
+            title="Radar",
+            icon="📡",
+        ),
+        st.Page(
             "pages/analyse.py",
             title="Analyse",
             icon="📊",
@@ -35,7 +40,7 @@ pages = {
         st.Page(
             "pages/systemstatus.py",
             title="Systemstatus",
-            icon="🩺",
+            icon="⚙️",
         ),
     ],
 }
