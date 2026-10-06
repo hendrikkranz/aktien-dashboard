@@ -1,16 +1,16 @@
 {
-  "score": 31.9374,
+  "score": 38.089,
   "max_points": 100.0,
   "label": "Moderat",
-  "coverage": 0.93,
+  "coverage": 1.0,
   "blocks": {
     "current_stress": {
-      "score": 6.6445,
-      "raw_score": 5.4817,
+      "score": 11.7461,
+      "raw_score": 11.7461,
       "max_points": 40.0,
-      "assessable_max": 33.0,
-      "coverage": 0.825,
-      "available_components": 3,
+      "assessable_max": 40.0,
+      "coverage": 1.0,
+      "available_components": 4,
       "total_components": 4,
       "details": {
         "market_trend": {
@@ -19,25 +19,25 @@
           "available": true
         },
         "credit_stress": {
-          "score": 0.396,
+          "score": 4.169,
           "max_points": 11.0,
           "available": true
         },
         "volatility_stress": {
-          "score": 2.2857,
+          "score": 0.7771,
           "max_points": 8.0,
           "available": true
         },
         "market_breadth": {
-          "score": null,
+          "score": 4.0,
           "max_points": 7.0,
-          "available": false
+          "available": true
         }
       }
     },
     "early_warning": {
-      "score": 10.1679,
-      "raw_score": 10.1679,
+      "score": 11.2179,
+      "raw_score": 11.2179,
       "max_points": 35.0,
       "assessable_max": 35.0,
       "coverage": 1.0,
@@ -45,7 +45,7 @@
       "total_components": 6,
       "details": {
         "global_liquidity": {
-          "score": 2.88,
+          "score": 2.68,
           "max_points": 8.0,
           "available": true
         },
@@ -60,7 +60,7 @@
           "available": true
         },
         "broad_dollar": {
-          "score": 0.0,
+          "score": 1.25,
           "max_points": 5.0,
           "available": true
         },
@@ -106,10 +106,10 @@
           "weight": 0.4,
           "available": true,
           "metrics": {
-            "price": 7637.759765625,
-            "sma200": 7178.864458007813,
-            "distance_to_sma200_pct": 6.392310515144262,
-            "sma200_slope_20d_pct": 1.2875608196638133
+            "price": 7773.9501953125,
+            "sma200": 7230.686862792969,
+            "distance_to_sma200_pct": 7.51330188719701,
+            "sma200_slope_20d_pct": 1.2450977695503296
           },
           "risk_score": 0.0
         },
@@ -120,10 +120,10 @@
           "weight": 0.25,
           "available": true,
           "metrics": {
-            "price": 639.7999877929688,
-            "sma200": 620.515950012207,
-            "distance_to_sma200_pct": 3.1077424811372545,
-            "sma200_slope_20d_pct": 1.230733161313613
+            "price": 633.6199951171875,
+            "sma200": 623.7338000488281,
+            "distance_to_sma200_pct": 1.5850022986706014,
+            "sma200_slope_20d_pct": 1.050564228576789
           },
           "risk_score": 0.0
         },
@@ -134,10 +134,10 @@
           "weight": 0.2,
           "available": true,
           "metrics": {
-            "price": 52.66999816894531,
-            "sma200": 57.00894639968872,
-            "distance_to_sma200_pct": -7.610995299444956,
-            "sma200_slope_20d_pct": -1.321349110902914
+            "price": 52.279998779296875,
+            "sma200": 56.53321327209473,
+            "distance_to_sma200_pct": -7.523390670059927,
+            "sma200_slope_20d_pct": -1.361811622790654
           },
           "risk_score": 14.0
         },
@@ -148,17 +148,17 @@
           "weight": 0.15,
           "available": true,
           "metrics": {
-            "price": 99.2300033569336,
-            "sma200": 87.68715026855469,
-            "distance_to_sma200_pct": 13.163676836374805,
-            "sma200_slope_20d_pct": 3.446537600355315
+            "price": 102.75,
+            "sma200": 89.5302048110962,
+            "distance_to_sma200_pct": 14.765737682379743,
+            "sma200_slope_20d_pct": 3.547814044826114
           },
           "risk_score": 0.0
         }
       }
     },
     "credit_stress": {
-      "score": 0.396,
+      "score": 4.169,
       "max_points": 11.0,
       "coverage": 1.0,
       "regions": {
@@ -169,14 +169,14 @@
           "weight": 0.6,
           "available": true,
           "metrics": {
-            "spread_pct": 2.7,
-            "percentile_history": 11.181702668360865,
-            "change_20d_pp": -0.029999999999999805,
-            "change_60d_pp": -0.05999999999999961,
-            "as_of": "2026-09-16T00:00:00",
-            "observations": 787
+            "spread_pct": 3.1,
+            "percentile_history": 56.88775510204081,
+            "change_20d_pp": 0.41999999999999993,
+            "change_60d_pp": 0.41000000000000014,
+            "as_of": "2026-10-02T00:00:00",
+            "observations": 784
           },
-          "risk_score": 0.0
+          "risk_score": 3.905
         },
         "europe": {
           "name": "Europa",
@@ -185,19 +185,19 @@
           "weight": 0.4,
           "available": true,
           "metrics": {
-            "spread_pct": 2.74,
-            "percentile_history": 22.87166454891995,
-            "change_20d_pp": 0.1900000000000004,
-            "change_60d_pp": 0.0900000000000003,
-            "as_of": "2026-09-16T00:00:00",
-            "observations": 787
+            "spread_pct": 3.29,
+            "percentile_history": 62.62755102040817,
+            "change_20d_pp": 0.6299999999999999,
+            "change_60d_pp": 0.7400000000000002,
+            "as_of": "2026-10-02T00:00:00",
+            "observations": 784
           },
-          "risk_score": 0.99
+          "risk_score": 4.565
         }
       }
     },
     "volatility_stress": {
-      "score": 2.2857,
+      "score": 0.7771,
       "max_points": 8.0,
       "coverage": 0.7,
       "regions": {
@@ -208,14 +208,14 @@
           "weight": 0.5,
           "available": true,
           "metrics": {
-            "volatility_level": 17.71,
-            "percentile_history": 50.900269541778975,
-            "change_20d": 2.8200000000000003,
-            "change_60d": -0.9199999999999982,
-            "as_of": "2026-09-16T00:00:00",
-            "observations": 9275
+            "volatility_level": 15.31,
+            "percentile_history": 34.01529019058899,
+            "change_20d": 0.7800000000000011,
+            "change_60d": 0.28000000000000114,
+            "as_of": "2026-10-02T00:00:00",
+            "observations": 9287
           },
-          "risk_score": 1.92
+          "risk_score": 0.32
         },
         "europe": {
           "name": "Europa",
@@ -233,20 +233,28 @@
           "weight": 0.2,
           "available": true,
           "metrics": {
-            "volatility_level": 27.48,
-            "percentile_history": 82.6622210823288,
-            "change_20d": -0.28999999999999915,
-            "change_60d": -9.220000000000002,
-            "as_of": "2026-09-16T00:00:00",
-            "observations": 3899
+            "volatility_level": 25.4,
+            "percentile_history": 73.86857581181283,
+            "change_20d": 3.5700000000000003,
+            "change_60d": -17.160000000000004,
+            "as_of": "2026-10-02T00:00:00",
+            "observations": 3911
           },
-          "risk_score": 3.2
+          "risk_score": 1.92
         }
       }
     },
-    "market_breadth": null,
+    "market_breadth": {
+      "score": 4.0,
+      "percent_above_sma200": 47.50499001996008,
+      "coverage": 0.9960238568588469,
+      "valid_constituents": 501,
+      "total_constituents": 503,
+      "as_of": "2026-10-05T00:00:00",
+      "available": true
+    },
     "global_liquidity": {
-      "score": 2.88,
+      "score": 2.68,
       "max_points": 8.0,
       "coverage": 0.75,
       "central_banks": {
@@ -262,20 +270,20 @@
           "weight": 0.35,
           "available": true,
           "status": "fresh",
-          "as_of": "2026-09-16T00:00:00",
-          "age_days": 2,
-          "observations": 1240,
+          "as_of": "2026-09-30T00:00:00",
+          "age_days": 6,
+          "observations": 1242,
           "history": null,
           "metrics": {
-            "current_value": 6746548.0,
-            "as_of": "2026-09-16T00:00:00",
+            "current_value": 6743031.0,
+            "as_of": "2026-09-30T00:00:00",
             "value_3m": 6735645.0,
             "value_12m": 6608395.0,
-            "change_3m_pct": 0.16187016982041058,
-            "change_12m_pct": 2.0905681334121295,
-            "percentile_3m": 47.349823321554766,
+            "change_3m_pct": 0.10965542275460649,
+            "change_12m_pct": 2.037347949085966,
+            "percentile_3m": 46.996466431095406,
             "percentile_12m": 40.51094890510949,
-            "observations": 1240
+            "observations": 1242
           },
           "risk_score": 2.0
         },
@@ -290,23 +298,23 @@
           "warning_days": 75,
           "weight": 0.25,
           "available": true,
-          "status": "stale",
-          "as_of": "2026-07-01T00:00:00",
-          "age_days": 79,
-          "observations": 347,
+          "status": "warning",
+          "as_of": "2026-08-01T00:00:00",
+          "age_days": 66,
+          "observations": 348,
           "history": null,
           "metrics": {
-            "current_value": 9492364.54798153,
-            "as_of": "2026-07-01T00:00:00",
-            "value_3m": 9767098.134321,
-            "value_12m": 9635984.312256,
-            "change_3m_pct": -2.8128476089952725,
-            "change_12m_pct": -1.4904524501124228,
-            "percentile_3m": 15.988372093023257,
-            "percentile_12m": 25.671641791044774,
-            "observations": 347
+            "current_value": 9639786.78891896,
+            "as_of": "2026-08-01T00:00:00",
+            "value_3m": 9758716.59573284,
+            "value_12m": 9730784.118244,
+            "change_3m_pct": -1.2187033576308903,
+            "change_12m_pct": -0.9351489892210241,
+            "percentile_3m": 27.82608695652174,
+            "percentile_12m": 28.273809523809522,
+            "observations": 348
           },
-          "risk_score": 2.5999999999999996
+          "risk_score": 2.0
         },
         "pboc": {
           "name": "People's Bank of China",
@@ -341,7 +349,7 @@
           "available": true,
           "status": "warning",
           "as_of": "2026-08-01T00:00:00",
-          "age_days": 48,
+          "age_days": 66,
           "observations": 341,
           "history": null,
           "metrics": {
@@ -369,17 +377,17 @@
           "series_name": "10-Year Treasury Minus 2-Year Treasury",
           "available": true,
           "metrics": {
-            "current_spread": 0.36333333333333334,
-            "as_of": "2026-09-17T00:00:00",
-            "monthly_as_of": "2026-09-30T00:00:00",
-            "observations": 12571,
-            "monthly_observations": 604,
+            "current_spread": 0.45999999999999996,
+            "as_of": "2026-10-05T00:00:00",
+            "monthly_as_of": "2026-10-31T00:00:00",
+            "observations": 12583,
+            "monthly_observations": 605,
             "inversion_start": "2022-07-31T00:00:00",
             "inversion_end": "2024-07-31T00:00:00",
             "inversion_duration_months": 25,
             "inversion_minimum_spread": -0.9289999999999999,
-            "months_since_inversion_end": 26,
-            "resteepening_from_minimum": 1.2923333333333333
+            "months_since_inversion_end": 27,
+            "resteepening_from_minimum": 1.3889999999999998
           },
           "weight": 0.4,
           "risk_score": 3.8499999999999996
@@ -389,17 +397,17 @@
           "series_name": "10-Year Treasury Minus 3-Month Treasury",
           "available": true,
           "metrics": {
-            "current_spread": 0.8758333333333334,
-            "as_of": "2026-09-17T00:00:00",
-            "monthly_as_of": "2026-09-30T00:00:00",
-            "observations": 11180,
-            "monthly_observations": 537,
+            "current_spread": 1.0833333333333333,
+            "as_of": "2026-10-05T00:00:00",
+            "monthly_as_of": "2026-10-31T00:00:00",
+            "observations": 11192,
+            "monthly_observations": 538,
             "inversion_start": "2022-11-30T00:00:00",
             "inversion_end": "2024-11-30T00:00:00",
             "inversion_duration_months": 25,
             "inversion_minimum_spread": -1.7345454545454544,
-            "months_since_inversion_end": 22,
-            "resteepening_from_minimum": 2.610378787878788
+            "months_since_inversion_end": 23,
+            "resteepening_from_minimum": 2.8178787878787874
           },
           "weight": 0.6,
           "risk_score": 4.2
@@ -466,17 +474,17 @@
       }
     },
     "broad_dollar": {
-      "score": 0.0,
+      "score": 1.25,
       "max_points": 5.0,
       "coverage": 1.0,
       "data": {
         "series": "DTWEXBGS",
-        "current_value": 118.2126,
-        "change_3m_pct": -2.2428815263701107,
-        "change_6m_pct": -2.331887470566363,
-        "as_of": "2026-09-11T00:00:00",
+        "current_value": 121.3848,
+        "change_3m_pct": 1.4046384647386834,
+        "change_6m_pct": 2.2868266046464525,
+        "as_of": "2026-10-02T00:00:00",
         "history_start": "2006-01-02T00:00:00",
-        "observations": 5188,
+        "observations": 5203,
         "error": null
       }
     },
@@ -558,13 +566,13 @@
       "region": "USA",
       "data": {
         "series_id": "ICSA",
-        "value": 196000.0,
-        "ma4": 203250.0,
+        "value": 197000.0,
+        "ma4": 200000.0,
         "low52": 199000.0,
-        "rise_from_52w_low_pct": 2.1356783919598055,
-        "as_of": "2026-09-12T00:00:00",
+        "rise_from_52w_low_pct": 0.5025125628140614,
+        "as_of": "2026-09-26T00:00:00",
         "history_start": "1967-01-07T00:00:00",
-        "observations": 3115,
+        "observations": 3117,
         "error": null
       }
     },
@@ -576,32 +584,32 @@
       "regions": {
         "USA": {
           "weight": 0.4,
-          "cape": 41.1,
-          "cape_percentile": 98.9,
+          "cape": 40.5,
+          "cape_percentile": 98.7,
           "score": 25.0,
           "max_points": 25.0,
           "error": null
         },
         "Europe": {
           "weight": 0.25,
-          "cape": 21.3,
-          "cape_percentile": 82.9,
+          "cape": 20.6,
+          "cape_percentile": 80.8,
           "score": 10.0,
           "max_points": 25.0,
           "error": null
         },
         "China": {
           "weight": 0.2,
-          "cape": 13.7,
-          "cape_percentile": 37.4,
+          "cape": 13.0,
+          "cape_percentile": 30.2,
           "score": 0.0,
           "max_points": 25.0,
           "error": null
         },
         "Emerging Markets": {
           "weight": 0.15,
-          "cape": 23.4,
-          "cape_percentile": 91.4,
+          "cape": 23.1,
+          "cape_percentile": 90.8,
           "score": 17.5,
           "max_points": 25.0,
           "error": null
@@ -610,10 +618,10 @@
       "source": "Research Affiliates",
       "retrieval_source": "Portfolio Lab",
       "url": "https://www.portfoliolab.app/tools/global-cape-valuations",
-      "as_of": "August 31, 2026",
+      "as_of": "September 30, 2026",
       "frequency": "monthly",
       "error": null
     }
   },
-  "generated_at": "2026-09-18T12:00:20+02:00"
+  "generated_at": "2026-10-06T08:33:17+02:00"
 }

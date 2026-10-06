@@ -31,3 +31,6 @@ data/screenshots/
 
 # Lokale Radar-Daten
 data/radar.csv
+
+# Lokale Zeitstempel der Länder-/Index-Updates
+data/index_constituents/*_inra_update.txt
