@@ -30,6 +30,7 @@ from utils.analysis_report import build_analysis_report_data
 from utils.analysis_pdf import build_analysis_pdf
 
 from components.investment_decision import (
+    get_investment_decision,
     render_investment_decision,
 )
 from components.analysis_overview import (
@@ -1043,6 +1044,19 @@ if ticker:
         .replace("/", "-")
         .replace("\\", "-")
     )
+
+    investment_decision = get_investment_decision(data)
+    investment_title = investment_decision.get("title")
+
+    if investment_title in {
+        "Klarer Kauf",
+        "Erste Position aufbauen",
+    }:
+        add_to_radar(
+            ticker=data["Ticker"],
+            name=data["Name"],
+            reference_price=data.get("Kurs"),
+        )
 
     with st.container(border=True):
         st.html(

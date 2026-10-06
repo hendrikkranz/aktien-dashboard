@@ -213,6 +213,18 @@ def add_investment_decision_to_data(data: dict) -> dict:
 
     data["Investment-Urteil"] = decision["title"]
 
+    if decision["title"] in {
+        "Klarer Kauf",
+        "Erste Position aufbauen",
+    }:
+        from utils.radar_store import add_to_radar
+
+        add_to_radar(
+            ticker=data.get("Ticker"),
+            name=data.get("Name"),
+            reference_price=data.get("Kurs"),
+        )
+
     return data
 
 
