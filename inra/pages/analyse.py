@@ -1,3 +1,4 @@
+from pathlib import Path
 from urllib.parse import urlparse
 
 import altair as alt
@@ -1074,7 +1075,109 @@ if ticker:
                 style="margin-bottom:0.55rem;"
             >
                 <div class="inra-section-kicker">
-                    04 · INRA-FAZIT
+                    04 · SCREENSHOTS
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        ticker = str(
+            data.get("Ticker") or ""
+        ).strip().upper()
+
+        safe_ticker = "".join(
+            char
+            for char in ticker
+            if char.isalnum() or char in "._-"
+        )
+
+        screenshot_dir = (
+            Path("data")
+            / "screenshots"
+            / safe_ticker
+        )
+        screenshot_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        uploaded_files = st.file_uploader(
+            "Screenshots hinzufügen",
+            type=["png", "jpg", "jpeg", "webp"],
+            accept_multiple_files=True,
+            key=f"screenshot_upload_{safe_ticker}",
+            help=(
+                "Zum Beispiel TradingView-Charts. "
+                "Die Bilder werden lokal für diese Aktie gespeichert."
+            ),
+        )
+
+        if uploaded_files:
+            saved_count = 0
+
+            for uploaded_file in uploaded_files:
+                filename = Path(
+                    uploaded_file.name
+                ).name
+
+                target = screenshot_dir / filename
+
+                if not target.exists():
+                    target.write_bytes(
+                        uploaded_file.getvalue()
+                    )
+                    saved_count += 1
+
+            if saved_count:
+                st.success(
+                    f"{saved_count} Screenshot"
+                    + (
+                        "" if saved_count == 1 else "s"
+                    )
+                    + " gespeichert."
+                )
+
+        image_files = sorted(
+            [
+                file
+                for file in screenshot_dir.iterdir()
+                if file.suffix.lower()
+                in {".png", ".jpg", ".jpeg", ".webp"}
+            ],
+            key=lambda file: file.stat().st_mtime,
+            reverse=True,
+        )
+
+        if image_files:
+            for image_file in image_files:
+                st.image(
+                    str(image_file),
+                    caption=image_file.name,
+                    use_container_width=True,
+                )
+        else:
+            st.caption(
+                "Noch keine Screenshots für diese Aktie gespeichert."
+            )
+
+    st.markdown(
+        "<div style='height:18px;'></div>",
+        unsafe_allow_html=True,
+    )
+
+    with st.container(border=True):
+        st.html(
+            '<span class="inra-main-section-marker"></span>'
+        )
+        st.markdown(
+            """
+            <div
+                class="inra-section-header"
+                style="margin-bottom:0.55rem;"
+            >
+                <div class="inra-section-kicker">
+                    05 · INRA-FAZIT
                 </div>
             </div>
             """,
