@@ -1294,12 +1294,12 @@ def get_ticker_index_memberships(
     return memberships
 
 
-def update_missing_index_inra_scores(
+def update_index_inra_scores(
     index_name: str,
     progress_callback=None,
 ) -> dict:
     """
-    Ergänzt fehlende quantitative InRA-Daten eines Index.
+    Aktualisiert bzw. ergänzt quantitative InRA-Daten eines Index.
 
     Verwendet ausschließlich load_company_snapshot().
     Kein Current Intelligence, keine qualitative KI-Recherche.
@@ -1313,36 +1313,17 @@ def update_missing_index_inra_scores(
     members = get_index_constituents(index_name)
     cache = load_benchmark_cache()
 
-    existing = set()
-
-    if (
-        not cache.empty
-        and "Ticker" in cache.columns
-    ):
-        existing = set(
-            cache["Ticker"]
-            .dropna()
-            .astype(str)
-            .str.strip()
-            .str.upper()
-        )
-
     tickers = (
         members["Ticker"]
         .dropna()
         .astype(str)
         .str.strip()
         .str.upper()
+        .drop_duplicates()
         .tolist()
     )
 
-    missing_tickers = [
-        ticker
-        for ticker in tickers
-        if ticker not in existing
-    ]
-
-    total = len(missing_tickers)
+    total = len(tickers)
 
     if total == 0:
         return {
@@ -1355,7 +1336,7 @@ def update_missing_index_inra_scores(
     failed = []
 
     for position, ticker in enumerate(
-        missing_tickers,
+        tickers,
         start=1,
     ):
         if progress_callback is not None:
@@ -1379,12 +1360,32 @@ def update_missing_index_inra_scores(
     if results:
         new_rows = pd.DataFrame(results)
 
+        successful_tickers = set(
+            new_rows["Ticker"]
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+
         if cache.empty:
             updated_cache = new_rows
         else:
+            cache_tickers = (
+                cache["Ticker"]
+                .fillna("")
+                .astype(str)
+                .str.strip()
+                .str.upper()
+            )
+
+            preserved_cache = cache[
+                ~cache_tickers.isin(successful_tickers)
+            ].copy()
+
             updated_cache = pd.concat(
                 [
-                    cache,
+                    preserved_cache,
                     new_rows,
                 ],
                 ignore_index=True,

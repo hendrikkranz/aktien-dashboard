@@ -21,7 +21,7 @@ from utils.country_market_data import (
     get_index_inra_update_timestamp,
     get_index_market_snapshot,
     save_index_inra_update_timestamp,
-    update_missing_index_inra_scores,
+    update_index_inra_scores,
 )
 from utils.data_loader import (
     load_benchmark_cache,
@@ -307,10 +307,10 @@ def render_country(
 
     with button_col:
         update_clicked = st.button(
-            "🔄 Fehlende InRA-Bewertungen ergänzen",
+            "🔄 InRA-Bewertungen aktualisieren",
             key=f"{key_prefix}_{index_name.lower()}_inra_update",
             help=(
-                "Ergänzt ausschließlich fehlende quantitative "
+                "Aktualisiert vorhandene und ergänzt fehlende quantitative "
                 "InRA-Bewertungen. Keine KI-Recherche und keine "
                 "kostenpflichtigen API-Aufrufe."
             ),
@@ -338,21 +338,20 @@ def render_country(
             )
             status.caption(label)
 
-        result = update_missing_index_inra_scores(
+        result = update_index_inra_scores(
             index_name,
             progress_callback=update_progress,
         )
 
         if result["total"] == 0:
             status.success(
-                "Alle Indexmitglieder sind bereits im "
-                "Benchmark-Cache vorhanden."
+                "Keine Aktien zum Aktualisieren vorhanden."
             )
         else:
             status.success(
                 f"{result['updated']} von "
-                f"{result['total']} fehlenden Aktien "
-                "quantitativ ergänzt."
+                f"{result['total']} Aktien "
+                "quantitativ aktualisiert."
             )
 
             if result["failed"]:
@@ -775,6 +774,79 @@ def render_rest_of_world():
             else f" · {region}"
         )
     )
+
+    button_col, date_col = st.columns(
+        [0.42, 0.58],
+        vertical_alignment="center",
+    )
+
+    with button_col:
+        update_clicked = st.button(
+            "🔄 InRA-Bewertungen aktualisieren",
+            key="rest_of_world_inra_update",
+            help=(
+                "Aktualisiert vorhandene und ergänzt fehlende quantitative "
+                "InRA-Bewertungen. Keine KI-Recherche und keine "
+                "kostenpflichtigen API-Aufrufe."
+            ),
+        )
+
+    with date_col:
+        last_update = get_index_inra_update_timestamp(
+            "Weitere Märkte"
+        )
+
+        if last_update:
+            st.caption(
+                f"Zuletzt aktualisiert: {last_update}"
+            )
+        else:
+            st.caption("Noch nicht aktualisiert")
+
+    if update_clicked:
+        progress = st.progress(0)
+        status = st.empty()
+
+        def update_progress(value, label):
+            progress.progress(
+                min(max(float(value), 0.0), 1.0)
+            )
+            status.caption(label)
+
+        result = update_index_inra_scores(
+            "Weitere Märkte",
+            progress_callback=update_progress,
+        )
+
+        if result["total"] == 0:
+            status.success(
+                "Keine Aktien zum Aktualisieren vorhanden."
+            )
+        else:
+            status.success(
+                f"{result['updated']} von "
+                f"{result['total']} Aktien "
+                "quantitativ aktualisiert."
+            )
+
+            if result["failed"]:
+                st.warning(
+                    f"{len(result['failed'])} Aktien konnten "
+                    "nicht aktualisiert werden."
+                )
+
+        update_timestamp = (
+            datetime.now().strftime("%d.%m.%Y %H:%M")
+        )
+
+        save_index_inra_update_timestamp(
+            "Weitere Märkte",
+            update_timestamp,
+        )
+
+        time.sleep(5)
+        status.empty()
+        progress.empty()
 
     benchmark = load_benchmark_cache()
 
