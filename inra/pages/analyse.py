@@ -631,7 +631,7 @@ if ticker:
                 text-align:center;
                 color:#9ca3af;
                 font-size:0.875rem;
-                margin-top:-22px;
+                margin-top:8px;
                 margin-bottom:2px;
                 white-space:nowrap;
             ">
