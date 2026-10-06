@@ -1377,14 +1377,14 @@ def _market_overview_metric_text(item, period_key):
     if unit == "%":
         current_text = f"{current:.2f} %"
         change_text = (
-            f"{change:+.2f} pp"
+            f"{change:+.2f} PP"
             if change is not None
             else "–"
         )
     elif unit == "pp":
-        current_text = f"{current:.2f} pp"
+        current_text = f"{current:.2f} %"
         change_text = (
-            f"{change:+.2f} pp"
+            f"{change:+.2f} PP"
             if change is not None
             else "–"
         )
@@ -1483,10 +1483,10 @@ def render_market_overview_card(item, period_key):
 
     if unit == "%":
         current_text = f"{current:.2f} %"
-        change_text = f"{change:+.2f} pp" if change is not None else "–"
+        change_text = f"{change:+.2f} PP" if change is not None else "–"
     elif unit == "pp":
-        current_text = f"{current:.2f} pp"
-        change_text = f"{change:+.2f} pp" if change is not None else "–"
+        current_text = f"{current:.2f} %"
+        change_text = f"{change:+.2f} PP" if change is not None else "–"
     else:
         current_text = f"{current:,.1f}".replace(",", " ")
         change_text = f"{change:+.1f} %" if change is not None else "–"
