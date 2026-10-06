@@ -165,7 +165,6 @@ def check_benchmark_cache_health() -> dict:
 CORE_CACHE_FIELDS = (
     "Kurs",
     "Unternehmensqualität",
-    "Kaufchance Basis",
     "Kaufchance",
 )
 
