@@ -98,9 +98,38 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.sidebar.title(APP_NAME)
-st.sidebar.caption(APP_SUBTITLE)
-st.sidebar.caption("Version 0.1")
+st.sidebar.markdown(
+    """
+    <div style="margin-bottom: 1.25rem;">
+        <div style="
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 0.65rem;
+        ">
+            InRA
+        </div>
+        <div style="
+            font-size: 0.82rem;
+            line-height: 1.45;
+            color: #a9b1bd;
+        ">
+            Investment<br>
+            Research<br>
+            Assistant
+        </div>
+        <div style="
+            font-size: 0.75rem;
+            line-height: 1.4;
+            color: #7f8997;
+            margin-top: 0.9rem;
+        ">
+            Version 0.1
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 from utils.data_health import (
     check_benchmark_cache_health,
