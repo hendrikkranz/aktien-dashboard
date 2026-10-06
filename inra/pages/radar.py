@@ -12,6 +12,22 @@ st.caption(
 
 radar = load_radar()
 
+radar_table_state = st.session_state.get("radar_table")
+
+if radar_table_state:
+    selected_rows = radar_table_state.get("selection", {}).get("rows", [])
+
+    if selected_rows:
+        selected_row = selected_rows[0]
+
+        if 0 <= selected_row < len(radar):
+            selected_ticker = str(
+                radar.iloc[selected_row]["Ticker"]
+            ).strip()
+
+            st.session_state["analyse_ticker"] = selected_ticker
+            st.switch_page("pages/analyse.py")
+
 if radar.empty:
     st.info(
         "Noch keine Aktien auf dem Radar. "
@@ -96,6 +112,7 @@ display["Seit Aufnahme"] = display["Seit Aufnahme"].apply(
 
 table_state = st.dataframe(
     display,
+    key="radar_table",
     width="stretch",
     hide_index=True,
     on_select="rerun",

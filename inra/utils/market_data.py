@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
+import streamlit as st
 import yfinance as yf
 
 from modules.opportunity_score import (
@@ -560,6 +561,7 @@ def load_momentum_metrics(ticker: str) -> dict:
     }
 
 
+@st.cache_data(ttl=900)
 def load_company_snapshot(ticker: str) -> dict:
     ticker_obj = yf.Ticker(ticker)
     info = ticker_obj.get_info()
