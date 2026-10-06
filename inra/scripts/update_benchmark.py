@@ -129,10 +129,49 @@ def update_benchmark(progress_callback=None) -> None:
         except Exception as error:
             print(f"Fehler bei {ticker}: {error}")
 
-    pd.DataFrame(results).to_csv(
-        OUTPUT_PATH,
-        index=False,
-    )
+    if results:
+        new_rows = pd.DataFrame(results)
+
+        successful_tickers = set(
+            new_rows["Ticker"]
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+
+        if OUTPUT_PATH.exists():
+            cache = pd.read_csv(OUTPUT_PATH)
+        else:
+            cache = pd.DataFrame()
+
+        if cache.empty:
+            updated_cache = new_rows
+        else:
+            cache_tickers = (
+                cache["Ticker"]
+                .fillna("")
+                .astype(str)
+                .str.strip()
+                .str.upper()
+            )
+
+            preserved_cache = cache[
+                ~cache_tickers.isin(successful_tickers)
+            ].copy()
+
+            updated_cache = pd.concat(
+                [
+                    preserved_cache,
+                    new_rows,
+                ],
+                ignore_index=True,
+            )
+
+        updated_cache.to_csv(
+            OUTPUT_PATH,
+            index=False,
+        )
 
     if progress_callback is not None:
         progress_callback(
