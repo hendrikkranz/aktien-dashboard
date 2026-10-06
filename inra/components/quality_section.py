@@ -791,6 +791,14 @@ def render_quality_section(data: dict) -> None:
             save_qualitative_quality_research(
                 research_preview
             )
+
+            # Der Company-Snapshot enthält auch die qualitative
+            # Bewertung. Nach dem Speichern muss deshalb der
+            # gecachte Snapshot neu aufgebaut werden.
+            from utils.market_data import load_company_snapshot
+
+            load_company_snapshot.clear()
+
             del st.session_state[
                 "qualitative_research_preview"
             ]
