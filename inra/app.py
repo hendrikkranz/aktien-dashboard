@@ -14,33 +14,33 @@ pages = {
         st.Page(
             "pages/start.py",
             title="Marktlage",
-            icon="🏠",
+            icon=":material/show_chart:",
             default=True,
         ),
         st.Page(
             "pages/scout.py",
             title="Scout",
-            icon="🔎",
+            icon=":material/search:",
         ),
         st.Page(
             "pages/radar.py",
             title="Radar",
-            icon="📡",
+            icon=":material/radar:",
         ),
         st.Page(
             "pages/analyse.py",
             title="Analyse",
-            icon="📊",
+            icon=":material/calculate:",
         ),
         st.Page(
             "pages/countries.py",
             title="Länder",
-            icon="🌍",
+            icon=":material/public:",
         ),
         st.Page(
             "pages/systemstatus.py",
             title="Systemstatus",
-            icon="⚙️",
+            icon=":material/settings:",
         ),
     ],
 }
@@ -52,36 +52,35 @@ st.markdown(
     <style>
     /* Kompakte InRA-Navigation */
     [data-testid="stSidebar"] {
-        width: 180px !important;
-        min-width: 180px !important;
-        max-width: 180px !important;
+        width: 210px !important;
+        min-width: 210px !important;
+        max-width: 210px !important;
 
-        background-color: #050b14;
-        background-image:
+        background:
             radial-gradient(
-                circle,
-                rgba(32, 112, 230, 0.42) 1px,
-                transparent 1.3px
+                circle at 30% 20%,
+                rgba(37, 99, 235, 0.22),
+                transparent 35%
             ),
             radial-gradient(
-                circle,
-                rgba(22, 83, 170, 0.28) 0.7px,
-                transparent 1px
+                circle at 80% 70%,
+                rgba(30, 64, 175, 0.18),
+                transparent 40%
+            ),
+            linear-gradient(
+                180deg,
+                #020617 0%,
+                #071426 45%,
+                #030712 100%
             );
-        background-size:
-            24px 24px,
-            18px 18px;
-        background-position:
-            2px 5px,
-            0 0;
     }
 
     [data-testid="stSidebar"] > div:first-child {
-        width: 180px !important;
+        width: 210px !important;
     }
 
     [data-testid="stSidebarContent"] {
-        width: 180px !important;
+        width: 210px !important;
     }
 
     /* Etwas kompaktere Innenabstände */
@@ -93,6 +92,22 @@ st.markdown(
         padding-left: 1rem;
         padding-right: 1rem;
     }
+
+    /* InRA Navigation Styling */
+    [data-testid="stSidebarNav"] span {
+        color: #93c5fd !important;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
+
+    [data-testid="stSidebarNav"] a[aria-current="page"] span {
+        color: #f8fafc !important;
+        text-shadow:
+            0 0 10px rgba(147, 197, 253, 0.9),
+            0 0 22px rgba(37, 99, 235, 0.75);
+    }
+
     </style>
     """,
     unsafe_allow_html=True,
