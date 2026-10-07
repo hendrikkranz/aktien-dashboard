@@ -651,8 +651,17 @@ def render_quality_section(data: dict) -> None:
             f"Letzte qualitative Analyse: {latest_analysis_date}"
         )
 
+    qualitative_analysis_exists = bool(analysis_dates)
+
+    qualitative_button_label = (
+        "🔄 Qualitative Analyse aktualisieren (API-Kosten: ca. 1–2 Ct.)"
+        if qualitative_analysis_exists
+        else
+        "✨ Qualitative Analyse erstellen (API-Kosten: ca. 1–2 Ct.)"
+    )
+
     if st.button(
-        "🔄 Qualitative Analyse aktualisieren (API-Kosten: ca. 1–2 Ct.)",
+        qualitative_button_label,
         key=f"qualitative_research_{data.get('Ticker')}",
     ):
         try:
@@ -824,7 +833,14 @@ def render_quality_section(data: dict) -> None:
             ]
             st.rerun()
 
-    if qualitative_score is not None:
+    if (
+        not qualitative_analysis_exists
+        and research_preview is None
+    ):
+        st.markdown(
+            "**Qualitative Analyse noch nicht durchgeführt**"
+        )
+    elif qualitative_score is not None:
         st.markdown(
             f"**{qualitative_score} / 100** · "
             f"{evaluable_factors} von {total_factors} Faktoren bewertbar"
