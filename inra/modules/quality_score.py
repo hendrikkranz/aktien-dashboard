@@ -950,7 +950,16 @@ def calculate_quality_breakdown(data: dict) -> dict:
     }
 
 
-def calculate_quality_score(data: dict) -> int:
+def calculate_quality_score(data: dict) -> Optional[int]:
+    industry_model = get_industry_model(
+        data.get("Sektor", ""),
+        data.get("Branche", ""),
+        data.get("Ticker", ""),
+    )
+
+    if industry_model == "diversified_holding":
+        return None
+
     breakdown = calculate_quality_breakdown(data)
 
     score_weights = {

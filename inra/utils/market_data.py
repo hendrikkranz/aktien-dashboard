@@ -18,6 +18,7 @@ from modules.quality_score import (
 from modules.real_estate_quality_score import (
     calculate_real_estate_quality_score,
 )
+from config.industry_mapping import get_industry_model
 from utils.real_estate_quality_data import (
     REAL_ESTATE_DATA_LOADERS,
     load_real_estate_quality_data,
@@ -1661,6 +1662,12 @@ def load_company_snapshot(ticker: str) -> dict:
         ticker,
     )
 
+    snapshot["Industry Model"] = get_industry_model(
+        snapshot.get("Sektor", ""),
+        snapshot.get("Branche", ""),
+        ticker,
+    )
+
     real_estate_quality = None
     real_estate_quality_data = None
 
@@ -1728,7 +1735,10 @@ def load_company_snapshot(ticker: str) -> dict:
         else quantitative_quality
     )
 
-    if is_real_estate and real_estate_quality is None:
+    if (
+        (is_real_estate and real_estate_quality is None)
+        or snapshot.get("Industry Model") == "diversified_holding"
+    ):
         snapshot["Quality Breakdown"] = {}
     else:
         snapshot["Quality Breakdown"] = (

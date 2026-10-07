@@ -880,6 +880,21 @@ def render_quality_section(data: dict) -> None:
         return
 
     if (
+        data.get("Industry Model") == "diversified_holding"
+        and data.get("Quantitative Quality") is None
+    ):
+        st.markdown(
+            "#### 📊 2. Kennzahlenbasierte Qualität (60%)"
+        )
+        st.info(
+            "Aufgrund der diversifizierten Holdingstruktur ist die "
+            "kennzahlenbasierte Unternehmensqualität mit dem "
+            "standardisierten InRA-Modell nur eingeschränkt vergleichbar. "
+            "Es wird daher derzeit kein quantitativer Quality-Score vergeben."
+        )
+        return
+
+    if (
         data.get("Sektor") == "Real Estate"
         and data.get("Quantitative Quality") is None
     ):
