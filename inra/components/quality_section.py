@@ -423,9 +423,24 @@ def render_quality_section(data: dict) -> None:
         )
         return
 
-    rating, icon, border = _quality_rating(
-        quality_score
+    is_restricted_holding = (
+        data.get("Industry Model") == "diversified_holding"
+        and quality_score is None
     )
+
+    if is_restricted_holding:
+        st.markdown("## 🏢 Unternehmensqualität")
+        st.info(
+            "Aufgrund der diversifizierten Holdingstruktur ist die "
+            "Unternehmensqualität mit dem standardisierten InRA-Modell "
+            "nur eingeschränkt bewertbar. "
+            "Es wird daher derzeit kein Quality-Score vergeben."
+        )
+        rating = icon = border = None
+    else:
+        rating, icon, border = _quality_rating(
+            quality_score
+        )
 
     basis_quality = data.get("Basis Quality")
     quantitative_quality = data.get("Quantitative Quality")

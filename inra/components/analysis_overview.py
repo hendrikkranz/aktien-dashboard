@@ -268,13 +268,12 @@ def _overview_card(
     )
 
     if score is None:
-        score_label = "–"
+        button_label = "Warum keine Bewertung?"
     else:
         score_label = str(round(score))
-
-    button_label = (
-        f"Warum {score_label} von {maximum} Punkten?"
-    )
+        button_label = (
+            f"Warum {score_label} von {maximum} Punkten?"
+        )
 
     if st.button(
         button_label,
