@@ -91,6 +91,13 @@ st.markdown(
             #090d14;
     }
 
+    /* Aktive Zeitraum-Auswahl im InRA-Blau */
+    button[data-testid="stBaseButton-segmented_controlActive"] {
+        background: #2563eb !important;
+        border-color: #3b82f6 !important;
+        color: #ffffff !important;
+    }
+
     /* Haupttypografie etwas klarer und kontrastreicher */
     [data-testid="stAppViewContainer"] h1,
     [data-testid="stAppViewContainer"] h2,
