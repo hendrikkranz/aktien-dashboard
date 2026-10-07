@@ -5,9 +5,14 @@ import streamlit as st
 
 from utils.qualitative_research import (
     research_qualitative_quality_with_gemini,
+    research_special_quantitative_quality_with_gemini,
 )
 from utils.qualitative_quality import (
     save_qualitative_quality_research,
+)
+from utils.special_quantitative_quality import (
+    get_special_quantitative_quality_details,
+    save_special_quantitative_quality_research,
 )
 
 from utils.fundamental_interpreter import (
@@ -907,6 +912,188 @@ def render_quality_section(data: dict) -> None:
             "standardisierten InRA-Modell nur eingeschränkt vergleichbar. "
             "Es wird daher derzeit kein quantitativer Quality-Score vergeben."
         )
+
+        ticker = data.get("Ticker")
+        special_details = (
+            get_special_quantitative_quality_details(ticker)
+            if ticker
+            else {}
+        )
+
+        analysis_dates = [
+            details.get("date")
+            for details in special_details.values()
+            if details.get("date")
+        ]
+
+        if analysis_dates:
+            latest_analysis_date = max(analysis_dates)
+            date_parts = str(latest_analysis_date).split("-")
+
+            if len(date_parts) == 3:
+                latest_analysis_date = (
+                    f"{date_parts[2]}.{date_parts[1]}.{date_parts[0]}"
+                )
+
+            st.caption(
+                "Letzte ergänzende Kennzahlenanalyse: "
+                f"{latest_analysis_date}"
+            )
+
+        button_label = (
+            "🔄 Ergänzende Kennzahlenanalyse aktualisieren "
+            "(API-Kosten: ca. 1–2 Ct.)"
+            if special_details
+            else
+            "✨ Ergänzende Kennzahlenanalyse erstellen "
+            "(API-Kosten: ca. 1–2 Ct.)"
+        )
+
+        if st.button(
+            button_label,
+            key=f"special_quantitative_research_{ticker}",
+        ):
+            try:
+                with st.spinner(
+                    "Ergänzende Kennzahlenanalyse wird recherchiert ..."
+                ):
+                    research_result = (
+                        research_special_quantitative_quality_with_gemini(
+                            api_key=st.secrets["GEMINI_API_KEY"],
+                            ticker=ticker,
+                            company_name=data.get("Name"),
+                            sector=data.get("Sektor"),
+                            industry=data.get("Branche"),
+                        )
+                    )
+
+                st.session_state[
+                    "special_quantitative_research_preview"
+                ] = research_result
+
+            except Exception as exc:
+                st.error(
+                    "Die ergänzende Kennzahlenanalyse konnte nicht "
+                    "verarbeitet werden. Bitte erneut versuchen."
+                )
+                st.caption(
+                    f"Technischer Hinweis: {exc}"
+                )
+
+        research_preview = st.session_state.get(
+            "special_quantitative_research_preview"
+        )
+
+        if (
+            research_preview is not None
+            and research_preview.get("Ticker") == ticker
+        ):
+            st.info(
+                "Neue ergänzende Kennzahlenanalyse – "
+                "noch nicht gespeichert"
+            )
+
+            preview_icons = {
+                "Stark": "🟢",
+                "Solide": "🟡",
+                "Schwach": "🔴",
+                "Nicht belastbar bewertbar": "⚪",
+            }
+
+            for dimension, details in research_preview.get(
+                "Dimensionen",
+                {},
+            ).items():
+                rating = details.get(
+                    "Urteil",
+                    "Nicht belastbar bewertbar",
+                )
+                icon = preview_icons.get(rating, "⚪")
+
+                st.markdown(
+                    f"##### {icon} {dimension} · {rating}"
+                )
+
+                metrics = details.get("Kennzahlen", [])
+                if metrics:
+                    st.caption(
+                        "**Verwendete Kennzahlen:** "
+                        + " · ".join(metrics)
+                    )
+
+                reason = details.get("Begründung")
+                if reason:
+                    st.caption(reason)
+
+            source_count = len(
+                research_preview.get("Quellen", [])
+            )
+            search_count = len(
+                research_preview.get("Suchanfragen", [])
+            )
+
+            if source_count > 0:
+                st.caption(
+                    f"Mit Web-Recherche · {source_count} Quellen · "
+                    f"{search_count} Suchanfragen"
+                )
+            else:
+                st.warning(
+                    "Keine verifizierten Web-Quellen verfügbar. "
+                    "Die Sonderanalyse sollte in diesem Fall nicht "
+                    "als belastbare Kennzahlenanalyse übernommen werden."
+                )
+
+            if st.button(
+                "Sonderanalyse übernehmen",
+                key=f"save_special_quantitative_{ticker}",
+                type="primary",
+                disabled=source_count == 0,
+            ):
+                save_special_quantitative_quality_research(
+                    research_preview
+                )
+                del st.session_state[
+                    "special_quantitative_research_preview"
+                ]
+                st.rerun()
+
+        if special_details:
+            rating_icons = {
+                "Stark": "🟢",
+                "Solide": "🟡",
+                "Schwach": "🔴",
+                "Nicht belastbar bewertbar": "⚪",
+            }
+
+            for dimension, details in special_details.items():
+                rating = details.get(
+                    "rating",
+                    "Nicht belastbar bewertbar",
+                )
+                icon = rating_icons.get(rating, "⚪")
+
+                st.markdown(
+                    f"##### {icon} {dimension} · {rating}"
+                )
+
+                metrics = details.get("metrics", [])
+                if metrics:
+                    st.caption(
+                        "**Verwendete Kennzahlen:** "
+                        + " · ".join(metrics)
+                    )
+
+                reason = details.get("reason")
+                if reason:
+                    st.caption(reason)
+
+            st.caption(
+                "Ergänzende KI-gestützte Kennzahlenanalyse. "
+                "Sie ersetzt keinen regulären quantitativen "
+                "InRA-Quality-Score."
+            )
+
         return
 
     if (

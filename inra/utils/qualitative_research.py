@@ -519,3 +519,229 @@ def research_qualitative_quality_with_gemini(
             response
         ),
     }
+
+
+SPECIAL_QUANT_DIMENSIONS = (
+    "Ertragskraft",
+    "Wertentwicklung / wirtschaftliche Substanz",
+    "Finanzielle Stabilität",
+)
+
+SPECIAL_QUANT_RATINGS = (
+    "Stark",
+    "Solide",
+    "Schwach",
+    "Nicht belastbar bewertbar",
+)
+
+
+def build_special_quantitative_research_prompt(
+    ticker: str,
+    company_name: str,
+    sector: Optional[str] = None,
+    industry: Optional[str] = None,
+) -> str:
+    return (
+        f"Unternehmen: {company_name} ({ticker})\n"
+        f"Sektor: {sector or 'Nicht angegeben'}\n"
+        f"Branche: {industry or 'Nicht angegeben'}\n\n"
+
+        "Das standardisierte quantitative InRA-Quality-Modell ist für "
+        "dieses Unternehmen aufgrund seiner diversifizierten Holding- bzw. "
+        "Konzernstruktur nicht ausreichend aussagekräftig.\n\n"
+
+        "Erstelle deshalb eine ergänzende kennzahlenbasierte Analyse. "
+        "Verwende für jedes Unternehmen dieselben drei Bewertungsdimensionen, "
+        "wähle innerhalb dieser Dimensionen aber nur solche finanziellen "
+        "Kennzahlen aus, die für das konkrete Geschäftsmodell wirtschaftlich "
+        "aussagekräftig und aus belastbaren Quellen verfügbar sind.\n\n"
+
+        "Die Analyse darf KEINE individuelle zusätzliche Bewertungsdimension "
+        "erfinden und KEIN eigenes Sondermodell für das einzelne Unternehmen "
+        "entwickeln.\n\n"
+
+        "Nutze zwingend die bereitgestellte Google-Suche. Bevorzuge "
+        "Geschäftsberichte, regulatorische Veröffentlichungen und "
+        "Investor-Relations-Unterlagen. Sekundärquellen nur ergänzend.\n\n"
+
+        "Bewerte ausschließlich diese drei Dimensionen:\n\n"
+
+        "1. Ertragskraft\n"
+        "Ermittle die für die Unternehmensstruktur aussagekräftigsten "
+        "Kennzahlen für nachhaltige Ertrags- oder Cashflowkraft. "
+        "Beurteile möglichst die Entwicklung über mehrere Jahre. "
+        "Verwende keine Kennzahl nur deshalb, weil sie bei klassischen "
+        "Industrieunternehmen üblich ist.\n\n"
+
+        "2. Wertentwicklung / wirtschaftliche Substanz\n"
+        "Ermittle belastbare finanzielle Größen, die die langfristige "
+        "wirtschaftliche Wert- oder Substanzentwicklung des Unternehmens "
+        "abbilden. Wenn keine ausreichend belastbare und vergleichbare "
+        "Größe verfügbar ist, muss die Dimension als nicht belastbar "
+        "bewertbar gekennzeichnet werden.\n\n"
+
+        "3. Finanzielle Stabilität\n"
+        "Ermittle die für die konkrete Konzernstruktur aussagekräftigen "
+        "Kennzahlen zu Verschuldung, Liquidität und Finanzierung. "
+        "Berücksichtige strukturelle Unterschiede zwischen Holding- bzw. "
+        "Muttergesellschaft und Beteiligungen, wenn diese für die "
+        "wirtschaftliche Beurteilung wesentlich sind.\n\n"
+
+        "Kapitalallokation, Management, Governance, Wettbewerbsvorteile, "
+        "Dividendenpolitik und allgemeine strukturelle Geschäftsrisiken "
+        "NICHT bewerten. Diese Themen werden in anderen InRA-Modulen "
+        "bereits separat beurteilt.\n\n"
+
+        "Für jede Dimension ist genau eines dieser Urteile zulässig:\n"
+        "- Stark\n"
+        "- Solide\n"
+        "- Schwach\n"
+        "- Nicht belastbar bewertbar\n\n"
+
+        "Gib ausschließlich ein JSON-Array mit genau drei Objekten zurück. "
+        "Jedes Objekt enthält:\n"
+        '- "Dimension": exakter Name der Dimension\n'
+        '- "Urteil": eines der vier zulässigen Urteile\n'
+        '- "Kennzahlen": Liste der tatsächlich verwendeten Kennzahlen\n'
+        '- "Begründung": kurze, faktenbasierte Begründung der Einordnung\n\n'
+
+        "Keine numerische Punktzahl und keinen Gesamt-Quality-Score "
+        "berechnen. Fehlende oder ungeeignete Daten niemals als schlechte "
+        "Bewertung interpretieren. In diesem Fall "
+        '"Nicht belastbar bewertbar" verwenden.\n\n'
+
+        "Keine Quellenfelder im JSON erzeugen. Quellen werden technisch "
+        "aus den Google-Grounding-Metadaten übernommen."
+    )
+
+
+def research_special_quantitative_quality_with_gemini(
+    api_key: str,
+    ticker: str,
+    company_name: str,
+    sector: Optional[str] = None,
+    industry: Optional[str] = None,
+    model: str = "gemini-3.6-flash",
+) -> dict:
+    client = genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(
+            timeout=90000,
+            retryOptions=types.HttpRetryOptions(
+                attempts=1,
+            ),
+        ),
+    )
+
+    prompt = build_special_quantitative_research_prompt(
+        ticker=ticker,
+        company_name=company_name,
+        sector=sector,
+        industry=industry,
+    )
+
+    original_getaddrinfo = socket.getaddrinfo
+
+    def ipv4_only(*args, **kwargs):
+        results = original_getaddrinfo(*args, **kwargs)
+        return [
+            item
+            for item in results
+            if item[0] == socket.AF_INET
+        ]
+
+    socket.getaddrinfo = ipv4_only
+
+    try:
+        response = client.models.generate_content(
+            model=model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.0,
+                tools=[
+                    types.Tool(
+                        google_search=types.GoogleSearch()
+                    )
+                ],
+            ),
+        )
+    finally:
+        socket.getaddrinfo = original_getaddrinfo
+
+    raw_dimensions = _parse_json_response(
+        response.text
+    )
+
+    dimensions = {}
+
+    for item in raw_dimensions:
+        dimension = item.get("Dimension")
+
+        if dimension not in SPECIAL_QUANT_DIMENSIONS:
+            continue
+
+        rating = item.get("Urteil")
+        metrics = item.get("Kennzahlen")
+        reason = item.get("Begründung")
+
+        if rating not in SPECIAL_QUANT_RATINGS:
+            rating = "Nicht belastbar bewertbar"
+
+        if not isinstance(metrics, list):
+            metrics = []
+
+        metrics = [
+            str(metric).strip()
+            for metric in metrics
+            if str(metric).strip()
+        ]
+
+        dimensions[dimension] = {
+            "Urteil": rating,
+            "Kennzahlen": metrics,
+            "Begründung": reason,
+        }
+
+    for dimension in SPECIAL_QUANT_DIMENSIONS:
+        if dimension not in dimensions:
+            dimensions[dimension] = {
+                "Urteil": "Nicht belastbar bewertbar",
+                "Kennzahlen": [],
+                "Begründung": None,
+            }
+
+    candidate = response.candidates[0]
+    grounding_metadata = getattr(
+        candidate,
+        "grounding_metadata",
+        None,
+    )
+
+    grounding_chunks = (
+        getattr(
+            grounding_metadata,
+            "grounding_chunks",
+            None,
+        )
+        if grounding_metadata is not None
+        else None
+    )
+
+    search_queries = _extract_search_queries(
+        response
+    )
+
+    return {
+        "Ticker": ticker,
+        "Typ": "special_quantitative_quality",
+        "Dimensionen": dimensions,
+        "Quellen": _extract_grounding_sources(
+            response
+        ),
+        "Suchanfragen": search_queries,
+        "Grounding Diagnose": {
+            "Metadata": grounding_metadata is not None,
+            "Chunks": len(grounding_chunks or []),
+            "Suchanfragen": len(search_queries),
+        },
+    }
